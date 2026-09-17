@@ -85,10 +85,15 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
     .sort((a, b) => a.sira - b.sira)
   const secili = temalar[Math.min(sekme, Math.max(0, temalar.length - 1))]
   const temaKareler = secili ? v.kareler.filter(k => k.tema === secili.id) : []
-  const kazanan = temaKareler[0]
-  const kursu = temaKareler.filter(k => k.sirali).slice(1, 3)
-  const liste = temaKareler.filter(k => k.sirali).slice(3)
-  const galeri = temaKareler.filter(k => !k.sirali)
+  // Hiçbir kare puan almadıysa ödül ve sıralama yok: sıra puana göre kurulduğu için
+  // en üstteki karenin puanı yoksa temada hiç oy yok demektir.
+  const oylanmadi = temaKareler.length > 0 && temaKareler[0].ortalama == null && !temaKareler[0].benim
+    ? true
+    : temaKareler.length > 0 && temaKareler.every(k => k.ortalama == null)
+  const kazanan = oylanmadi ? null : temaKareler[0]
+  const kursu = oylanmadi ? [] : temaKareler.filter(k => k.sirali).slice(1, 3)
+  const liste = oylanmadi ? [] : temaKareler.filter(k => k.sirali).slice(3)
+  const galeri = oylanmadi ? temaKareler : temaKareler.filter(k => !k.sirali)
 
   return (
     <div className="sc">
@@ -120,6 +125,14 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
             ))}
           </div>
 
+          {oylanmadi && (
+            <div className="bos-tema">
+              <b>{secili.ad}</b>
+              <h3>Bu temada<br />oylama olmadı</h3>
+              <p>Bu temadaki karelere kimse puan vermedi, o yüzden sıralama ve ödül yok. Kareler aşağıda duruyor.</p>
+            </div>
+          )}
+
           {kazanan && (
             <div className="odul">
               <span className="lab">Temanın karesi</span>
@@ -130,7 +143,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
               <div className="serit">
                 <b>{secili.ad}</b>
                 <span className="ad">{kazanan.sahip_ad}</span>
-                <span className="ort">{kazanan.ortalama == null ? 'Puan yok' : puanYaz(kazanan.ortalama)}</span>
+                <span className="ort">{puanYaz(kazanan.ortalama)}</span>
               </div>
             </div>
           )}
@@ -161,7 +174,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
 
           {galeri.length > 0 && (
             <>
-              <div className="sec">{secili.ad} galerisi<span>{galeri.length} kare</span></div>
+              <div className="sec">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></div>
               <div className="izgara">
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => setDetay(k)}>
@@ -171,7 +184,9 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
                   </figure>
                 ))}
               </div>
-              <p className="veri">Sıralamaya girmeyen karelerin puanı gösterilmiyor. Kendi puanını her zaman görürsün.</p>
+              {!oylanmadi && (
+                <p className="veri">Sıralamaya girmeyen karelerin puanı gösterilmiyor. Kendi puanını her zaman görürsün.</p>
+              )}
             </>
           )}
         </>

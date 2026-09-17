@@ -536,6 +536,13 @@ await A.unroute('**/rest/v1/etkinlikler*');
   await admin.from('oylar').upsert({ kare: selinin.id, veren: A.kimlik, puan: 5 }, { onConflict: 'kare,veren' });
   globalThis.selininKaresi = selinin.id;
 }
+// hiç oy almamış bir tema: ödül verilmemeli
+{
+  const t3 = (await admin.from('temalar').insert({ etkinlik: ev.id, ad: 'Gece', sira: 3, bulusmada: true }).select('id').single()).data;
+  const yol4 = `${ev.id}/${t3.id}/${crypto.randomUUID()}.jpg`;
+  await admin.storage.from('kareler').upload(yol4, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await admin.from('kareler').insert({ tema: t3.id, sahip: ucuncu.id, dosya: yol4, genislik: 1200, yukseklik: 800, cekim_gunu: bugun });
+}
 await admin.from('etkinlikler').update({
   yukleme_biter: new Date(Date.now() - 3000).toISOString(),
   oylama_biter: new Date(Date.now() - 1000).toISOString(),
@@ -550,12 +557,21 @@ bekle('sonuç sayfası açıldı', icerir(await metin(A), 'Sonuçlandı'), (awai
 bekle('temanın karesi var', (await A.locator('.odul img').count()) === 1);
 bekle('kazanan en yüksek puanı alan', icerir(await yaz(A, '.odul .serit'), 'Deniz Akın'), await yaz(A, '.odul .serit'));
 bekle('kazananın puanı var', /\d,\d/.test(await yaz(A, '.odul .serit .ort')), await yaz(A, '.odul .serit .ort'));
-bekle('tema sekmeleri', (await A.locator('.sekmeler button').count()) === 2);
+bekle('tema sekmeleri', (await A.locator('.sekmeler button').count()) === 3);
 await olc(A, '37-sonuc');
 // ikinci tema
 await A.locator('.sekmeler button').nth(1).click(); await A.waitForTimeout(1200);
 bekle('ikinci temada da kazanan var', (await A.locator('.odul img').count()) === 1);
 bekle('az karede de kazananın puanı var', /\d,\d/.test(await yaz(A, '.odul .serit .ort')), await yaz(A, '.odul .serit .ort'));
+// hiç oy almamış tema: ödül yok, kareler galeride
+await A.locator('.sekmeler button').nth(2).click(); await A.waitForTimeout(1200);
+bekle('oylanmayan temada ödül yok', (await A.locator('.odul').count()) === 0 && icerir(await metin(A), 'oylama olmadı'),
+  (await metin(A)).replace(/\n/g, ' | ').slice(0, 220));
+bekle('oylanmayan temanın kareleri galeride', (await A.locator('.izgara figure').count()) === 1);
+await olc(A, '40-oylanmayan-tema');
+await A.locator('.izgara figure').first().click(); await A.waitForTimeout(1200);
+bekle('detayda kimse puan vermemiş yazıyor', icerir(await metin(A), 'kimse puan vermemiş'), (await metin(A)).slice(0, 200));
+await A.click('.detay .geri'); await A.waitForTimeout(1000);
 // kare detayı: makine bilgisi olan Sokak karesinden
 await A.locator('.sekmeler button').nth(0).click(); await A.waitForTimeout(1200);
 await A.locator('.odul img').click(); await A.waitForTimeout(1500);

@@ -213,11 +213,14 @@ let karisikKareler = [];
 await B2.c.from('oylar').insert({ kare: karisikKareler[0], veren: B2.id, puan: 9 });
 await B2.c.from('oylar').insert({ kare: karisikKareler[1], veren: B2.id, puan: 8 });
 await A2.c.from('oylar').insert({ kare: kBp.id, veren: A2.id, puan: 6 });
+// en son yüklenen kareye daha yüksek puan: galeri sırası testi sıra ile yükleme sırasını ayırt edebilsin
+await B2.c.from('oylar').insert({ kare: karisikKareler[3], veren: B2.id, puan: 7 });
 bekle('oylama sürerken sonuçlar kapalı', ((await A2.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
 {
   const satir = ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [])[0] ?? {};
   bekle('oylama listesi kimliğe dair hiçbir alan taşımıyor',
-    !('sahip' in satir) && !('sahip_ad' in satir) && !('kamera' in satir) && !('objektif' in satir) && !('ortalama' in satir),
+    Object.keys(satir).length > 0
+    && !('sahip' in satir) && !('sahip_ad' in satir) && !('kamera' in satir) && !('objektif' in satir) && !('ortalama' in satir),
     JSON.stringify(Object.keys(satir)));
 }
 

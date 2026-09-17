@@ -12,6 +12,7 @@ import { Profil } from './ekranlar/Profil'
 import { Uyeler } from './ekranlar/Uyeler'
 import { Kur } from './ekranlar/Kur'
 import { Asama } from './ekranlar/Asama'
+import { Oylama, OylamaTema } from './ekranlar/Oylama'
 
 export default function App() {
   if (ayarEksik) return <AyarEksik />
@@ -90,7 +91,14 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   // Alt ekranlarda (yükleme, yönetim) sekme çubuğu yok; geri bağlantısı var.
   let altEkran = true
   const profil = <Profil uye={uye} uyeDegisti={uyeDegisti} />
-  switch (yonetici || !['uyeler', 'kur', 'asama'].includes(yol) ? yol : 'profil') {
+  const temaId = yol.startsWith('oyla/') ? yol.slice(5) : null
+  switch (yonetici || !['uyeler', 'kur', 'asama'].includes(yol) ? (temaId ? 'oyla-tema' : yol) : 'profil') {
+    case 'oyla':
+      ekran = <Oylama uye={uye} />
+      break
+    case 'oyla-tema':
+      ekran = <OylamaTema uye={uye} temaId={temaId!} />
+      break
     case 'yukle':
       ekran = <Yukleme uye={uye} uyeDegisti={uyeDegisti} />
       break

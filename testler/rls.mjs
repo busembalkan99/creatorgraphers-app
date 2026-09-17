@@ -135,4 +135,60 @@ bekle('yönetici rol veremez (yalnız kurucu)', hata(await B.c.rpc('rol_degistir
 bekle('kurucu kendini düşüremez', !(await A.c.rpc('rol_degistir', { p_uye: A.id, p_yonetici: false })).error && (await A.c.rpc('ben')).data?.[0]?.rol === 'kurucu');
 bekle('yönetici bekleyen istekleri görür', !(await B.c.rpc('bekleyen_istekler')).error);
 await A.c.rpc('rol_degistir', { p_uye: B.id, p_yonetici: false });
+
+// ---------------------------------------------------------------- oylama
+await sifirla();
+const A2 = await kullanici('kurucu@test.local', 'Ayşe Kaya');
+const B2 = await kullanici('selin@test.local', 'Selin Arı');
+await A2.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
+const iX = await B2.c.from('istekler').insert({ kullanici: B2.id, eposta: 'selin@test.local', ad: 'Selin Arı' }).select('id').single();
+await A2.c.rpc('istek_karar', { p_istek: iX.data.id, p_onay: true });
+const bugun2 = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+const E2 = (await A2.c.rpc('etkinlik_kur', { p_bulusma: bugun2, p_yukleme_baslar: new Date(Date.now() - 60000).toISOString(), p_yukleme_saat: 48, p_oylama_saat: 72, p_temalar: [{ ad: 'Sokak', bulusmada: true }, { ad: 'Portre', bulusmada: false }] })).data;
+const tm2 = (await A2.c.from('temalar').select('*').eq('etkinlik', E2).order('sira')).data;
+const [S2, P2] = tm2;
+const kare = async (kisi, tema, gun) => {
+  const yol = `${E2}/${tema}/${crypto.randomUUID()}.jpg`;
+  await kisi.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const r = await kisi.c.from('kareler').insert({ tema, sahip: kisi.id, dosya: yol, genislik: 10, yukseklik: 10, cekim_gunu: gun }).select('id, dosya').single();
+  if (r.error) throw r.error;
+  return r.data;
+};
+const kA = await kare(A2, S2.id, bugun2);
+const kB = await kare(B2, S2.id, bugun2);
+const kBp = await kare(B2, P2.id, null);
+bekle('yükleme açıkken oy verilemez', hata(await B2.c.from('oylar').insert({ kare: kA.id, veren: B2.id, puan: 7 })).includes('oylama_kapali'));
+bekle('yükleme açıkken oylama listesi boş', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
+await A2.c.rpc('oylamayi_ac', { p_etkinlik: E2 });
+const listeB = (await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [];
+bekle('oylamada kendi karesi listede yok', listeB.length === 1 && listeB[0].id === kA.id, JSON.stringify(listeB.map(x => x.id)));
+bekle('listede sahip bilgisi yok', listeB[0] && !('sahip' in listeB[0]), JSON.stringify(Object.keys(listeB[0] ?? {})));
+const listeA = (await A2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [];
+bekle('A iki kareyi görür (B nin iki karesi)', listeA.length === 2);
+bekle('yabancı oylama listesi göremez', ((await C.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
+bekle('oylamada başkasının karesi doğrudan okunamaz', ((await B2.c.from('kareler').select('*')).data ?? []).every(k => k.sahip === B2.id));
+bekle('oylamada dosya indirilebilir (isimsiz)', !(await B2.c.storage.from('kareler').download(kA.dosya)).error);
+bekle('yabancı dosyayı indiremez', !!(await C.c.storage.from('kareler').download(kA.dosya)).error);
+bekle('kendi karene puan verilemez', hata(await A2.c.from('oylar').insert({ kare: kA.id, veren: A2.id, puan: 9 })).includes('kendi_karen'));
+bekle('0 puan kabul edilmez', !!(await B2.c.from('oylar').insert({ kare: kA.id, veren: B2.id, puan: 0 })).error);
+bekle('11 puan kabul edilmez', !!(await B2.c.from('oylar').insert({ kare: kA.id, veren: B2.id, puan: 11 })).error);
+bekle('başkası adına oy verilemez', hata(await B2.c.from('oylar').insert({ kare: kA.id, veren: A2.id, puan: 5 })).includes('baska_veren'));
+bekle('B oy verir', !(await B2.c.from('oylar').insert({ kare: kA.id, veren: B2.id, puan: 7 })).error);
+bekle('puan değiştirilebilir (karar 37)', !(await B2.c.from('oylar').upsert({ kare: kA.id, veren: B2.id, puan: 9 }, { onConflict: 'kare,veren' })).error);
+bekle('kendi puanını görür', (await B2.c.from('oylar').select('*')).data?.[0]?.puan === 9);
+bekle('başkasının puanını göremez', ((await A2.c.from('oylar').select('*')).data ?? []).length === 0);
+bekle('liste kendi puanını taşır', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [])[0]?.puan === 9);
+const durB = (await B2.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? [];
+const sokakB = durB.find(d => d.tema === S2.id), portreB = durB.find(d => d.tema === P2.id);
+bekle('durum: Sokak zorunlu, 1/1', sokakB?.zorunlu === true && Number(sokakB?.toplam) === 1 && Number(sokakB?.puanladigim) === 1, JSON.stringify(durB));
+bekle('durum: Portre de zorunlu (karesi var), 0/0', portreB?.zorunlu === true && Number(portreB?.toplam) === 0, JSON.stringify(portreB));
+const durA = (await A2.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? [];
+bekle('karesi olmayan temada zorunlu değil', durA.find(d => d.tema === P2.id)?.zorunlu === false && Number(durA.find(d => d.tema === P2.id)?.toplam) === 1, JSON.stringify(durA));
+bekle('oylamada kare silinemez', hata(await B2.c.from('kareler').delete().eq('id', kBp.id)).includes('yukleme_kapali'));
+// sonuç aşamasına geç
+await admin.from('etkinlikler').update({ yukleme_biter: new Date(Date.now() - 2000).toISOString(), oylama_biter: new Date(Date.now() - 1000).toISOString() }).eq('id', E2);
+bekle('etkinlik sonuç aşamasında', (await B2.c.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc');
+bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert({ kare: kA.id, veren: B2.id, puan: 3 }, { onConflict: 'kare,veren' })).includes('oylama_kapali'));
+bekle('sonuçta kareler hâlâ okunur', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 1);
+
 rapor();

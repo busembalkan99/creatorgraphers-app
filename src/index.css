@@ -288,3 +288,92 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   *,*::before,*::after{animation:none!important;transition-duration:.001ms!important}
   .bar i{left:0;width:100%}
 }
+
+/* ==========================================================
+   Oylama (kararlar 5, 37, 42, 48, 61). Kaynak: prototip v11.
+   Kırpma yok: fotoğraf her zaman tam, üstüne hiçbir şey binmez.
+   ========================================================== */
+.akis{flex:1;min-height:0;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior-y:contain}
+.akis::-webkit-scrollbar{display:none}
+.kare{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;
+  padding:calc(12px + env(safe-area-inset-top)) var(--pad) calc(14px + env(safe-area-inset-bottom));touch-action:pan-y}
+.kare .ince{flex:0 0 auto;height:1px;background:var(--rule)}
+
+.plaka{flex:0 0 auto;display:flex;align-items:flex-end;gap:12px;padding:10px 0 11px}
+.plaka .no{font-size:52px;line-height:.76;letter-spacing:-.04em;font-variation-settings:"wdth" 68,"wght" 900;
+  font-variant-numeric:tabular-nums}
+.plaka .of{font-size:10px;font-weight:800;letter-spacing:.16em;color:var(--soft);text-transform:uppercase;padding-bottom:5px}
+.plaka .tema{margin-left:auto;text-align:right;padding-bottom:4px;font-size:15px;font-weight:900;letter-spacing:.01em;
+  text-transform:uppercase;font-variation-settings:"wdth" 74,"wght" 900;overflow-wrap:anywhere}
+.plaka .tema small{display:block;font-size:11px;font-weight:800;letter-spacing:.2em;color:var(--soft);margin-top:3px;
+  font-variation-settings:"wdth" 100,"wght" 700}
+
+.sahne{flex:1;min-height:0;padding:13px 6px;display:flex;align-items:center;justify-content:center}
+.tutucu{position:relative;max-width:100%;max-height:100%;display:flex;line-height:0}
+.tutucu img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;user-select:none;-webkit-user-drag:none}
+.tutucu .bos{background:#141416}
+.tutucu .reg{position:absolute;width:10px;height:10px;border:1px solid var(--faint);pointer-events:none}
+.tutucu .reg.tl{top:-6px;left:-6px;border-right:0;border-bottom:0}
+.tutucu .reg.tr{top:-6px;right:-6px;border-left:0;border-bottom:0}
+.tutucu .reg.bl{bottom:-6px;left:-6px;border-right:0;border-top:0}
+.tutucu .reg.br{bottom:-6px;right:-6px;border-left:0;border-top:0}
+
+.puan{flex:0 0 auto;padding-top:12px}
+.puan .st{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:11px}
+.puan .lab{padding-bottom:6px}
+.puan .deger{font-size:46px;line-height:.72;letter-spacing:-.045em;font-variation-settings:"wdth" 66,"wght" 900;
+  font-variant-numeric:tabular-nums;height:33px;display:flex;align-items:flex-end;justify-content:flex-end}
+.puan .deger.yok{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:none;color:var(--soft);line-height:1}
+
+.kaydirici{position:relative;height:52px;touch-action:none;cursor:grab;--kw:16px;--kh:40px}
+.kaydirici:active{cursor:grabbing}
+.kaydirici.tutuyor{--kw:22px;--kh:48px}
+.kaydirici .ray{position:absolute;left:0;right:0;top:50%;height:4px;background:var(--rule);transform:translateY(-50%)}
+.kaydirici .dolgu{position:absolute;left:0;top:50%;height:4px;background:var(--ink);transform:translateY(-50%);
+  width:calc(var(--kw)/2 + var(--p,0) * (100% - var(--kw)))}
+.kaydirici .centikler{position:absolute;inset:0;pointer-events:none}
+.kaydirici .centikler i{position:absolute;top:50%;width:1px;height:11px;background:var(--faint);
+  transform:translate(-50%,-50%);transition:background .18s,height .18s}
+.kaydirici .centikler i.vur{height:64px;background:var(--ink);transition:none}
+.kaydirici .centikler i.otur{height:56px;background:var(--ink)}
+.kaydirici .topuz{position:absolute;top:50%;background:var(--ink);width:var(--kw);height:var(--kh);
+  left:calc(var(--p,0) * (100% - var(--kw)));transform:translateY(-50%);border-radius:2px;opacity:0;pointer-events:none;
+  transition:width .14s,height .14s}
+.kaydirici.oturuyor .topuz{transition:width .14s,height .14s,left .22s}
+.kaydirici.dolu .topuz{opacity:1}
+.kaydirici .topuz::after{content:'';position:absolute;left:50%;top:50%;width:1px;height:16px;background:var(--paper);
+  transform:translate(-50%,-50%)}
+.olcek{position:relative;height:11px;margin-top:6px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
+  font-variant-numeric:tabular-nums}
+.olcek span{position:absolute;transform:translateX(-50%);left:calc(8px + var(--t) * (100% - 16px))}
+
+/* bitiş ekranı */
+.bitti{height:100%;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;gap:14px;
+  padding:0 var(--pad)}
+.bitti h2{font-size:58px;line-height:.82;letter-spacing:-.06em;word-spacing:.12em;text-transform:uppercase;
+  font-variation-settings:"wdth" 72,"wght" 900;overflow-wrap:anywhere}
+.bitti p{font-size:13px;color:var(--dim);line-height:1.6;letter-spacing:.02em;max-width:32ch}
+.bitti .eksikbas{border-top:4px solid var(--ink);padding-top:12px;margin-top:6px;font-size:13px;font-weight:900;
+  letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:baseline}
+.bitti .eksikbas span{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
+  font-variant-numeric:tabular-nums}
+.bitti .eksik{display:grid;gap:6px;min-height:0}
+.bitti .eksik button{appearance:none;border:1px solid var(--rule);background:rgba(237,237,234,.02);color:var(--ink);
+  position:relative;width:100%;padding:0;cursor:pointer;overflow:hidden;aspect-ratio:1}
+.bitti .eksik img{display:block;width:100%;height:100%;object-fit:cover}
+.bitti .eksik .etiket{position:absolute;left:0;bottom:0;display:flex;gap:6px;align-items:baseline;background:var(--ink);
+  color:var(--paper);padding:3px 6px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;font-size:8px}
+.bitti .btn{margin-top:4px}
+
+/* tema listesi */
+.tema-satir{border-top:1px solid var(--rule);padding:13px 0;width:100%;appearance:none;background:none;border-left:0;
+  border-right:0;border-bottom:0;color:inherit;text-align:left;cursor:pointer;min-height:64px}
+.tema-satir .ust{display:flex;align-items:baseline;gap:10px}
+.tema-satir b{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
+  font-variation-settings:"wdth" 74,"wght" 900;overflow-wrap:anywhere}
+.tema-satir .sag{margin-left:auto;flex:0 0 auto;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
+  font-variant-numeric:tabular-nums}
+.tema-satir .cizgi{margin-top:9px;height:4px;background:rgba(237,237,234,.14)}
+.tema-satir .cizgi i{display:block;height:100%;background:var(--oyla)}
+.tema-satir .alt{margin-top:7px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
+.tema-satir.tamam .cizgi i{background:var(--ink)}

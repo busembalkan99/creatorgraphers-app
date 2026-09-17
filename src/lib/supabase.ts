@@ -24,6 +24,9 @@ const HATALAR: Record<string, string> = {
   tarih_tutmuyor: 'Bu kare buluşma günü çekilmemiş.',
   dosya_yok: 'Kare yüklenemedi. Tekrar dene.',
   tema_degismez: 'Kare başka temaya taşınamaz.',
+  kendi_karen: 'Kendi karene puan veremezsin.',
+  oylama_kapali: 'Oylama kapandı, puanlar artık değişmiyor.',
+  baska_veren: 'Yalnız kendi puanını verebilirsin.',
   iptal_olmaz: 'Oylama açıldığı için etkinlik artık iptal edilemiyor.',
 }
 

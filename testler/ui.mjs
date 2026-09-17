@@ -273,7 +273,81 @@ bekle('kilit cümlesi', icerir(await metin(B), 'kareler artık değişmiyor'));
 bekle('değiştir ve kaldır yok', (await B.locator('button:has-text("Değiştir"), button:has-text("Kaldır")').count()) === 0);
 await olc(B, '26-yukleme-kapali');
 
-// 11 · Çıkış
+// 11 · Oylama (kurucu oyluyor: kendi karesi yok)
+// Üçüncü bir kişinin karesini servis anahtarıyla ekliyoruz ki eksik kare ızgarası da görünsün.
+const { data: liste } = await admin.auth.admin.listUsers();
+let ucuncu = liste.users.find(u => u.email === 'deniz@test.local');
+if (!ucuncu) ucuncu = (await admin.auth.admin.createUser({ email: 'deniz@test.local', password: 'test-sifre-1', email_confirm: true })).data.user;
+await admin.from('uyeler').insert({ id: ucuncu.id, ad: 'Deniz Akın', eposta: 'deniz@test.local' });
+const ev = (await admin.from('etkinlikler').select('id').single()).data;
+const sokak = (await admin.from('temalar').select('id, ad').eq('sira', 1).single()).data;
+const yol3 = `${ev.id}/${sokak.id}/${crypto.randomUUID()}.jpg`;
+await admin.storage.from('kareler').upload(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+await admin.from('kareler').insert({ tema: sokak.id, sahip: ucuncu.id, dosya: yol3, genislik: 1200, yukseklik: 800, cekim_gunu: bugun });
+
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
+bekle('canlı kartta oylama çağrısı', icerir(await metin(A), 'Oylamaya geç') || icerir(await metin(A), 'Oylamaya devam et'));
+bekle('kalan kare sayısı kartta', icerir(await metin(A), '3 kare kaldı'), await metin(A));
+await A.click('.live .act'); await A.waitForTimeout(1500);
+bekle('oylama tema listesi', icerir(await metin(A), 'Temalar'));
+bekle('kurucuya zorunlu değil', icerir(await metin(A), 'oylamak zorunda değilsin'));
+bekle('isim sızmıyor', !icerir(await metin(A), 'Selin') && !icerir(await metin(A), 'Deniz'));
+await olc(A, '27-oylama-temalar');
+await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
+bekle('akışta iki kare', (await A.locator('.kare').count()) === 2);
+bekle('kare görünüyor', await A.locator('.kare .tutucu img').first().evaluate(i => i.complete && i.naturalWidth > 0));
+bekle('puan boşken sürükle yazıyor', (await A.locator('.puan .deger').first().innerText()).toLowerCase().includes('sürükle'));
+await olc(A, '28-oylama-kare');
+// ilk kareye 7 ver
+const puanla = async (yer, oran) => {
+  await yer.scrollIntoViewIfNeeded();
+  await A.waitForTimeout(400);
+  const k = await yer.boundingBox();
+  await A.mouse.move(k.x + k.width * oran, k.y + k.height / 2);
+  await A.mouse.down(); await A.mouse.up(); await A.waitForTimeout(800);
+};
+await puanla(A.locator('.kaydirici').first(), 6 / 9);
+bekle('puan ekranda 07', (await A.locator('.puan .deger').first().innerText()).trim() === '07');
+const oy1 = (await admin.from('oylar').select('*')).data ?? [];
+bekle('puan veritabanına yazıldı', oy1.length === 1 && oy1[0].puan === 7, JSON.stringify(oy1));
+await olc(A, '29-oylama-puanli');
+// bitiş ekranına kaydır
+await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
+await A.waitForTimeout(1000);
+bekle('bitişte 1 kare kaldı', icerir(await metin(A), '1 kare') && icerir(await metin(A), 'Puan vermediğin kareler'));
+bekle('eksik ızgarada 1 kart', (await A.locator('.bitti .eksik button').count()) === 1);
+await olc(A, '30-oylama-bitis-eksik');
+bekle('eksik kart düğmesi doğru', icerir(await A.locator('.bitti .btn').innerText(), 'puansız'));
+await A.click('.bitti .btn'); await A.waitForTimeout(1200);
+// klavyeyle 10: kaydırıcı ok tuşlarıyla da çalışmalı
+{
+  const k = A.locator('.kaydirici:not(.dolu)').first();
+  await k.scrollIntoViewIfNeeded();
+  await A.waitForTimeout(600);
+  await k.focus();
+  for (let i = 0; i < 10; i++) { await A.keyboard.press('ArrowRight'); await A.waitForTimeout(90); }
+  await A.waitForTimeout(700);
+}
+bekle('ikinci kareye 10 verildi', ((await admin.from('oylar').select('puan')).data ?? []).some(o => o.puan === 10));
+await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
+await A.waitForTimeout(1000);
+bekle('tema bitti ekranı', icerir(await metin(A), 'bitti') && !icerir(await metin(A), 'Puan vermediğin'), (await metin(A)).slice(0, 120));
+bekle('bitişte dönüş düğmesi', icerir(await A.locator('.bitti .btn').innerText(), 'Temalara dön'));
+await olc(A, '31-oylama-bitis-tamam');
+await A.click('.bitti .btn'); await A.waitForTimeout(1200);
+bekle('tema listesinde 2 / 2', icerir(await metin(A), '2 / 2'));
+bekle('diğer temada kare sayısı', icerir(await metin(A), '1 kare kaldı'));
+// puan değiştirme (karar 37)
+await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1200);
+bekle('önceki puan geri geliyor', ['07', '10'].includes((await A.locator('.puan .deger').first().innerText()).trim()));
+await puanla(A.locator('.kaydirici').first(), 2 / 9);
+bekle('puan değiştirilebiliyor', ((await admin.from('oylar').select('puan')).data ?? []).some(o => o.puan === 3));
+// B kendi karelerini oylamıyor
+await B.goto(APP + '#/oyla'); await B.waitForTimeout(1500);
+bekle('B için Sokak temasında kare yok', icerir(await metin(B), 'kimse kare vermemiş') || icerir(await metin(B), '0 / 0'), await metin(B));
+await olc(B, '32-oylama-uye');
+
+// 12 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
 bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));

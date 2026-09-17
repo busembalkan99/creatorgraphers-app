@@ -1,9 +1,7 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// GitHub Pages depo alt yolunda yayınlanıyor: busebalkan99.github.io/creatorgraphers-app/
-// Yerel geliştirme kökte çalışır; derleme ve önizleme alt yolda.
-export default defineConfig(({ command, isPreview }) => ({
+// Yayın adresi: https://creatorgraphers.com (GitHub Pages, public/CNAME). Kökte çalışır.
+export default defineConfig({
   plugins: [react()],
-  base: command === 'build' || isPreview ? '/creatorgraphers-app/' : '/',
-}))
+})

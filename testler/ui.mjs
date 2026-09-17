@@ -387,6 +387,11 @@ await B.goto(APP + '#/oyla'); await B.waitForTimeout(1500);
 bekle('B için Sokak zorunlu', icerir(await metin(B), 'oylaman gerekiyor'));
 bekle('B kendi karesini görmüyor', icerir(await metin(B), '0 / 1'), await metin(B));
 bekle('oylanacak kare yoksa doğru cümle', icerir(await metin(B), 'senin dışında kare yok'), await metin(B));
+// hiç kare verilmemiş tema: başka cümle
+await admin.from('temalar').insert({ etkinlik: ev.id, ad: 'Gece', sira: 3, bulusmada: true });
+await B.reload(); await B.waitForTimeout(1500);
+bekle('boş temada kimse kare vermemiş yazıyor', icerir(await metin(B), 'kimse kare vermemiş'), await metin(B));
+await admin.from('temalar').delete().eq('etkinlik', ev.id).eq('sira', 3);
 await olc(B, '32-oylama-uye');
 
 // Oylama kapanınca verilen puan ekranda kabul edilmiş gibi kalmasın
@@ -421,11 +426,23 @@ bekle('yeni puan yazıldı', ((await admin.from('oylar').select('puan')).data ??
   await A.waitForTimeout(600);
   bekle('klavyeyle 10 üst sınırı', await yaz(A, '.puan .deger') === '10', await yaz(A, '.puan .deger'));
 }
-// temizlik: oylamayı yeniden kapat
+const sunucudakiPuan = ((await admin.from('oylar').select('kare, puan')).data ?? []).find(o => o.puan === 10) ? '10' : await yaz(A, '.puan .deger');
+// oylamayı yeniden kapat
 await admin.from('etkinlikler').update({
   yukleme_biter: new Date(Date.now() - 2000).toISOString(),
   oylama_biter: new Date(Date.now() - 1000).toISOString(),
 }).eq('id', ev.id);
+// arka arkaya reddedilen puanlar: geri alma sunucudaki değere dönmeli, ara değere değil
+{
+  const k = A.locator('.kaydirici').first();
+  await k.scrollIntoViewIfNeeded(); await A.waitForTimeout(300); await k.focus();
+  // beklemeden: puanlar üst üste binsin, geri alma ara değere değil sunucudaki değere dönmeli
+  for (let i = 0; i < 4; i++) await A.keyboard.press('ArrowLeft');
+  await A.waitForTimeout(2000);
+  bekle('arka arkaya redde sunucudaki puana dönüyor', await yaz(A, '.puan .deger') === sunucudakiPuan,
+    `sunucu ${sunucudakiPuan} → ekran ${await yaz(A, '.puan .deger')}`);
+  bekle('sunucudaki puan değişmedi', ((await admin.from('oylar').select('puan')).data ?? []).some(o => String(o.puan).padStart(2, '0') === sunucudakiPuan));
+}
 
 // 12 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);

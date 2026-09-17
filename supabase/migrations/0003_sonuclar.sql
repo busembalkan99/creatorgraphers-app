@@ -36,7 +36,9 @@ language sql stable security definer set search_path = public as $$
          -- Karar 38 ve 52: sıralamaya girmeyen karenin puanını yalnız sahibi görür
          case when s.yer <= s.kac or s.sahip = auth.uid() then round(s.ort, 1) end,
          case when s.yer <= s.kac or s.sahip = auth.uid() then s.oy end,
-         s.yer, s.yer <= s.kac,
+         -- Sıra da puandan çıkıyor: sıralamaya girmeyenin sırası da gizli
+         case when s.yer <= s.kac or s.sahip = auth.uid() then s.yer end,
+         s.yer <= s.kac,
          s.cekim_gunu,
          -- Karar 24: makine bilgisi sonuçlarla birlikte açılıyor
          s.kamera, s.objektif, s.odak, s.diyafram, s.enstantane, s.iso
@@ -44,8 +46,9 @@ language sql stable security definer set search_path = public as $$
   join public.uyeler u on u.id = s.sahip
   join public.etkinlikler e on e.id = p_etkinlik
   where public.uye_mi() and public.asama(e) = 'sonuc'
-  -- Karar 68: sıralamaya girmeyenler yükleme sırasına göre
-  order by s.tema_sira, s.yer, s.yukleme_at
+  -- Sıralananlar sıraya göre, karar 68: geri kalanlar yükleme sırasına göre.
+  -- Hepsini sıraya göre dizmek, gizlenen puanı ekranda yeniden görünür yapıyordu.
+  order by s.tema_sira, case when s.yer <= s.kac then s.yer end nulls last, s.yukleme_at
 $$;
 
 revoke execute on all functions in schema public from anon, public;

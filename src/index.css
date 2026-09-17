@@ -407,7 +407,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .odul .serit b{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.62}
 .odul .serit .ad{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;word-spacing:.1em;
   font-variation-settings:"wdth" 74,"wght" 900;min-width:0;overflow-wrap:anywhere}
-.odul .serit .ort{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
+.odul .serit .ort{margin-left:auto;font-size:17px;max-width:40%;text-align:right;overflow-wrap:anywhere;letter-spacing:-.02em;flex:0 0 auto;
   font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
 
 .kursu{display:flex;gap:8px;margin-top:12px}

@@ -22,7 +22,11 @@ async function kisi(eposta) {
   await p.goto(APP);
   await p.waitForFunction(() => window.__sb);
   p.giris = async () => {
-    await p.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error; }, eposta);
+    p.kimlik = await p.evaluate(async e => {
+      const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' });
+      if (r.error) throw r.error;
+      return r.data.user.id;
+    }, eposta);
     await p.reload(); await p.waitForTimeout(700);
   };
   return p;
@@ -284,7 +288,8 @@ const ev = (await admin.from('etkinlikler').select('id').single()).data;
 const sokak = (await admin.from('temalar').select('id, ad').eq('sira', 1).single()).data;
 const yol3 = `${ev.id}/${sokak.id}/${crypto.randomUUID()}.jpg`;
 await admin.storage.from('kareler').upload(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
-await admin.from('kareler').insert({ tema: sokak.id, sahip: ucuncu.id, dosya: yol3, genislik: 1200, yukseklik: 800, cekim_gunu: bugun });
+await admin.from('kareler').insert({ tema: sokak.id, sahip: ucuncu.id, dosya: yol3, genislik: 1200, yukseklik: 800, cekim_gunu: bugun,
+  kamera: 'NIKON Z 6_2', objektif: '35mm f/1.8', odak: '35mm', diyafram: 'f/2.8', enstantane: '1/250', iso: '400' });
 
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('canlı kartta oylama çağrısı', icerir(await metin(A), 'Oylamaya başla'), (await metin(A)).slice(0, 160));
@@ -521,6 +526,16 @@ await olc(A, '35-ag-hatasi');
 await A.unroute('**/rest/v1/etkinlikler*');
 
 // 13 · Sonuçlar (oylama kapalı, etkinlik sonuçlandı)
+// puanları belirli yapıyoruz: Deniz'in karesi kazanır, Selin'inki sıralamaya girmez
+{
+  const kareler = (await admin.from('kareler').select('id, sahip, tema')).data ?? [];
+  const sokaktakiler = kareler.filter(k => k.tema === sokak.id);
+  const deniz = sokaktakiler.find(k => k.sahip === ucuncu.id);
+  const selinin = sokaktakiler.find(k => k.sahip !== ucuncu.id);
+  await admin.from('oylar').upsert({ kare: deniz.id, veren: A.kimlik, puan: 9 }, { onConflict: 'kare,veren' });
+  await admin.from('oylar').upsert({ kare: selinin.id, veren: A.kimlik, puan: 5 }, { onConflict: 'kare,veren' });
+  globalThis.selininKaresi = selinin.id;
+}
 await admin.from('etkinlikler').update({
   yukleme_biter: new Date(Date.now() - 3000).toISOString(),
   oylama_biter: new Date(Date.now() - 1000).toISOString(),
@@ -533,7 +548,7 @@ await olc(A, '36-arsiv');
 await A.locator('.ev').first().click(); await A.waitForTimeout(2000);
 bekle('sonuç sayfası açıldı', icerir(await metin(A), 'Sonuçlandı'), (await metin(A)).slice(0, 140));
 bekle('temanın karesi var', (await A.locator('.odul img').count()) === 1);
-bekle('kazananın adı görünüyor', icerir(await yaz(A, '.odul .serit'), 'Selin') || icerir(await yaz(A, '.odul .serit'), 'Deniz'), await yaz(A, '.odul .serit'));
+bekle('kazanan en yüksek puanı alan', icerir(await yaz(A, '.odul .serit'), 'Deniz Akın'), await yaz(A, '.odul .serit'));
 bekle('kazananın puanı var', /\d,\d/.test(await yaz(A, '.odul .serit .ort')), await yaz(A, '.odul .serit .ort'));
 bekle('tema sekmeleri', (await A.locator('.sekmeler button').count()) === 2);
 await olc(A, '37-sonuc');
@@ -544,7 +559,8 @@ bekle('az karede de kazananın puanı var', /\d,\d/.test(await yaz(A, '.odul .se
 // kare detayı: makine bilgisi olan Sokak karesinden
 await A.locator('.sekmeler button').nth(0).click(); await A.waitForTimeout(1200);
 await A.locator('.odul img').click(); await A.waitForTimeout(1500);
-bekle('detayda makine bilgisi', icerir(await metin(A), 'NIKON') || icerir(await metin(A), 'Makine'), (await metin(A)).slice(0, 200));
+bekle('detayda makine künyesi açık', icerir(await metin(A), 'Makine') && icerir(await metin(A), 'NIKON Z 6_2'), (await metin(A)).replace(/\n/g, ' | ').slice(0, 260));
+bekle('detayda diyafram ve ISO', icerir(await metin(A), 'f/2.8') && icerir(await metin(A), 'ISO'));
 bekle('detayda kaç kişi puan verdi', icerir(await metin(A), 'kişi puan verdi'));
 await olc(A, '38-kare-detay');
 await A.click('.detay .geri'); await A.waitForTimeout(1200);
@@ -553,7 +569,18 @@ bekle('detaydan geri dönülüyor', (await A.locator('.sekmeler').count()) === 1
 await B.goto(APP + '#/etkinlikler'); await B.waitForTimeout(1500);
 await B.locator('.ev').first().click(); await B.waitForTimeout(2000);
 bekle('üye sonuçları görüyor', icerir(await metin(B), 'Sonuçlandı'));
-bekle('kendi karesi işaretli', (await B.locator('.izgara figure.benim, .satir-kare.benim').count()) >= 0);
+bekle('kendi karesi işaretli', (await B.locator('.izgara figure.benim, .satir-kare.benim').count()) === 1,
+  String(await B.locator('.izgara figure.benim, .satir-kare.benim').count()));
+bekle('üye galeride kendi puanını görüyor', icerir(await metin(B), 'sen · 5,0'), (await metin(B)).replace(/\n/g, ' | ').slice(0, 300));
+await B.locator('.izgara figure.benim').click(); await B.waitForTimeout(1200);
+bekle('detayda kendi puanı ve uyarı', icerir(await metin(B), '5,0') && icerir(await metin(B), 'yalnız sen görüyorsun'), (await metin(B)).slice(0, 220));
+await B.click('.detay .geri'); await B.waitForTimeout(1000);
+// aynı kare A'nın ekranında puansız
+await A.goto(APP + '#/profil'); await A.waitForTimeout(400);
+await A.goto(APP + `#/sonuc/${(await admin.from('etkinlikler').select('id').single()).data.id}`); await A.waitForTimeout(2000);
+bekle('başkasının sırasız karesinde puan yok', !icerir(await metin(A), '5,0'), (await metin(A)).replace(/\n/g, ' | ').slice(0, 300));
+await A.locator('.izgara figure').first().click(); await A.waitForTimeout(1200);
+bekle('detayda da puan gizli', icerir(await metin(A), 'sıralamaya girmedi'), (await metin(A)).slice(0, 200));
 await olc(B, '39-sonuc-uye');
 
 // 14 · Çıkış

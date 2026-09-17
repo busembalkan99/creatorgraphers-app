@@ -25,7 +25,7 @@ interface SonucKare {
   benim: boolean
   ortalama: number | null
   oy_sayisi: number | null
-  sira: number
+  sira: number | null
   sirali: boolean
   cekim_gunu: string | null
   kamera: string | null
@@ -130,7 +130,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
               <div className="serit">
                 <b>{secili.ad}</b>
                 <span className="ad">{kazanan.sahip_ad}</span>
-                <span className="ort">{puanYaz(kazanan.ortalama)}</span>
+                <span className="ort">{kazanan.ortalama == null ? 'Puan yok' : puanYaz(kazanan.ortalama)}</span>
               </div>
             </div>
           )}
@@ -152,7 +152,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
 
           {liste.map(k => (
             <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => setDetay(k)}>
-              <span className="no">{String(k.sira).padStart(2, '0')}</span>
+              <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>
               {k.url && <img src={k.url} alt="" />}
               <span className="ad">{k.sahip_ad}</span>
               <span className="ort">{puanYaz(k.ortalama)}</span>
@@ -166,7 +166,8 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => setDetay(k)}>
                     {k.url && <img src={k.url} alt="" />}
-                    <figcaption>{k.sahip_ad}{k.benim ? ' · sen' : ''}</figcaption>
+                    {/* Karar 38: kendi ortalamanı her zaman görürsün, başkasınınki gizli */}
+                    <figcaption>{k.sahip_ad}{k.benim ? ' · sen' : ''}{k.benim && k.ortalama != null ? ` · ${puanYaz(k.ortalama)}` : ''}</figcaption>
                   </figure>
                 ))}
               </div>
@@ -202,10 +203,13 @@ function KareDetay({ kare, kapat }: { kare: SonucKare; kapat: () => void }) {
         <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>
         {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}
       </div>
-      {kare.ortalama == null ? (
+      {!kare.sirali && !kare.benim ? (
         <p className="veri">Bu kare sıralamaya girmedi, puanı gösterilmiyor.</p>
+      ) : kare.ortalama == null ? (
+        // Sıralamaya giren ama hiç puan almayan kare: kimse oylamamış olabilir
+        <p className="veri">Bu kareye kimse puan vermemiş.</p>
       ) : (
-        <p className="veri">{kare.oy_sayisi} kişi puan verdi{kare.benim ? ' · yalnız sen görüyorsun' : ''}.</p>
+        <p className="veri">{kare.oy_sayisi} kişi puan verdi{!kare.sirali && kare.benim ? ' · bu puanı yalnız sen görüyorsun' : ''}.</p>
       )}
       {dolu.length > 0 && (
         <div className="kunye">

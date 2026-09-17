@@ -187,12 +187,11 @@ const durA = (await A2.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? [];
 bekle('karesi olmayan temada zorunlu değil', durA.find(d => d.tema === P2.id)?.zorunlu === false && Number(durA.find(d => d.tema === P2.id)?.toplam) === 1, JSON.stringify(durA));
 bekle('oylamada kare silinemez', hata(await B2.c.from('kareler').delete().eq('id', kBp.id)).includes('yukleme_kapali'));
 // sonuç aşamasına geç
-await admin.from('etkinlikler').update({ yukleme_biter: new Date(Date.now() - 2000).toISOString(), oylama_biter: new Date(Date.now() - 1000).toISOString() }).eq('id', E2);
-bekle('etkinlik sonuç aşamasında', (await B2.c.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc');
-bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert({ kare: kA.id, veren: B2.id, puan: 3 }, { onConflict: 'kare,veren' })).includes('oylama_kapali'));
 // Sıra kişiye göre karışık ve kişi için sabit (yükleme sırası avantaj olmasın)
+let karisikKareler = [];
 {
   // dört ayrı kişi, çünkü bir kişi bir temaya tek kare veriyor (karar 3)
+  karisikKareler = [];
   for (let i = 0; i < 4; i++) {
     const posta = `karisik${i}@test.local`;
     const { data: l } = await admin.auth.admin.listUsers();
@@ -201,14 +200,30 @@ bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert(
     await admin.from('uyeler').insert({ id: k.id, ad: `Karışık ${i}`, eposta: posta });
     const yol = `${E2}/${P2.id}/${crypto.randomUUID()}.jpg`;
     await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
-    const r = await admin.from('kareler').insert({ tema: P2.id, sahip: k.id, dosya: yol, genislik: 10, yukseklik: 10 });
+    const r = await admin.from('kareler').insert({ tema: P2.id, sahip: k.id, dosya: yol, genislik: 10, yukseklik: 10 }).select('id').single();
     if (r.error) throw r.error;
+    karisikKareler.push(r.data.id);
   }
   const sira = async k => ((await k.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).filter(x => x.tema === P2.id).map(x => x.id).join(',');
   const a1 = await sira(A2.c), a2 = await sira(A2.c), b1 = await sira(B2.c);
   bekle('sıra aynı kişide sabit', a1 === a2 && a1.split(',').length >= 4, a1);
   bekle('sıra kişiden kişiye farklı', a1 !== b1, `A: ${a1}\nB: ${b1}`);
 }
+// Sonuç maskesini sınamak için gerçek puanlar: sıralamaya girmeyen karelerde de puan olsun
+await B2.c.from('oylar').insert({ kare: karisikKareler[0], veren: B2.id, puan: 9 });
+await B2.c.from('oylar').insert({ kare: karisikKareler[1], veren: B2.id, puan: 8 });
+await A2.c.from('oylar').insert({ kare: kBp.id, veren: A2.id, puan: 6 });
+bekle('oylama sürerken sonuçlar kapalı', ((await A2.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
+{
+  const satir = ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [])[0] ?? {};
+  bekle('oylama listesi kimliğe dair hiçbir alan taşımıyor',
+    !('sahip' in satir) && !('sahip_ad' in satir) && !('kamera' in satir) && !('objektif' in satir) && !('ortalama' in satir),
+    JSON.stringify(Object.keys(satir)));
+}
+
+await admin.from('etkinlikler').update({ yukleme_biter: new Date(Date.now() - 2000).toISOString(), oylama_biter: new Date(Date.now() - 1000).toISOString() }).eq('id', E2);
+bekle('etkinlik sonuç aşamasında', (await B2.c.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc');
+bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert({ kare: kA.id, veren: B2.id, puan: 3 }, { onConflict: 'kare,veren' })).includes('oylama_kapali'));
 bekle('anonim oylama listesi alamaz', ((await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0 || !!(await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).error);
 bekle('anonim oy tablosunu okuyamaz', !!(await anon.from('oylar').select('*')).error || ((await anon.from('oylar').select('*')).data ?? []).length === 0);
 bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? []).length === 0);
@@ -216,7 +231,7 @@ bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_et
   const r = await B2.c.from('oylar').insert({ kare: '00000000-0000-0000-0000-000000000000', veren: B2.id, puan: 5 });
   bekle('olmayan kareye oy verilemez', hata(r).includes('kare_yok') || r.error?.code === '23503', JSON.stringify(r.error));
 }
-bekle('kendi oyunu silemez', ((await B2.c.from('oylar').delete().eq('kare', kA.id).select()).data ?? []).length === 0 && ((await admin.from('oylar').select('kare')).data ?? []).length === 1);
+bekle('kendi oyunu silemez', ((await B2.c.from('oylar').delete().eq('kare', kA.id).select()).data ?? []).length === 0 && ((await admin.from('oylar').select('kare').eq('kare', kA.id)).data ?? []).length === 1);
 bekle('sonuçta dosya hâlâ indirilebilir', !(await B2.c.storage.from('kareler').download(kA.dosya)).error);
 bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler').download(kA.dosya)).error);
 {
@@ -241,10 +256,28 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   const portre = sonucA.filter(k => k.tema === P2.id);
   bekle('Portre 5 kare', portre.length === 5, String(portre.length));
   bekle('karar 19: 5 karede 2 sıralı', portre.filter(k => k.sirali).length === 2, JSON.stringify(portre.map(k => k.sira)));
+  bekle('sıralananların puanı herkese açık', portre.filter(k => k.sirali).every(k => k.ortalama !== null), JSON.stringify(portre.filter(k => k.sirali)));
+  // B'nin Portre karesi: 6 puan aldı ama sıralamaya girmedi (iki kare daha yüksek aldı)
+  const bninKaresiA = sonucA.find(k => k.id === kBp.id);
+  const bninKaresiB = sonucB.find(k => k.id === kBp.id);
+  bekle('sıralamaya girmeyen kare gerçekten puan almış', Number(bninKaresiB?.ortalama) === 6, JSON.stringify(bninKaresiB));
+  bekle('başkası o puanı göremiyor', bninKaresiA?.ortalama === null, JSON.stringify(bninKaresiA));
+  bekle('oy sayısı da gizli', bninKaresiA?.oy_sayisi === null, JSON.stringify(bninKaresiA));
+  bekle('sahibi kendi puanını görüyor', Number(bninKaresiB?.oy_sayisi) === 1 && bninKaresiB?.sirali === false);
+  bekle('sahibi kendi sırasını görüyor, başkası göremiyor', bninKaresiB?.sira !== null && bninKaresiA?.sira === null,
+    `${bninKaresiB?.sira} / ${bninKaresiA?.sira}`);
   const digerininSirasiz = portre.find(k => !k.sirali && !k.benim);
   bekle('sıralamaya girmeyenin puanı gizli', digerininSirasiz && digerininSirasiz.ortalama === null, JSON.stringify(digerininSirasiz));
-  const kendiSirasiz = (sonucB.filter(k => k.tema === P2.id) ?? []).find(k => k.benim && !k.sirali);
-  bekle('kendi sırasız karende puan hep görünür', kendiSirasiz === undefined || kendiSirasiz.ortalama !== undefined);
+  bekle('sıralamaya girmeyenin sırası da gizli', digerininSirasiz && digerininSirasiz.sira === null, JSON.stringify(digerininSirasiz));
+  bekle('sıralananın sırası var', portre.filter(k => k.sirali).every(k => k.sira !== null));
+  // Galeri sırası puanı ele vermemeli: sıralamaya girmeyenler yükleme sırasına göre (karar 68)
+  {
+    const gizli = portre.filter(k => !k.sirali && !k.benim).map(k => k.id);
+    const yuklemeSirasi = ((await admin.from('kareler').select('id, yukleme_at').in('id', gizli)).data ?? [])
+      .sort((x, y) => x.yukleme_at.localeCompare(y.yukleme_at)).map(k => k.id);
+    bekle('galeri yükleme sırasına göre', JSON.stringify(gizli) === JSON.stringify(yuklemeSirasi),
+      `${JSON.stringify(gizli)} vs ${JSON.stringify(yuklemeSirasi)}`);
+  }
   bekle('yabancı sonuçları göremez', ((await C.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
   bekle('anonim sonuçları göremez', ((await anon.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0 || !!(await anon.rpc('sonuc_kareleri', { p_etkinlik: E2 })).error);
   // oylama sürerken sonuç yok

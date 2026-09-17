@@ -600,7 +600,63 @@ await A.locator('.izgara figure').first().click(); await A.waitForTimeout(1200);
 bekle('detayda da puan gizli', icerir(await metin(A), 'sıralamaya girmedi'), (await metin(A)).slice(0, 200));
 await olc(B, '39-sonuc-uye');
 
-// 14 · Çıkış
+// 14 · Kalabalık tema: 4 ve 5. sıra listesi, ve hiç kare yüklenmemiş etkinlik
+{
+  // 9 kareli tema: round(9/2,5)=4, yani dördüncü sıra listede görünmeli
+  const ek2 = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun,
+    yukleme_baslar: new Date(Date.now() - 5 * 86400000).toISOString(),
+    yukleme_biter: new Date(Date.now() - 4 * 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() - 3 * 86400000).toISOString(),
+    kuran: A.kimlik,
+  }).select('id').single()).data;
+  const tema = (await admin.from('temalar').insert({ etkinlik: ek2.id, ad: 'Kalabalık', sira: 1, bulusmada: false }).select('id').single()).data;
+  const { data: l } = await admin.auth.admin.listUsers();
+  for (let i = 0; i < 9; i++) {
+    const posta = `kalabalik${i}@test.local`;
+    const k = l.users.find(u => u.email === posta)
+      ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
+    await admin.from('uyeler').insert({ id: k.id, ad: `Kalabalık ${i}`, eposta: posta });
+    const yol = `${ek2.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
+    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    const kr = (await admin.from('kareler').insert({ tema: tema.id, sahip: k.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
+    await admin.from('oylar').insert({ kare: kr.id, veren: A.kimlik, puan: Math.max(1, 10 - i) });
+  }
+  await A.goto(APP + `#/sonuc/${ek2.id}`); await A.waitForTimeout(2500);
+  bekle('kalabalık temada kürsü iki kare', (await A.locator('.kursu figure').count()) === 2);
+  bekle('dördüncü sıra listede', (await A.locator('.satir-kare').count()) === 1, String(await A.locator('.satir-kare').count()));
+  bekle('listedeki satır 04 numaralı', (await yaz(A, '.satir-kare .no')) === '04', await yaz(A, '.satir-kare .no'));
+  bekle('geri kalanlar galeride', (await A.locator('.izgara figure').count()) === 5, String(await A.locator('.izgara figure').count()));
+  await olc(A, '41-kalabalik-tema');
+
+  // hiç kare yüklenmemiş etkinlik
+  const bos = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun,
+    yukleme_baslar: new Date(Date.now() - 9 * 86400000).toISOString(),
+    yukleme_biter: new Date(Date.now() - 8 * 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() - 7 * 86400000).toISOString(),
+    kuran: A.kimlik,
+  }).select('id').single()).data;
+  await A.goto(APP + `#/sonuc/${bos.id}`); await A.waitForTimeout(2000);
+  bekle('boş etkinlikte açıklama', icerir(await metin(A), 'Hiç kare'), (await metin(A)).slice(0, 160));
+  bekle('boş etkinlikte sekme yok', (await A.locator('.sekmeler').count()) === 0);
+  await olc(A, '42-bos-etkinlik');
+
+  // sonucu açılmamış etkinlik
+  const yeni = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun,
+    yukleme_baslar: new Date(Date.now() - 1000).toISOString(),
+    yukleme_biter: new Date(Date.now() + 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() + 2 * 86400000).toISOString(),
+    kuran: A.kimlik,
+  }).select('id').single()).data;
+  await A.goto(APP + `#/sonuc/${yeni.id}`); await A.waitForTimeout(2000);
+  bekle('sonucu açılmamış etkinlikte kilit', icerir(await metin(A), 'Sonuçlar') && icerir(await metin(A), 'açılmadı'),
+    (await metin(A)).slice(0, 160));
+  await admin.from('etkinlikler').delete().eq('id', yeni.id);
+}
+
+// 15 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
 bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));

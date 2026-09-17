@@ -289,4 +289,53 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   await A2.c.rpc('etkinlik_iptal', { p_etkinlik: ek3.data });
 }
 
+
+// ---------------------------------------------------------------- karar 19'un sınırları
+{
+  // 14 kareli tema: round(14/2,5)=6 ama en fazla 5 sıralı (karar 19)
+  const ek = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun2,
+    yukleme_baslar: new Date(Date.now() - 5 * 86400000).toISOString(),
+    yukleme_biter: new Date(Date.now() - 4 * 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() - 3 * 86400000).toISOString(),
+    kuran: A2.id,
+  }).select('id').single()).data;
+  const tema = (await admin.from('temalar').insert({ etkinlik: ek.id, ad: 'Kalabalık', sira: 1, bulusmada: false }).select('id').single()).data;
+  const { data: liste } = await admin.auth.admin.listUsers();
+  const kimlikler = [];
+  for (let i = 0; i < 14; i++) {
+    const posta = `kalabalik${i}@test.local`;
+    const k = liste.users.find(u => u.email === posta)
+      ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
+    await admin.from('uyeler').insert({ id: k.id, ad: `Kalabalık ${i}`, eposta: posta });
+    kimlikler.push(k.id);
+    const yol = `${ek.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
+    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    const kr = (await admin.from('kareler').insert({ tema: tema.id, sahip: k.id, dosya: yol, genislik: 10, yukseklik: 10 }).select('id').single()).data;
+    // puanlar: 10, 9, 8 ... ilk ikisi eşit olsun (sıra eşitliği sınanacak)
+    const puan = i === 0 ? 10 : i === 1 ? 10 : Math.max(1, 10 - i);
+    await admin.from('oylar').insert({ kare: kr.id, veren: A2.id, puan });
+  }
+  const sonuc = (await A2.c.rpc('sonuc_kareleri', { p_etkinlik: ek.id })).data ?? [];
+  bekle('14 kare döndü', sonuc.length === 14, String(sonuc.length));
+  bekle('karar 19 tavanı: en fazla 5 sıralı', sonuc.filter(k => k.sirali).length === 5,
+    JSON.stringify(sonuc.map(k => [k.sira, k.ortalama])));
+  // Eşit puanda sıra yükleme saatine göre bozuluyor: ortak birincilik yok, sıra tek
+  bekle('eşit puanda sıra tek kalıyor', sonuc.filter(k => Number(k.sira) === 1).length === 1,
+    JSON.stringify(sonuc.slice(0, 3).map(k => [k.sira, k.ortalama])));
+  bekle('eşitlikte önce yüklenen önde', Number(sonuc[0].ortalama) === 10 && Number(sonuc[1].ortalama) === 10
+    && sonuc[0].yukleme_at === undefined, JSON.stringify(sonuc.slice(0, 2).map(k => k.sira)));
+  bekle('altıncı ve sonrası gizli', sonuc.filter(k => !k.sirali).every(k => k.ortalama === null && k.sira === null));
+  // Sonuç açılmamış etkinlik
+  const acik = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun2,
+    yukleme_baslar: new Date(Date.now() - 1000).toISOString(),
+    yukleme_biter: new Date(Date.now() + 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() + 2 * 86400000).toISOString(),
+    kuran: A2.id,
+  }).select('id').single()).data;
+  bekle('yükleme sürerken sonuç yok', ((await A2.c.rpc('sonuc_kareleri', { p_etkinlik: acik.id })).data ?? []).length === 0);
+  await admin.from('etkinlikler').delete().eq('id', acik.id);
+}
+
 rapor();

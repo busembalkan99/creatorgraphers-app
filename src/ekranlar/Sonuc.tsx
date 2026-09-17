@@ -154,7 +154,8 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
                 <figure key={k.id} onClick={() => setDetay(k)}>
                   {k.url && <img src={k.url} alt="" />}
                   <figcaption>
-                    <span className="sat"><span className="no">{String(i + 2).padStart(2, '0')}</span>
+                    {/* Numara sıradan gelir: puanlar eşitse iki kare de aynı sırayı gösterir */}
+                    <span className="sat"><span className="no">{String(k.sira ?? i + 2).padStart(2, '0')}</span>
                       <span className="ad">{k.sahip_ad}</span></span>
                     <span className="ort">{puanYaz(k.ortalama)}</span>
                   </figcaption>

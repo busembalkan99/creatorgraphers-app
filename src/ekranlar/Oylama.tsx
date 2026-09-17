@@ -94,7 +94,9 @@ export function Oylama({ uye }: { uye: Uye }) {
             <div className="cizgi"><i style={{ width: `${oran}%` }} /></div>
             <div className="alt">
               {t.toplam === 0
-                ? 'Bu temaya kimse kare vermemiş'
+                ? t.zorunlu
+                  ? 'Bu temada senin dışında kare yok'
+                  : 'Bu temaya kimse kare vermemiş'
                 : kalan === 0
                   ? 'Bitti'
                   : t.zorunlu
@@ -117,6 +119,9 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   const [hata, setHata] = useState<string | null>(null)
   // Puan yazılamazsa akış ekranda kalsın, yalnız üstte şerit çıksın.
   const [oyHatasi, setOyHatasi] = useState<string | null>(null)
+  // Sunucunun kabul ettiği son puanlar. Hızlı arka arkaya puan verilirse geri alma
+  // ekrandaki ara değere değil, sunucudaki değere döner.
+  const onaylanan = useRef<Record<string, number | null>>({})
   const akis = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -129,23 +134,25 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
         ? (await sb.storage.from('kareler').createSignedUrls(benim.map(k => k.dosya), 3600)).data ?? []
         : []
       setTema(t)
+      onaylanan.current = Object.fromEntries(benim.map(k => [k.id, k.puan]))
       setKareler(benim.map((k, i) => ({ ...k, url: imza[i]?.signedUrl ?? null })))
       setE(ev)
     })().catch(x => setHata(hataMetni(x)))
   }, [uye.id, temaId])
 
   const oyVer = useCallback(async (kare: string, puan: number) => {
-    const onceki = kareler.find(k => k.id === kare)?.puan ?? null
     setKareler(l => l.map(k => (k.id === kare ? { ...k, puan } : k)))
     const { error } = await sb.from('oylar').upsert({ kare, veren: uye.id, puan }, { onConflict: 'kare,veren' })
     if (error) {
       // Sunucu reddederse ekranda kabul edilmiş gibi kalmasın (oylama kapanmış olabilir).
+      const onceki = onaylanan.current[kare] ?? null
       setKareler(l => l.map(k => (k.id === kare ? { ...k, puan: onceki } : k)))
       setOyHatasi(hataMetni(error))
-    } else if (oyHatasi) {
-      setOyHatasi(null)
+    } else {
+      onaylanan.current[kare] = puan
+      setOyHatasi(x => (x ? null : x))
     }
-  }, [uye.id, kareler, oyHatasi])
+  }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Oylama" geri="oyla" sag="Oylama" /><Hata metin={hata} /></div>
   if (e === undefined) return <Yukleniyor />

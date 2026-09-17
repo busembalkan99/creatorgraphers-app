@@ -192,8 +192,13 @@ bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert(
 bekle('anonim oylama listesi alamaz', ((await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0 || !!(await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).error);
 bekle('anonim oy tablosunu okuyamaz', !!(await anon.from('oylar').select('*')).error || ((await anon.from('oylar').select('*')).data ?? []).length === 0);
 bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? []).length === 0);
-bekle('olmayan kareye oy verilemez', hata(await B2.c.from('oylar').insert({ kare: '00000000-0000-0000-0000-000000000000', veren: B2.id, puan: 5 })).length > 0);
+{
+  const r = await B2.c.from('oylar').insert({ kare: '00000000-0000-0000-0000-000000000000', veren: B2.id, puan: 5 });
+  bekle('olmayan kareye oy verilemez', hata(r).includes('kare_yok') || r.error?.code === '23503', JSON.stringify(r.error));
+}
 bekle('kendi oyunu silemez', ((await B2.c.from('oylar').delete().eq('kare', kA.id).select()).data ?? []).length === 0 && ((await admin.from('oylar').select('kare')).data ?? []).length === 1);
+bekle('sonuçta dosya hâlâ indirilebilir', !(await B2.c.storage.from('kareler').download(kA.dosya)).error);
+bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler').download(kA.dosya)).error);
 bekle('sonuçta kareler hâlâ okunur', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 1);
 
 rapor();

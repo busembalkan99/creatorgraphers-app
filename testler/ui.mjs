@@ -319,6 +319,11 @@ bekle('puan ekranda 07', await yaz(A, '.puan .deger') === '07');
 const oy1 = (await admin.from('oylar').select('*')).data ?? [];
 bekle('puan veritabanına yazıldı', oy1.length === 1 && oy1[0].puan === 7, JSON.stringify(oy1));
 await olc(A, '29-oylama-puanli');
+// yarıda kalmışken kart "devam et" diyor
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
+bekle('yarıda kalınca kartta devam et', icerir(await metin(A), 'Oylamaya devam et'), (await metin(A)).slice(0, 140));
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(1000);
+await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
 // bitiş ekranına kaydır
 await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
 await A.waitForTimeout(1000);
@@ -381,6 +386,7 @@ bekle('kartta puanlarına bak', icerir(await metin(A), 'Puanlarına bak'));
 await B.goto(APP + '#/oyla'); await B.waitForTimeout(1500);
 bekle('B için Sokak zorunlu', icerir(await metin(B), 'oylaman gerekiyor'));
 bekle('B kendi karesini görmüyor', icerir(await metin(B), '0 / 1'), await metin(B));
+bekle('oylanacak kare yoksa doğru cümle', icerir(await metin(B), 'senin dışında kare yok'), await metin(B));
 await olc(B, '32-oylama-uye');
 
 // Oylama kapanınca verilen puan ekranda kabul edilmiş gibi kalmasın
@@ -394,7 +400,32 @@ await admin.from('etkinlikler').update({
 await puanla(A.locator('.kaydirici').first(), 1 / 9);
 bekle('kapanınca hata görünüyor', icerir(await metin(A), 'Oylama kapandı'), (await metin(A)).slice(0, 120));
 bekle('reddedilen puan geri alınıyor', await yaz(A, '.puan .deger') === oncekiPuan, `önce ${oncekiPuan} → şimdi ${await yaz(A, '.puan .deger')}`);
+bekle('hata şeridi akışın üstünde', (await A.locator('.oy-hata').count()) === 1 && (await A.locator('.kare').count()) === 2);
 await olc(A, '34-oylama-kapandi');
+// oylama geri açılınca şerit kalkıyor
+await admin.from('etkinlikler').update({
+  yukleme_biter: new Date(Date.now() - 2000).toISOString(),
+  oylama_biter: new Date(Date.now() + 3600_000).toISOString(),
+}).eq('id', ev.id);
+await puanla(A.locator('.kaydirici').first(), 4 / 9);
+bekle('yeniden yazılınca şerit kalkıyor', (await A.locator('.oy-hata').count()) === 0, (await metin(A)).slice(0, 100));
+bekle('yeni puan yazıldı', ((await admin.from('oylar').select('puan')).data ?? []).some(o => o.puan === 5));
+// klavye: sola gider ve 1'in altına inmez
+{
+  const k = A.locator('.kaydirici').first();
+  await k.scrollIntoViewIfNeeded(); await A.waitForTimeout(300); await k.focus();
+  for (let i = 0; i < 8; i++) { await A.keyboard.press('ArrowLeft'); await A.waitForTimeout(80); }
+  await A.waitForTimeout(600);
+  bekle('klavyeyle 01 alt sınırı', await yaz(A, '.puan .deger') === '01', await yaz(A, '.puan .deger'));
+  for (let i = 0; i < 12; i++) { await A.keyboard.press('ArrowRight'); await A.waitForTimeout(70); }
+  await A.waitForTimeout(600);
+  bekle('klavyeyle 10 üst sınırı', await yaz(A, '.puan .deger') === '10', await yaz(A, '.puan .deger'));
+}
+// temizlik: oylamayı yeniden kapat
+await admin.from('etkinlikler').update({
+  yukleme_biter: new Date(Date.now() - 2000).toISOString(),
+  oylama_biter: new Date(Date.now() - 1000).toISOString(),
+}).eq('id', ev.id);
 
 // 12 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);

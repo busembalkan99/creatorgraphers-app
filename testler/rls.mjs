@@ -150,7 +150,8 @@ const [S2, P2] = tm2;
 const kare = async (kisi, tema, gun) => {
   const yol = `${E2}/${tema}/${crypto.randomUUID()}.jpg`;
   await kisi.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
-  const r = await kisi.c.from('kareler').insert({ tema, sahip: kisi.id, dosya: yol, genislik: 10, yukseklik: 10, cekim_gunu: gun }).select('id, dosya').single();
+  const r = await kisi.c.from('kareler').insert({ tema, sahip: kisi.id, dosya: yol, genislik: 10, yukseklik: 10, cekim_gunu: gun,
+    kamera: 'NIKON Z 6_2', objektif: '35mm f/1.8', odak: '35mm', diyafram: 'f/2.8', enstantane: '1/250', iso: '400' }).select('id, dosya').single();
   if (r.error) throw r.error;
   return r.data;
 };
@@ -222,6 +223,34 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   const l = (await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [];
   bekle('sonuçta A nın karesi listede, B nin kendi karesi değil',
     l.some(x => x.id === kA.id) && !l.some(x => x.id === kB.id), JSON.stringify(l.map(x => x.id)));
+}
+
+
+// ---------------------------------------------------------------- sonuçlar
+{
+  // E2 sonuç aşamasında: Portre'de 5 kare var (B + dört "Karışık"), Sokak'ta kA ve kB
+  const sonucA = (await A2.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? [];
+  const sonucB = (await B2.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? [];
+  bekle('sonuçta bütün kareler görünüyor', sonucA.length === 7, String(sonucA.length));
+  bekle('sonuçta isimler açık', sonucA.every(k => !!k.sahip_ad), JSON.stringify(sonucA.map(k => k.sahip_ad)));
+  const kAs = sonucA.find(k => k.id === kA.id);
+  bekle('kendi karen işaretli', kAs?.benim === true && sonucB.find(k => k.id === kA.id)?.benim === false);
+  bekle('oy alan karenin ortalaması var', Number(kAs?.ortalama) === 9 && Number(kAs?.oy_sayisi) === 1, JSON.stringify(kAs));
+  bekle('makine bilgisi sonuçta açılıyor', !!kAs?.kamera, String(kAs?.kamera));
+  // Portre: 5 kare, karar 19 → round(5/2,5)=2 sıralı
+  const portre = sonucA.filter(k => k.tema === P2.id);
+  bekle('Portre 5 kare', portre.length === 5, String(portre.length));
+  bekle('karar 19: 5 karede 2 sıralı', portre.filter(k => k.sirali).length === 2, JSON.stringify(portre.map(k => k.sira)));
+  const digerininSirasiz = portre.find(k => !k.sirali && !k.benim);
+  bekle('sıralamaya girmeyenin puanı gizli', digerininSirasiz && digerininSirasiz.ortalama === null, JSON.stringify(digerininSirasiz));
+  const kendiSirasiz = (sonucB.filter(k => k.tema === P2.id) ?? []).find(k => k.benim && !k.sirali);
+  bekle('kendi sırasız karende puan hep görünür', kendiSirasiz === undefined || kendiSirasiz.ortalama !== undefined);
+  bekle('yabancı sonuçları göremez', ((await C.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
+  bekle('anonim sonuçları göremez', ((await anon.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0 || !!(await anon.rpc('sonuc_kareleri', { p_etkinlik: E2 })).error);
+  // oylama sürerken sonuç yok
+  const ek3 = await A2.c.rpc('etkinlik_kur', { p_bulusma: bugun2, p_yukleme_baslar: new Date(Date.now() - 60000).toISOString(), p_yukleme_saat: 48, p_oylama_saat: 72, p_temalar: [{ ad: 'Deneme' }] });
+  bekle('yükleme aşamasında sonuç yok', ((await A2.c.rpc('sonuc_kareleri', { p_etkinlik: ek3.data })).data ?? []).length === 0);
+  await A2.c.rpc('etkinlik_iptal', { p_etkinlik: ek3.data });
 }
 
 rapor();

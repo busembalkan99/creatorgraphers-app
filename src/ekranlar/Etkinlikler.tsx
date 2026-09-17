@@ -91,14 +91,14 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
       {gecmis.map((e, i) => {
         const tm = v.temalar.filter(t => t.etkinlik === e.id)
         return (
-          <div className="ev" key={e.id}>
+          <button className="ev" key={e.id} onClick={() => git(`sonuc/${e.id}`)}>
             <div className="top">
               <span className="no">{String(gecmis.length - i).padStart(2, '0')}</span>
               <span className="mo">{ayAdi(e.bulusma_gunu)}</span>
               <span className="mt">{tm.length} tema</span>
             </div>
-            <div className="alt">{tm.map(t => t.ad).join(' · ')}</div>
-          </div>
+            <div className="alt">{tm.map(t => t.ad).join(' · ')}{tm.length ? ' · ' : ''}sonuçlar</div>
+          </button>
         )
       })}
     </div>

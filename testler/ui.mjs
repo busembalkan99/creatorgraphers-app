@@ -520,7 +520,43 @@ bekle('oylama ekranı da hatayı söylüyor', icerir(await metin(A), 'Bağlantı
 await olc(A, '35-ag-hatasi');
 await A.unroute('**/rest/v1/etkinlikler*');
 
-// 13 · Çıkış
+// 13 · Sonuçlar (oylama kapalı, etkinlik sonuçlandı)
+await admin.from('etkinlikler').update({
+  yukleme_biter: new Date(Date.now() - 3000).toISOString(),
+  oylama_biter: new Date(Date.now() - 1000).toISOString(),
+}).eq('id', ev.id);
+await A.goto(APP + '#/profil'); await A.waitForTimeout(400);
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1500);
+bekle('biten etkinlik arşivde', icerir(await metin(A), 'Geçmiş etkinlikler') && (await A.locator('.ev').count()) === 1);
+bekle('canlı kart kalktı', (await A.locator('.live').count()) === 0);
+await olc(A, '36-arsiv');
+await A.locator('.ev').first().click(); await A.waitForTimeout(2000);
+bekle('sonuç sayfası açıldı', icerir(await metin(A), 'Sonuçlandı'), (await metin(A)).slice(0, 140));
+bekle('temanın karesi var', (await A.locator('.odul img').count()) === 1);
+bekle('kazananın adı görünüyor', icerir(await yaz(A, '.odul .serit'), 'Selin') || icerir(await yaz(A, '.odul .serit'), 'Deniz'), await yaz(A, '.odul .serit'));
+bekle('kazananın puanı var', /\d,\d/.test(await yaz(A, '.odul .serit .ort')), await yaz(A, '.odul .serit .ort'));
+bekle('tema sekmeleri', (await A.locator('.sekmeler button').count()) === 2);
+await olc(A, '37-sonuc');
+// ikinci tema
+await A.locator('.sekmeler button').nth(1).click(); await A.waitForTimeout(1200);
+bekle('ikinci temada da kazanan var', (await A.locator('.odul img').count()) === 1);
+bekle('az karede de kazananın puanı var', /\d,\d/.test(await yaz(A, '.odul .serit .ort')), await yaz(A, '.odul .serit .ort'));
+// kare detayı: makine bilgisi olan Sokak karesinden
+await A.locator('.sekmeler button').nth(0).click(); await A.waitForTimeout(1200);
+await A.locator('.odul img').click(); await A.waitForTimeout(1500);
+bekle('detayda makine bilgisi', icerir(await metin(A), 'NIKON') || icerir(await metin(A), 'Makine'), (await metin(A)).slice(0, 200));
+bekle('detayda kaç kişi puan verdi', icerir(await metin(A), 'kişi puan verdi'));
+await olc(A, '38-kare-detay');
+await A.click('.detay .geri'); await A.waitForTimeout(1200);
+bekle('detaydan geri dönülüyor', (await A.locator('.sekmeler').count()) === 1);
+// üyenin gözünden: kendi karesi işaretli, başkasının sırasız karesinde puan yok
+await B.goto(APP + '#/etkinlikler'); await B.waitForTimeout(1500);
+await B.locator('.ev').first().click(); await B.waitForTimeout(2000);
+bekle('üye sonuçları görüyor', icerir(await metin(B), 'Sonuçlandı'));
+bekle('kendi karesi işaretli', (await B.locator('.izgara figure.benim, .satir-kare.benim').count()) >= 0);
+await olc(B, '39-sonuc-uye');
+
+// 14 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
 bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));

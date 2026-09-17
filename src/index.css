@@ -153,7 +153,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .next .v{margin-left:auto;font-size:17px;letter-spacing:-.02em;font-variation-settings:"wdth" 70,"wght" 900;font-variant-numeric:tabular-nums}
 .next .u{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
 
-.ev{border-top:1px solid var(--rule);padding:12px 0 13px}
+.ev{border-top:1px solid var(--rule);padding:12px 0 13px;width:100%;appearance:none;background:none;border-left:0;
+  border-right:0;border-bottom:0;color:inherit;text-align:left;cursor:pointer;display:block}
 .ev .top{display:flex;align-items:baseline;gap:10px;min-height:26px}
 .ev .no{font-size:17px;line-height:1;letter-spacing:-.02em;color:var(--soft);
   font-variation-settings:"wdth" 68,"wght" 900;font-variant-numeric:tabular-nums;width:30px;flex:0 0 auto}
@@ -381,3 +382,73 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .tema-satir .cizgi i{display:block;height:100%;background:var(--oyla)}
 .tema-satir .alt{margin-top:7px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
 .tema-satir.tamam .cizgi i{background:var(--ink)}
+
+/* ==========================================================
+   Sonuçlar (kararlar 10, 18, 19, 43, 68, 79). Kaynak: prototip v19.
+   Ödül karesi kırpılmaz, kürsüde ve galeride kırpılır.
+   ========================================================== */
+.bas h1{margin-top:18px;font-size:30px;line-height:.86;letter-spacing:-.035em;word-spacing:.1em;
+  text-transform:uppercase;font-variation-settings:"wdth" 70,"wght" 900}
+.bas .meta{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap;font-size:11px;font-weight:800;
+  letter-spacing:.04em;color:var(--soft)}
+
+.sekmeler{position:sticky;top:0;z-index:5;background:var(--paper);display:grid;margin-top:24px}
+.sekmeler button{appearance:none;background:none;border:0;border-top:4px solid var(--rule);cursor:pointer;
+  padding:11px 8px 12px;color:var(--soft);font-size:13px;font-weight:900;letter-spacing:.14em;
+  text-transform:uppercase;overflow-wrap:anywhere}
+.sekmeler button.on{background:var(--ink);color:var(--paper);border-top-color:var(--ink)}
+.sekmeler button i{display:block;font-style:normal;margin-top:5px;font-size:11px;font-weight:800;letter-spacing:.04em;
+  text-transform:none;opacity:.7}
+
+.odul{margin-top:18px}
+.odul .lab{margin-bottom:8px;display:block}
+.odul img{width:100%;height:auto;display:block;background:#17171A}
+.odul .serit{background:var(--ink);color:var(--paper);padding:13px 13px 14px;display:flex;align-items:baseline;gap:10px}
+.odul .serit b{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.62}
+.odul .serit .ad{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;word-spacing:.1em;
+  font-variation-settings:"wdth" 74,"wght" 900;min-width:0;overflow-wrap:anywhere}
+.odul .serit .ort{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
+  font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
+
+.kursu{display:flex;gap:8px;margin-top:12px}
+.kursu figure{margin:0;flex:1;min-width:0;cursor:pointer}
+.kursu img{width:100%;height:104px;object-fit:cover;display:block;background:#17171A}
+.kursu figcaption{margin-top:10px}
+.kursu .sat{display:flex;align-items:baseline;gap:8px}
+.kursu .no{font-size:11px;line-height:1;color:var(--soft);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.kursu .ad{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;min-width:0;overflow-wrap:anywhere}
+.kursu .ort{display:block;margin-top:5px;font-size:17px;color:var(--dim);font-variation-settings:"wdth" 72,"wght" 900;
+  font-variant-numeric:tabular-nums}
+
+.satir-kare{border-top:1px solid var(--rule);min-height:56px;display:flex;align-items:center;gap:11px;padding:8px 0;
+  width:100%;appearance:none;background:none;border-left:0;border-right:0;border-bottom:0;color:inherit;text-align:left;cursor:pointer}
+.satir-kare .no{font-size:11px;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.satir-kare img{width:44px;height:44px;object-fit:cover;flex:0 0 auto;background:#17171A;display:block}
+.satir-kare .ad{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;min-width:0;overflow-wrap:anywhere}
+.satir-kare .ort{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
+  font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
+.satir-kare.benim{box-shadow:inset 3px 0 0 var(--oyla);padding-left:9px}
+
+.izgara{display:grid;grid-template-columns:repeat(3,1fr);column-gap:9px;row-gap:22px;margin-top:20px}
+.izgara figure{margin:0;min-width:0;cursor:pointer}
+.izgara img{width:100%;height:84px;object-fit:cover;display:block;background:#17171A}
+.izgara figure.benim img{outline:3px solid var(--oyla);outline-offset:-3px}
+.izgara figcaption{margin-top:8px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--dim);
+  line-height:1.35;overflow-wrap:anywhere}
+
+.detay img{width:100%;height:auto;display:block;background:#17171A;margin-top:12px}
+.detay .kim{margin-top:13px;display:flex;align-items:baseline;gap:10px}
+.detay .kim .ad{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
+  font-variation-settings:"wdth" 74,"wght" 900;min-width:0;overflow-wrap:anywhere}
+.detay .kim .ort{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
+  font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
+.kunye{margin-top:14px;border-top:4px solid var(--ink)}
+.kunye div{border-bottom:1px solid var(--rule);padding:9px 0 8px;display:flex;align-items:baseline;gap:8px}
+.kunye b{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.kunye span{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;font-variant-numeric:tabular-nums;
+  overflow-wrap:anywhere;text-align:right}
+.bos-tema{margin-top:18px;border:1px dashed rgba(237,237,234,.3);padding:14px}
+.bos-tema b{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.bos-tema h3{margin-top:9px;font-size:22px;line-height:.9;letter-spacing:-.03em;word-spacing:.1em;text-transform:uppercase;
+  font-variation-settings:"wdth" 70,"wght" 900}
+.bos-tema p{margin-top:10px;font-size:11px;line-height:1.6;color:var(--dim)}

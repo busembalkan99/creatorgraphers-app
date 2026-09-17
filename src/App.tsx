@@ -13,6 +13,7 @@ import { Uyeler } from './ekranlar/Uyeler'
 import { Kur } from './ekranlar/Kur'
 import { Asama } from './ekranlar/Asama'
 import { Oylama, OylamaTema } from './ekranlar/Oylama'
+import { Sonuc } from './ekranlar/Sonuc'
 
 export default function App() {
   if (ayarEksik) return <AyarEksik />
@@ -92,7 +93,14 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   let altEkran = true
   const profil = <Profil uye={uye} uyeDegisti={uyeDegisti} />
   const temaId = yol.startsWith('oyla/') ? yol.slice(5) : null
-  switch (yonetici || !['uyeler', 'kur', 'asama'].includes(yol) ? (temaId ? 'oyla-tema' : yol) : 'profil') {
+  const sonucId = yol.startsWith('sonuc/') ? yol.slice(6) : null
+  const hedef = yonetici || !['uyeler', 'kur', 'asama'].includes(yol)
+    ? temaId ? 'oyla-tema' : sonucId ? 'sonuc' : yol
+    : 'profil'
+  switch (hedef) {
+    case 'sonuc':
+      ekran = <Sonuc uye={uye} etkinlikId={sonucId!} />
+      break
     case 'oyla':
       ekran = <Oylama uye={uye} />
       break

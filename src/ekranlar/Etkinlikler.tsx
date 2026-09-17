@@ -15,7 +15,7 @@ interface Veri {
   temalar: Tema[]
   benimTemalarim: Set<string>
   uyeSayisi: number
-  oyKalan: number | null   // oylama açıkken kaç kareye puan vermedim
+  oyKalan: { kalan: number; toplam: number } | null   // oylama açıkken kaç kare kaldı
 }
 
 export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
@@ -29,12 +29,15 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
   if (hata) throw hata
   const etkinlikler = (e.data ?? []) as Etkinlik[]
   const acik = etkinlikler.find(x => asama(x) === 'oylama')
-  let oyKalan: number | null = null
+  let oyKalan: { kalan: number; toplam: number } | null = null
   if (acik) {
     const d = await sb.rpc('oylama_durumu', { p_etkinlik: acik.id })
     if (!d.error) {
-      oyKalan = ((d.data ?? []) as { toplam: number; puanladigim: number }[])
-        .reduce((a, x) => a + (Number(x.toplam) - Number(x.puanladigim)), 0)
+      const satir = (d.data ?? []) as { toplam: number; puanladigim: number }[]
+      oyKalan = {
+        kalan: satir.reduce((a, x) => a + (Number(x.toplam) - Number(x.puanladigim)), 0),
+        toplam: satir.reduce((a, x) => a + Number(x.toplam), 0),
+      }
     }
   }
   return {
@@ -102,7 +105,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   )
 }
 
-function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: number | null }) {
+function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: { kalan: number; toplam: number } | null }) {
   const a = asama(e)
   const ay = ayAdi(e.bulusma_gunu)
   const tamam = temalar.filter(t => benim.has(t.id)).length
@@ -146,8 +149,10 @@ function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[
         </button>
       ) : (
         <button className="act" onClick={() => git('oyla')}>
-          {oyKalan == null ? 'Oylamaya geç' : oyKalan > 0 ? 'Oylamaya devam et' : 'Puanlarına bak'}
-          {oyKalan != null && oyKalan > 0 && <i>{oyKalan} kare kaldı</i>}
+          {oyKalan == null || oyKalan.kalan === 0
+            ? oyKalan == null ? 'Oylamaya geç' : 'Puanlarına bak'
+            : oyKalan.kalan === oyKalan.toplam ? 'Oylamaya başla' : 'Oylamaya devam et'}
+          {oyKalan != null && oyKalan.kalan > 0 && <i>{oyKalan.kalan} kare kaldı</i>}
         </button>
       )}
     </div>

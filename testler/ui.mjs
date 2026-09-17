@@ -28,7 +28,8 @@ async function kisi(eposta) {
   return p;
 }
 const metin = p => p.locator('.app').innerText();
-const icerir = (a, b) => a.toLocaleLowerCase('tr-TR').includes(b.toLocaleLowerCase('tr-TR'));
+const icerir = (a, b) => a.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR').includes(b.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR'));
+const yaz = (p, sec, i = 0) => p.evaluate(([s, j]) => (document.querySelectorAll(s)[j]?.textContent ?? '').trim(), [sec, i]);
 const bekleMetin = (p, t) => p.getByText(t, { exact: false }).first().waitFor({ timeout: 8000 }).then(() => true, () => false);
 async function olc(p, ad) {
   const r = await p.evaluate(() => {
@@ -286,7 +287,7 @@ await admin.storage.from('kareler').upload(yol3, fs.readFileSync('/tmp/cgapp/dog
 await admin.from('kareler').insert({ tema: sokak.id, sahip: ucuncu.id, dosya: yol3, genislik: 1200, yukseklik: 800, cekim_gunu: bugun });
 
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
-bekle('canlı kartta oylama çağrısı', icerir(await metin(A), 'Oylamaya geç') || icerir(await metin(A), 'Oylamaya devam et'));
+bekle('canlı kartta oylama çağrısı', icerir(await metin(A), 'Oylamaya başla'), (await metin(A)).slice(0, 160));
 bekle('kalan kare sayısı kartta', icerir(await metin(A), '3 kare kaldı'), await metin(A));
 await A.click('.live .act'); await A.waitForTimeout(1500);
 bekle('oylama tema listesi', icerir(await metin(A), 'Temalar'));
@@ -303,11 +304,18 @@ const puanla = async (yer, oran) => {
   await yer.scrollIntoViewIfNeeded();
   await A.waitForTimeout(400);
   const k = await yer.boundingBox();
-  await A.mouse.move(k.x + k.width * oran, k.y + k.height / 2);
-  await A.mouse.down(); await A.mouse.up(); await A.waitForTimeout(800);
+  const y = k.y + k.height / 2;
+  // gerçek sürükleme: bas, kaydır, bırak
+  await A.mouse.move(k.x + 4, y);
+  await A.mouse.down();
+  await A.mouse.move(k.x + k.width * 0.3, y, { steps: 5 });
+  await A.mouse.move(k.x + k.width * oran, y, { steps: 5 });
+  await A.waitForTimeout(150);
+  await A.mouse.up();
+  await A.waitForTimeout(800);
 };
 await puanla(A.locator('.kaydirici').first(), 6 / 9);
-bekle('puan ekranda 07', (await A.locator('.puan .deger').first().innerText()).trim() === '07');
+bekle('puan ekranda 07', await yaz(A, '.puan .deger') === '07');
 const oy1 = (await admin.from('oylar').select('*')).data ?? [];
 bekle('puan veritabanına yazıldı', oy1.length === 1 && oy1[0].puan === 7, JSON.stringify(oy1));
 await olc(A, '29-oylama-puanli');
@@ -317,7 +325,7 @@ await A.waitForTimeout(1000);
 bekle('bitişte 1 kare kaldı', icerir(await metin(A), '1 kare') && icerir(await metin(A), 'Puan vermediğin kareler'));
 bekle('eksik ızgarada 1 kart', (await A.locator('.bitti .eksik button').count()) === 1);
 await olc(A, '30-oylama-bitis-eksik');
-bekle('eksik kart düğmesi doğru', icerir(await A.locator('.bitti .btn').innerText(), 'puansız'));
+bekle('eksik kart düğmesi doğru', icerir(await yaz(A, '.bitti .btn'), 'puansız'));
 await A.click('.bitti .btn'); await A.waitForTimeout(1200);
 // klavyeyle 10: kaydırıcı ok tuşlarıyla da çalışmalı
 {
@@ -332,20 +340,61 @@ bekle('ikinci kareye 10 verildi', ((await admin.from('oylar').select('puan')).da
 await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
 await A.waitForTimeout(1000);
 bekle('tema bitti ekranı', icerir(await metin(A), 'bitti') && !icerir(await metin(A), 'Puan vermediğin'), (await metin(A)).slice(0, 120));
-bekle('bitişte dönüş düğmesi', icerir(await A.locator('.bitti .btn').innerText(), 'Temalara dön'));
+bekle('bitişte dönüş düğmesi', icerir(await yaz(A, '.bitti .btn'), 'Temalara dön'));
 await olc(A, '31-oylama-bitis-tamam');
 await A.click('.bitti .btn'); await A.waitForTimeout(1200);
 bekle('tema listesinde 2 / 2', icerir(await metin(A), '2 / 2'));
 bekle('diğer temada kare sayısı', icerir(await metin(A), '1 kare kaldı'));
 // puan değiştirme (karar 37)
 await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1200);
-bekle('önceki puan geri geliyor', ['07', '10'].includes((await A.locator('.puan .deger').first().innerText()).trim()));
+bekle('önceki puan geri geliyor', ['07', '10'].includes(await yaz(A, '.puan .deger')));
 await puanla(A.locator('.kaydirici').first(), 2 / 9);
 bekle('puan değiştirilebiliyor', ((await admin.from('oylar').select('puan')).data ?? []).some(o => o.puan === 3));
+// sürüklerken değer parmakla birlikte değişiyor mu (pointermove)
+{
+  const k = await A.locator('.kaydirici').first().boundingBox();
+  const y = k.y + k.height / 2;
+  await A.mouse.move(k.x + 4, y);
+  await A.mouse.down();
+  await A.mouse.move(k.x + k.width * 0.55, y, { steps: 4 });
+  await A.waitForTimeout(250);
+  const sururken = await yaz(A, '.puan .deger');
+  await A.mouse.move(k.x + k.width * 0.9, y, { steps: 4 });
+  await A.waitForTimeout(250);
+  const sonra = await yaz(A, '.puan .deger');
+  await A.mouse.up(); await A.waitForTimeout(700);
+  bekle('sürüklerken değer takip ediyor', sururken !== sonra && Number(sonra) > Number(sururken), `${sururken} → ${sonra}`);
+}
+
+// Portre temasını da bitir: "oyların tamam" hâli
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
+await A.locator('.tema-satir').nth(1).click(); await A.waitForTimeout(1500);
+await puanla(A.locator('.kaydirici').first(), 5 / 9);
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
+bekle('hepsi bitince oyların tamam', icerir(await metin(A), 'Oyların tamam'), (await metin(A)).replace(/\n/g, ' | ').slice(0, 200));
+bekle('biten temada Bitti yazıyor', await yaz(A, '.tema-satir .alt') === 'Bitti');
+await olc(A, '33-oylama-tamam');
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
+bekle('kartta puanlarına bak', icerir(await metin(A), 'Puanlarına bak'));
+
 // B kendi karelerini oylamıyor
 await B.goto(APP + '#/oyla'); await B.waitForTimeout(1500);
-bekle('B için Sokak temasında kare yok', icerir(await metin(B), 'kimse kare vermemiş') || icerir(await metin(B), '0 / 0'), await metin(B));
+bekle('B için Sokak zorunlu', icerir(await metin(B), 'oylaman gerekiyor'));
+bekle('B kendi karesini görmüyor', icerir(await metin(B), '0 / 1'), await metin(B));
 await olc(B, '32-oylama-uye');
+
+// Oylama kapanınca verilen puan ekranda kabul edilmiş gibi kalmasın
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(1000);
+await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
+const oncekiPuan = await yaz(A, '.puan .deger');
+await admin.from('etkinlikler').update({
+  yukleme_biter: new Date(Date.now() - 2000).toISOString(),
+  oylama_biter: new Date(Date.now() - 1000).toISOString(),
+}).eq('id', ev.id);
+await puanla(A.locator('.kaydirici').first(), 1 / 9);
+bekle('kapanınca hata görünüyor', icerir(await metin(A), 'Oylama kapandı'), (await metin(A)).slice(0, 120));
+bekle('reddedilen puan geri alınıyor', await yaz(A, '.puan .deger') === oncekiPuan, `önce ${oncekiPuan} → şimdi ${await yaz(A, '.puan .deger')}`);
+await olc(A, '34-oylama-kapandi');
 
 // 12 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);

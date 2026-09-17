@@ -189,6 +189,11 @@ bekle('oylamada kare silinemez', hata(await B2.c.from('kareler').delete().eq('id
 await admin.from('etkinlikler').update({ yukleme_biter: new Date(Date.now() - 2000).toISOString(), oylama_biter: new Date(Date.now() - 1000).toISOString() }).eq('id', E2);
 bekle('etkinlik sonuç aşamasında', (await B2.c.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc');
 bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert({ kare: kA.id, veren: B2.id, puan: 3 }, { onConflict: 'kare,veren' })).includes('oylama_kapali'));
+bekle('anonim oylama listesi alamaz', ((await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0 || !!(await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).error);
+bekle('anonim oy tablosunu okuyamaz', !!(await anon.from('oylar').select('*')).error || ((await anon.from('oylar').select('*')).data ?? []).length === 0);
+bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? []).length === 0);
+bekle('olmayan kareye oy verilemez', hata(await B2.c.from('oylar').insert({ kare: '00000000-0000-0000-0000-000000000000', veren: B2.id, puan: 5 })).length > 0);
+bekle('kendi oyunu silemez', ((await B2.c.from('oylar').delete().eq('kare', kA.id).select()).data ?? []).length === 0 && ((await admin.from('oylar').select('kare')).data ?? []).length === 1);
 bekle('sonuçta kareler hâlâ okunur', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 1);
 
 rapor();

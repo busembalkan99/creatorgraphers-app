@@ -365,6 +365,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   color:var(--paper);padding:3px 6px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;font-size:8px}
 .bitti .btn{margin-top:4px}
 
+/* puan yazılamadığında akışın üstünde duran şerit */
+.oy-hata{position:sticky;top:0;z-index:12;background:var(--paper);padding:10px var(--pad) 0}
+.oy-hata .hata{margin-top:0}
+
 /* tema listesi */
 .tema-satir{border-top:1px solid var(--rule);padding:13px 0;width:100%;appearance:none;background:none;border-left:0;
   border-right:0;border-bottom:0;color:inherit;text-align:left;cursor:pointer;min-height:64px}

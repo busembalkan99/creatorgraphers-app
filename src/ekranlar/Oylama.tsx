@@ -115,6 +115,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   const [tema, setTema] = useState<TemaDurum | null>(null)
   const [kareler, setKareler] = useState<OyKare[]>([])
   const [hata, setHata] = useState<string | null>(null)
+  // Puan yazılamazsa akış ekranda kalsın, yalnız üstte şerit çıksın.
+  const [oyHatasi, setOyHatasi] = useState<string | null>(null)
   const akis = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -133,10 +135,17 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   }, [uye.id, temaId])
 
   const oyVer = useCallback(async (kare: string, puan: number) => {
+    const onceki = kareler.find(k => k.id === kare)?.puan ?? null
     setKareler(l => l.map(k => (k.id === kare ? { ...k, puan } : k)))
     const { error } = await sb.from('oylar').upsert({ kare, veren: uye.id, puan }, { onConflict: 'kare,veren' })
-    if (error) setHata(hataMetni(error))
-  }, [uye.id])
+    if (error) {
+      // Sunucu reddederse ekranda kabul edilmiş gibi kalmasın (oylama kapanmış olabilir).
+      setKareler(l => l.map(k => (k.id === kare ? { ...k, puan: onceki } : k)))
+      setOyHatasi(hataMetni(error))
+    } else if (oyHatasi) {
+      setOyHatasi(null)
+    }
+  }, [uye.id, kareler, oyHatasi])
 
   if (hata) return <div className="sc"><Kunye sol="Oylama" geri="oyla" sag="Oylama" /><Hata metin={hata} /></div>
   if (e === undefined) return <Yukleniyor />
@@ -157,6 +166,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
 
   return (
     <div className="akis" ref={akis} data-asama="oylama">
+      {oyHatasi && <div className="oy-hata"><Hata metin={oyHatasi} /></div>}
       {kareler.map((k, i) => (
         <section className="kare" key={k.id} data-kare={k.id}>
           <div className="mast">
@@ -210,7 +220,6 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           </>
         )}
       </section>
-      <Hata metin={hata} />
     </div>
   )
 }

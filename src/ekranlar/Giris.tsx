@@ -30,8 +30,10 @@ export function Kapak() {
   const [hata, setHata] = useState<string | null>(null)
   return (
     <div className="sc">
-      <div className="mast"><span>Fotoğraf kulübü</span></div>
-      <div className="rb" />
+      <header className="ust">
+        <div className="mast"><span>Fotoğraf kulübü</span></div>
+        <div className="rb" />
+      </header>
       <div className="kapak"><img src={import.meta.env.BASE_URL + 'kapak.jpg'} alt="" /></div>
       <div className="marka">Creator&shy;graphers</div>
       <div className="bosluk" />

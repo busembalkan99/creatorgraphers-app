@@ -222,11 +222,13 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
   const dolu = kunye.filter(([, v]) => v)
   return (
     <div className="sc detay">
-      <div className="mast">
-        <button className="geri" onClick={kapat}>Sonuçlar</button>
-        <span className="r">{kare.tema_ad}</span>
-      </div>
-      <div className="rb" />
+      <header className="ust">
+        <div className="mast">
+          <button className="geri" onClick={kapat}>Sonuçlar</button>
+          <span className="r">{kare.tema_ad}</span>
+        </div>
+        <div className="rb" />
+      </header>
       {kare.url && <img src={kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`} />}
       <div className="kim">
         <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>

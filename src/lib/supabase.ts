@@ -38,4 +38,8 @@ export function hataMetni(e: unknown): string {
 }
 
 // Yalnız geliştirmede: tarayıcı testleri Google'a gitmeden test hesabıyla girebilsin.
-if (import.meta.env.DEV) (window as unknown as { __sb: typeof sb }).__sb = sb
+if (import.meta.env.DEV) {
+  const w = window as unknown as { __sb: typeof sb; __hataMetni: typeof hataMetni }
+  w.__sb = sb
+  w.__hataMetni = hataMetni
+}

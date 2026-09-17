@@ -189,6 +189,25 @@ bekle('oylamada kare silinemez', hata(await B2.c.from('kareler').delete().eq('id
 await admin.from('etkinlikler').update({ yukleme_biter: new Date(Date.now() - 2000).toISOString(), oylama_biter: new Date(Date.now() - 1000).toISOString() }).eq('id', E2);
 bekle('etkinlik sonuç aşamasında', (await B2.c.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc');
 bekle('oylama kapanınca puan değişmez', hata(await B2.c.from('oylar').upsert({ kare: kA.id, veren: B2.id, puan: 3 }, { onConflict: 'kare,veren' })).includes('oylama_kapali'));
+// Sıra kişiye göre karışık ve kişi için sabit (yükleme sırası avantaj olmasın)
+{
+  // dört ayrı kişi, çünkü bir kişi bir temaya tek kare veriyor (karar 3)
+  for (let i = 0; i < 4; i++) {
+    const posta = `karisik${i}@test.local`;
+    const { data: l } = await admin.auth.admin.listUsers();
+    const k = l.users.find(u => u.email === posta)
+      ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
+    await admin.from('uyeler').insert({ id: k.id, ad: `Karışık ${i}`, eposta: posta });
+    const yol = `${E2}/${P2.id}/${crypto.randomUUID()}.jpg`;
+    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    const r = await admin.from('kareler').insert({ tema: P2.id, sahip: k.id, dosya: yol, genislik: 10, yukseklik: 10 });
+    if (r.error) throw r.error;
+  }
+  const sira = async k => ((await k.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).filter(x => x.tema === P2.id).map(x => x.id).join(',');
+  const a1 = await sira(A2.c), a2 = await sira(A2.c), b1 = await sira(B2.c);
+  bekle('sıra aynı kişide sabit', a1 === a2 && a1.split(',').length >= 4, a1);
+  bekle('sıra kişiden kişiye farklı', a1 !== b1, `A: ${a1}\nB: ${b1}`);
+}
 bekle('anonim oylama listesi alamaz', ((await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0 || !!(await anon.rpc('oylama_kareleri', { p_etkinlik: E2 })).error);
 bekle('anonim oy tablosunu okuyamaz', !!(await anon.from('oylar').select('*')).error || ((await anon.from('oylar').select('*')).data ?? []).length === 0);
 bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_etkinlik: E2 })).data ?? []).length === 0);
@@ -199,6 +218,6 @@ bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_et
 bekle('kendi oyunu silemez', ((await B2.c.from('oylar').delete().eq('kare', kA.id).select()).data ?? []).length === 0 && ((await admin.from('oylar').select('kare')).data ?? []).length === 1);
 bekle('sonuçta dosya hâlâ indirilebilir', !(await B2.c.storage.from('kareler').download(kA.dosya)).error);
 bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler').download(kA.dosya)).error);
-bekle('sonuçta kareler hâlâ okunur', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length === 1);
+bekle('sonuçta kareler hâlâ okunur', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length >= 1);
 
 rapor();

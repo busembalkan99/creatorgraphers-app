@@ -291,6 +291,23 @@ bekle('canlı kartta oylama çağrısı', icerir(await metin(A), 'Oylamaya başl
 bekle('kalan kare sayısı kartta', icerir(await metin(A), '3 kare kaldı'), await metin(A));
 await A.click('.live .act'); await A.waitForTimeout(1500);
 bekle('oylama tema listesi', icerir(await metin(A), 'Temalar'));
+bekle('son oy tarihi satırı', /\d+ (gün|saat|dakika) kaldı/.test(await metin(A)), (await metin(A)).slice(0, 120));
+bekle('zorunlusu olmayana not', icerir(await metin(A), 'zorunlu temalarda işin bitti'));
+bekle('oylama ekranında sekme çubuğu yok', (await A.locator('.tabs').count()) === 0);
+// hata cümleleri: sunucu kodları okunur cümleye çevriliyor
+{
+  const c = await A.evaluate(() => ({
+    kendi: window.__hataMetni({ message: 'kendi_karen' }),
+    kapali: window.__hataMetni({ message: 'oylama_kapali' }),
+    baska: window.__hataMetni({ message: 'baska_veren' }),
+    bilinmeyen: window.__hataMetni({ message: 'ZZZ' }),
+  }));
+  bekle('hata cümleleri okunur', c.kendi.includes('Kendi karene') && c.kapali.includes('Oylama kapandı') && c.baska.includes('kendi puanını') && c.bilinmeyen.includes('ters gitti'), JSON.stringify(c));
+}
+// olmayan tema adresi
+await A.goto(APP + '#/oyla/00000000-0000-0000-0000-000000000000'); await A.waitForTimeout(1500);
+bekle('olmayan tema adresinde kilit ekranı', icerir(await metin(A), 'Oylama açık değil'), (await metin(A)).slice(0, 100));
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
 bekle('kurucuya zorunlu değil', icerir(await metin(A), 'oylamak zorunda değilsin'));
 bekle('isim sızmıyor', !icerir(await metin(A), 'Selin') && !icerir(await metin(A), 'Deniz'));
 await olc(A, '27-oylama-temalar');
@@ -331,6 +348,16 @@ bekle('bitişte 1 kare kaldı', icerir(await metin(A), '1 kare') && icerir(await
 bekle('eksik ızgarada 1 kart', (await A.locator('.bitti .eksik button').count()) === 1);
 await olc(A, '30-oylama-bitis-eksik');
 bekle('eksik kart düğmesi doğru', icerir(await yaz(A, '.bitti .btn'), 'puansız'));
+// ızgaradaki karta dokununca o kareye gidiyor
+{
+  const once = await A.evaluate(() => document.querySelector('.akis').scrollTop);
+  await A.locator('.bitti .eksik button').first().click();
+  await A.waitForTimeout(1200);
+  const sonra = await A.evaluate(() => document.querySelector('.akis').scrollTop);
+  bekle('eksik karta dokununca o kareye gidiyor', sonra < once, `${once} → ${sonra}`);
+  await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
+  await A.waitForTimeout(900);
+}
 await A.click('.bitti .btn'); await A.waitForTimeout(1200);
 // klavyeyle 10: kaydırıcı ok tuşlarıyla da çalışmalı
 {
@@ -381,6 +408,7 @@ bekle('biten temada Bitti yazıyor', await yaz(A, '.tema-satir .alt') === 'Bitti
 await olc(A, '33-oylama-tamam');
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('kartta puanlarına bak', icerir(await metin(A), 'Puanlarına bak'));
+bekle('bitince kalan kare rozeti yok', !/kare kaldı/.test(await metin(A)), (await metin(A)).slice(0, 140));
 
 // B kendi karelerini oylamıyor
 await B.goto(APP + '#/oyla'); await B.waitForTimeout(1500);
@@ -426,7 +454,29 @@ bekle('yeni puan yazıldı', ((await admin.from('oylar').select('puan')).data ??
   await A.waitForTimeout(600);
   bekle('klavyeyle 10 üst sınırı', await yaz(A, '.puan .deger') === '10', await yaz(A, '.puan .deger'));
 }
-const sunucudakiPuan = ((await admin.from('oylar').select('kare, puan')).data ?? []).find(o => o.puan === 10) ? '10' : await yaz(A, '.puan .deger');
+// sürükleme kesilirse verilen puan kayboluyor mu
+{
+  const k = A.locator('.kaydirici').first();
+  await k.scrollIntoViewIfNeeded(); await A.waitForTimeout(300);
+  const kutu = await k.boundingBox();
+  const y = kutu.y + kutu.height / 2;
+  await A.mouse.move(kutu.x + 4, y);
+  await A.mouse.down();
+  await A.mouse.move(kutu.x + kutu.width * 0.35, y, { steps: 3 });
+  await A.waitForTimeout(200);
+  const ekranda = await yaz(A, '.puan .deger');
+  await A.evaluate(() => {
+    const s = document.querySelector('.kaydirici');
+    s.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }));
+  });
+  await A.waitForTimeout(1200);
+  await A.mouse.up();
+  bekle('sürükleme kesilince puan kaydediliyor',
+    ((await admin.from('oylar').select('puan')).data ?? []).some(o => String(o.puan).padStart(2, '0') === ekranda),
+    `ekranda ${ekranda}, dbde ${JSON.stringify(((await admin.from('oylar').select('puan')).data ?? []).map(o => o.puan))}`);
+}
+// oylama kapanmadan hemen önce ekranda duran (yani sunucunun kabul ettiği) puan
+const sunucudakiPuan = await yaz(A, '.puan .deger');
 // oylamayı yeniden kapat
 await admin.from('etkinlikler').update({
   yukleme_biter: new Date(Date.now() - 2000).toISOString(),

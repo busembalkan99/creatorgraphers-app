@@ -44,8 +44,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       const { data: ev, error } = await sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false })
       if (error) throw error
       const acik = acikEtkinlik((ev ?? []) as Etkinlik[]) ?? null
-      setE(acik)
-      if (!acik) return
+      if (!acik) return setE(null)
       const { data: tm, error: e2 } = await sb.from('temalar').select('*').eq('etkinlik', acik.id).order('sira')
       if (e2) throw e2
       const temaList = (tm ?? []) as Tema[]
@@ -66,6 +65,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         yeni[k.tema] = { ...bosDurum(), kare: { ...k, url: imzalar[i]?.signedUrl ?? null } }
       })
       setD(yeni)
+      setE(acik)
       // İlk boş temayı seçili aç
       const ilkBos = temaList.findIndex(t => !yeni[t.id].kare)
       setSec(ilkBos >= 0 ? ilkBos : 0)

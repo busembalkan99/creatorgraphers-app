@@ -19,16 +19,17 @@ export function Asama() {
     const { data, error } = await sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false })
     if (error) throw error
     const acik = acikEtkinlik((data ?? []) as Etkinlik[]) ?? null
-    setE(acik)
-    if (!acik) return
+    if (!acik) return setE(null)
     const [t, s] = await Promise.all([
       sb.from('temalar').select('*').eq('etkinlik', acik.id).order('sira'),
       sb.rpc('yukleme_sayilari', { p_etkinlik: acik.id }),
     ])
     if (t.error) throw t.error
     if (s.error) throw s.error
+    // Hepsi gelince birlikte: önce etkinlik çizilirse grup mesajı bir an temasız kalıyordu.
     setTemalar((t.data ?? []) as Tema[])
     setSayilar(Object.fromEntries(((s.data ?? []) as { tema: string; adet: number }[]).map(r => [r.tema, Number(r.adet)])))
+    setE(acik)
   }
 
   useEffect(() => {

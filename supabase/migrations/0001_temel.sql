@@ -116,8 +116,9 @@ declare
   e public.etkinlikler;
   hedef uuid := coalesce(new.tema, old.tema);
 begin
-  -- Kullanıcı oturumu olmayan işlemler (servis anahtarı, hesap silinince zincirleme
-  -- silme) bu kurala takılmaz; kural üyenin kendi işlemleri için.
+  -- Kullanıcı oturumu olmayan işlemler (servis anahtarıyla yapılanlar, hesap silinince
+  -- zincirleme silme) bu kurala takılmaz; kural üyenin kendi işlemleri için.
+  -- Yöneticinin tema silmesi kullanıcı oturumuyla çalışır, yani kapalı aşamada tema silinemez.
   if auth.uid() is null then
     if tg_op = 'DELETE' then return old; end if;
     return new;
@@ -129,6 +130,17 @@ begin
   end if;
   if tg_op = 'DELETE' then
     return old;
+  end if;
+  if tg_op = 'UPDATE' and new.tema <> old.tema then
+    raise exception 'tema_degismez' using errcode = 'P0001';
+  end if;
+  -- Dosya yolu bu etkinlik ve temanın klasöründe, depoda var ve bu kişinin yüklediği
+  -- bir dosya olmalı. Oylama ekranı bu yola güvenecek.
+  if new.dosya not like (t.etkinlik::text || '/' || t.id::text || '/%')
+     or not exists (select 1 from storage.objects o
+                     where o.bucket_id = 'kareler' and o.name = new.dosya
+                       and o.owner_id = auth.uid()::text) then
+    raise exception 'dosya_yok' using errcode = 'P0001';
   end if;
   if t.bulusmada then
     if new.cekim_gunu is null then
@@ -214,7 +226,7 @@ create policy kare_ekle on public.kareler for insert with check (sahip = auth.ui
 create policy kare_degis on public.kareler for update using (sahip = auth.uid()) with check (sahip = auth.uid());
 create policy kare_sil on public.kareler for delete using (sahip = auth.uid());
 
--- Yönetici için sadece sayılar (kimin yüklediği değil)
+-- Tema başına kare sayısı (kimin yüklediği değil). Üyelere de açık; yalnız sayı.
 create or replace function public.yukleme_sayilari(p_etkinlik uuid)
 returns table (tema uuid, adet bigint)
 language sql stable security definer set search_path = public as $$
@@ -368,6 +380,8 @@ end $$;
 -- Fonksiyon izinleri: anonim kullanıcı hiçbirini çağıramaz
 revoke execute on all functions in schema public from anon, public;
 grant execute on all functions in schema public to authenticated;
+-- Sonradan eklenecek fonksiyonlar da anonime kapalı başlasın
+alter default privileges in schema public revoke execute on functions from anon, public;
 
 -- ---------------------------------------------------------------------------
 -- Depo: kareler özel, yol etkinlik/tema/rastgele-kimlik.jpg (kişi yolda yok)

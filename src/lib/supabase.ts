@@ -22,6 +22,8 @@ const HATALAR: Record<string, string> = {
   yukleme_kapali: 'Yükleme kapalı, kareler artık değişmiyor.',
   tarih_yok: 'Bu dosyada çekim tarihi yok.',
   tarih_tutmuyor: 'Bu kare buluşma günü çekilmemiş.',
+  dosya_yok: 'Kare yüklenemedi. Tekrar dene.',
+  tema_degismez: 'Kare başka temaya taşınamaz.',
   iptal_olmaz: 'Oylama açıldığı için etkinlik artık iptal edilemiyor.',
 }
 

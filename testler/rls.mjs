@@ -69,6 +69,7 @@ const [SOKAK, PORTRE] = tm;
 
 // Kareler
 const dosya = async (c, yol) => c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+const yeniYol = async (c, e, t) => { const y = `${e}/${t}/${crypto.randomUUID()}.jpg`; const r = await dosya(c, y); if (r.error) throw r.error; return y; };
 const yA = `${E}/${SOKAK.id}/${crypto.randomUUID()}.jpg`;
 bekle('A dosya yükler', !(await dosya(A.c, yA)).error);
 bekle('A kare kaydı (doğru gün)', !(await A.c.from('kareler').insert({ tema: SOKAK.id, sahip: A.id, dosya: yA, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun })).error);
@@ -80,8 +81,13 @@ const dun = new Date(Date.parse(bugun) - 86400000).toISOString().slice(0, 10);
 bekle('bir gün önce kabul', !(await B.c.from('kareler').insert({ tema: SOKAK.id, sahip: B.id, dosya: yB, genislik: 10, yukseklik: 10, cekim_gunu: dun })).error);
 const iki = new Date(Date.parse(bugun) + 2 * 86400000).toISOString().slice(0, 10);
 bekle('iki gün sonra reddedilir (değiştirme)', hata(await B.c.from('kareler').update({ cekim_gunu: iki }).eq('tema', SOKAK.id).eq('sahip', B.id)).includes('tarih_tutmuyor'));
-bekle('aynı temaya ikinci kare yok', !!(await B.c.from('kareler').insert({ tema: SOKAK.id, sahip: B.id, dosya: `${E}/x.jpg`, genislik: 1, yukseklik: 1, cekim_gunu: bugun })).error);
-bekle('serbest temada tarihsiz kabul', !(await B.c.from('kareler').insert({ tema: PORTRE.id, sahip: B.id, dosya: `${E}/${PORTRE.id}/${crypto.randomUUID()}.jpg`, genislik: 1, yukseklik: 1, cekim_gunu: null })).error);
+bekle('aynı temaya ikinci kare yok', !!(await B.c.from('kareler').insert({ tema: SOKAK.id, sahip: B.id, dosya: await yeniYol(B.c, E, SOKAK.id), genislik: 1, yukseklik: 1, cekim_gunu: bugun })).error);
+bekle('olmayan dosya yolu reddedilir', hata(await B.c.from('kareler').insert({ tema: PORTRE.id, sahip: B.id, dosya: `${E}/${PORTRE.id}/${crypto.randomUUID()}.jpg`, genislik: 1, yukseklik: 1 })).includes('dosya_yok'));
+bekle('başkasının dosya yolu reddedilir', hata(await B.c.from('kareler').insert({ tema: PORTRE.id, sahip: B.id, dosya: await yeniYol(A.c, E, PORTRE.id), genislik: 1, yukseklik: 1 })).includes('dosya_yok'));
+bekle('başka temanın klasöründeki dosya reddedilir', hata(await B.c.from('kareler').insert({ tema: PORTRE.id, sahip: B.id, dosya: await yeniYol(B.c, E, SOKAK.id), genislik: 1, yukseklik: 1 })).includes('dosya_yok'));
+bekle('serbest temada tarihsiz kabul', !(await B.c.from('kareler').insert({ tema: PORTRE.id, sahip: B.id, dosya: await yeniYol(B.c, E, PORTRE.id), genislik: 1, yukseklik: 1, cekim_gunu: null })).error);
+bekle('kare başka temaya taşınamaz', hata(await B.c.from('kareler').update({ tema: SOKAK.id }).eq('tema', PORTRE.id).eq('sahip', B.id)).includes('tema_degismez'));
+bekle('kayıt başkasının dosyasına çevrilemez', hata(await B.c.from('kareler').update({ dosya: yA }).eq('tema', PORTRE.id).eq('sahip', B.id)).includes('dosya_yok'));
 bekle('başkası adına kare eklenemez', !!(await B.c.from('kareler').insert({ tema: PORTRE.id, sahip: A.id, dosya: `${E}/z.jpg`, genislik: 1, yukseklik: 1 })).error);
 bekle('B, A nın karesini göremez', ((await B.c.from('kareler').select('*')).data ?? []).every(k => k.sahip === B.id));
 bekle('yönetici de başkasının karesini göremez', ((await A.c.from('kareler').select('*')).data ?? []).every(k => k.sahip === A.id));
@@ -117,10 +123,11 @@ await admin.from('etkinlikler').update({ oylama_biter: new Date(Date.now() - 100
 const ek2 = await A.c.rpc('etkinlik_kur', { p_bulusma: bugun, p_yukleme_baslar: new Date(Date.now() - 60000).toISOString(), p_yukleme_saat: 48, p_oylama_saat: 72, p_temalar: [{ ad: 'Gece' }] });
 bekle('önceki bitince yeni etkinlik kurulur', !ek2.error, hata(ek2));
 const G = (await A.c.from('temalar').select('id').eq('etkinlik', ek2.data).single()).data;
-await B.c.from('kareler').insert({ tema: G.id, sahip: B.id, dosya: `${ek2.data}/${G.id}/k.jpg`, genislik: 1, yukseklik: 1, cekim_gunu: bugun });
+const gk = await B.c.from('kareler').insert({ tema: G.id, sahip: B.id, dosya: await yeniYol(B.c, ek2.data, G.id), genislik: 1, yukseklik: 1, cekim_gunu: bugun });
+bekle('yeni etkinliğe kare eklenir', !gk.error, hata(gk));
 bekle('üye iptal edemez', hata(await B.c.rpc('etkinlik_iptal', { p_etkinlik: ek2.data })).includes('yetki_yok'));
 bekle('A iptal eder', !(await A.c.rpc('etkinlik_iptal', { p_etkinlik: ek2.data })).error);
-bekle('iptalde kareler silinir', ((await admin.from('kareler').select('id').eq('tema', G.id)).data ?? []).length === 0);
+bekle('iptal öncesi 1 kare var, sonra 0', !gk.error && ((await admin.from('kareler').select('id').eq('tema', G.id)).data ?? []).length === 0);
 
 // Kurucu yönetici yapar
 bekle('kurucu B yi yönetici yapar', !(await A.c.rpc('rol_degistir', { p_uye: B.id, p_yonetici: true })).error && (await B.c.rpc('ben')).data?.[0]?.rol === 'yonetici');

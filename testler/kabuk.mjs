@@ -18,8 +18,9 @@ const oku = y => fs.readFileSync(KOK + y, 'utf8');
 
   bekle('viewport-fit=cover var', /viewport-fit=cover/.test(html));
   bekle('theme-color var', /name="theme-color" content="#0A0A0B"/.test(html), html.match(/theme-color[^>]*/)?.[0]);
-  bekle('kabuk yüksekliği dvh ile', /body\{height:100dvh\}/.test(css.replace(/\s+/g, '')),
+  bekle('kabuk yüksekliği ölçülen ekrandan', /body\{height:100dvh;height:var\(--ekran,100dvh\)\}/.test(css.replace(/\s+/g, '')),
     css.split('\n').filter(l => l.includes('100dvh')).join(' | '));
+  bekle('ekran yüksekliği index.html içinde ölçülüyor', /--ekran/.test(html) && /window\.innerHeight/.test(html));
   bekle('belge kaydırması kapalı', /html,body\{overflow:hidden/.test(css.replace(/\s+/g, '')));
   // vh, iOS'ta adres çubuğu gizliymiş gibi hesaplanıyor: kabuk ölçüsünde kullanılmamalı
   const vhler = css.split('\n').filter(l => /[^d]vh\b/.test(l) && !l.trim().startsWith('/*') && !l.includes('dvh'));
@@ -55,13 +56,19 @@ await p.goto(APP);
 await p.waitForFunction(() => window.__sb);
 
 // Kapak: oturum açılmadan
+const window0 = 844;
 {
   const r = await p.evaluate(() => ({
     belgeKayar: document.documentElement.scrollHeight > document.documentElement.clientHeight,
     kunye: !!document.querySelector('.tepe'),
+    ekran: getComputedStyle(document.documentElement).getPropertyValue('--ekran').trim(),
+    gercek: window.innerHeight + 'px',
+    kabuk: Math.round(document.querySelector('.app').getBoundingClientRect().height),
   }));
   bekle('kapakta belge kaymıyor', !r.belgeKayar);
   bekle('kapakta künye var', r.kunye);
+  bekle('ekran yüksekliği ölçülüp yazılmış', r.ekran === r.gercek, `${r.ekran} / ${r.gercek}`);
+  bekle('kabuk tam ekran yüksekliğinde', r.kabuk === window0, `${r.kabuk} / ${window0}`);
 }
 
 const { data: liste } = await admin.auth.admin.listUsers();
@@ -99,6 +106,8 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
       kunyeOrtusuyor: nokta ? !!nokta.closest('.tepe') : null,
       tabsAlt: tr ? Math.round(tr.bottom) : null,
       gorunen: window.innerHeight,
+      ilkSinif: (() => { const e = document.querySelector('.sc > *:not(.tepe)'); return e ? e.className : null })(),
+      ilkCizgi: (() => { const e = document.querySelector('.sc > *:not(.tepe)'); return e ? getComputedStyle(e).borderTopWidth : null })(),
       yatayTasma: [...document.querySelectorAll('.app *')].some(e => {
         const q = e.getBoundingClientRect();
         return q.width && (q.right > window.innerWidth + 1 || q.left < -1);
@@ -111,6 +120,20 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
   bekle(`${yol}: künye kaydırınca tepede kalıyor`, r.kunyeUstte === 0, String(r.kunyeUstte));
   bekle(`${yol}: künye içeriği örtüyor`, r.kunyeOrtusuyor === true, JSON.stringify(r));
   bekle(`${yol}: yatay taşma yok`, !r.yatayTasma);
+  // Künyenin 4px çizgisi zaten bir sınır; ilk blok ikincisini çizerse çift çizgi oluyor
+  bekle(`${yol}: künyenin altında çift çizgi yok`, r.ilkCizgi !== '4px', `${r.ilkSinif} · ${r.ilkCizgi}`);
+}
+
+// iOS, 16px altindaki bir alana dokununca sayfayi zorla yakinlastiriyor ve geri
+// dondurmuyor. Form olan her ekranda alanlarin puntosu olculuyor.
+for (const yol of ['kur']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1500);
+  const alanlar = await p.evaluate(() => [...document.querySelectorAll('input, textarea, select')]
+    .map(e => ({ id: e.id || e.type, punto: parseFloat(getComputedStyle(e).fontSize) })));
+  const kucuk = alanlar.filter(x => x.punto < 16);
+  bekle(`${yol}: ekranda form alanı var`, alanlar.length > 0, String(alanlar.length));
+  bekle(`${yol}: form alanları 16px altında değil`, kucuk.length === 0, JSON.stringify(kucuk));
 }
 
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));

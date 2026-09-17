@@ -184,7 +184,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
               <span className="tar">Yükleme kapanana kadar yenisini koyabilirsin</span></span>
           </div>
         </div>
-        <p>Kaldırırsan bu temaya katılmamış olursun. Bu temayı oylamak zorunda kalmazsın, istersen yine oylayabilirsin.</p>
+        <p>Kaldırırsan bu temaya katılmamış olursun. Oylaman da gerekmez.</p>
         <button className="btn" onClick={kaldir}><Ikon ad="cop" />Kaldır</button>
         <button className="btn ik" onClick={() => guncelle(t.id, { onay: false })}>Vazgeç</button>
       </div>
@@ -206,8 +206,8 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         </div>
         <p>
           {r.neden === 'gun'
-            ? `${t.ad} temasını ${gunYaz(e.bulusma_gunu)} günkü buluşmada çekiyoruz.${yilFarkli ? ' Makinenin saati ayarlı değilse tarih yanlış çıkar.' : ''}`
-            : "WhatsApp'tan gelen ya da bilgileri silinerek dışa aktarılan dosyalarda tarih kalmıyor. Makineden aktardığın orijinal dosyayı seç."}
+            ? `${t.ad} ${gunYaz(e.bulusma_gunu)} buluşmasında çekiliyor.${yilFarkli ? ' Makinenin saati ayarlı değilse tarih yanlış çıkar.' : ''}`
+            : "WhatsApp'tan gelen dosyalarda tarih kalmıyor. Makineden gelen dosyayı seç."}
         </p>
         {d.kare && <p>Önceki karen yerinde duruyor.</p>}
         {acik && <button className="btn" onClick={sec_}><Ikon ad="yenile" />Başka kare seç</button>}
@@ -234,13 +234,13 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
   } else if (acik) {
     govde = (
       <button className="bos" onClick={sec_}>
-        <Ikon ad="arti" /><b>Kare seç</b><span>Makineden aktardığın orijinal dosya</span>
+        <Ikon ad="arti" /><b>Kare seç</b><span>Makineden gelen dosya</span>
       </button>
     )
   } else if (a === 'baslamadi') {
-    govde = <div className="kilit"><Ikon ad="kilit" /><span>Yükleme henüz açılmadı. Açılış: {saatYaz(e.yukleme_baslar)}.</span></div>
+    govde = <div className="kilit"><Ikon ad="kilit" /><span>Yükleme açılmadı. Açılış: {saatYaz(e.yukleme_baslar)}.</span></div>
   } else {
-    govde = <div className="kilit"><Ikon ad="kilit" /><span>Yükleme kapandı. Bu temaya kare vermedin; bu temayı oylamak zorunda değilsin.</span></div>
+    govde = <div className="kilit"><Ikon ad="kilit" /><span>Bu temaya kare vermedin. Oylaman gerekmiyor.</span></div>
   }
 
   return (

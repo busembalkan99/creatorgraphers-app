@@ -59,7 +59,7 @@ export function Kur() {
       <div className="alan" style={{ marginTop: 4 }}>
         <label className="lab" htmlFor="bg">Buluşma günü</label>
         <input id="bg" type="date" value={bulusma} onChange={e => setBulusma(e.target.value)} />
-        {bulusma && <div className="ipucu">{gunYaz(bulusma)}. Buluşmada çekilen temalarda bu günün kareleri kabul edilir.</div>}
+        {bulusma && <div className="ipucu">{gunYaz(bulusma)}. Buluşma temalarında bu günün kareleri geçerli.</div>}
       </div>
 
       <div className="alan">
@@ -79,7 +79,7 @@ export function Kur() {
       </div>
       {bitis && <div className="ipucu">Son yükleme: {bitis}. Oylama hemen ardından açılır.</div>}
       {y >= 1 && o >= 1 && o < y && (
-        <div className="ipucu">Oylama yüklemeden kısa. Her kareye puan vermek zaman alıyor; bilerek seçtiysen sorun yok.</div>
+        <div className="ipucu">Oylama yüklemeden kısa. Bilerek seçtiysen sorun yok.</div>
       )}
 
       <div className="sec">Temalar<span>{temalar.length} / 3</span></div>

@@ -160,7 +160,7 @@ function Siralama() {
       <h2 className="t orta">Sıralama<br />henüz yok</h2>
       <div className="kutu">
         <div className="bas"><Ikon ad="kilit" /><span>İlk sonuçlarla açılıyor</span></div>
-        <p>İlk etkinliğin oylaması bitince burada etkinlik sıralaması ve sezon tablosu çıkacak.</p>
+        <p>İlk etkinlik bitince sıralama ve sezon tablosu burada olacak.</p>
       </div>
     </div>
   )

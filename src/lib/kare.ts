@@ -90,7 +90,7 @@ export async function kucult(dosya: File): Promise<Omit<HazirKare, 'bilgi' | 'on
   try {
     bmp = await createImageBitmap(dosya, { imageOrientation: 'from-image' })
   } catch {
-    throw new DosyaHatasi('Bu dosya açılamadı. JPEG olarak aktarılmış bir kare seç.')
+    throw new DosyaHatasi('Bu dosya açılamadı. Makineden gelen JPEG dosyayı seç.')
   }
   const oran = Math.min(1, UZUN_KENAR / Math.max(bmp.width, bmp.height))
   const g = Math.round(bmp.width * oran), y = Math.round(bmp.height * oran)

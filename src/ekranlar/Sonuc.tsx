@@ -74,7 +74,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
       <div className="sc">
         <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" />
         <h2 className="t orta">Sonuçlar<br />açılmadı</h2>
-        <p className="lede">Oylama kapanınca kazananlar ve galeri burada açılıyor.</p>
+        <p className="lede">Kazananlar ve galeri oylama kapanınca açılıyor.</p>
       </div>
     )
   }
@@ -112,7 +112,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
         <div className="bos-tema">
           <b>Bu etkinlik</b>
           <h3>Hiç kare<br />yüklenmedi</h3>
-          <p>Yükleme kapandığında hiçbir temaya kare gelmemiş, o yüzden sonuç yok.</p>
+          <p>Hiçbir temaya kare gelmemiş.</p>
         </div>
       ) : (
         <>
@@ -129,7 +129,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
             <div className="bos-tema">
               <b>{secili.ad}</b>
               <h3>Bu temada<br />oylama olmadı</h3>
-              <p>Bu temadaki karelere kimse puan vermedi, o yüzden sıralama ve ödül yok. Kareler aşağıda duruyor.</p>
+              <p>Bu temayı kimse oylamamış. Kareler aşağıda.</p>
             </div>
           )}
 
@@ -185,7 +185,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
                 ))}
               </div>
               {!oylanmadi && (
-                <p className="veri">Sıralamaya girmeyen karelerin puanı gösterilmiyor. Kendi puanını her zaman görürsün.</p>
+                <p className="veri">Sıralamaya girmeyen karelerin puanı gizli. Kendi puanını görürsün.</p>
               )}
             </>
           )}
@@ -219,12 +219,12 @@ function KareDetay({ kare, kapat }: { kare: SonucKare; kapat: () => void }) {
         {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}
       </div>
       {!kare.sirali && !kare.benim ? (
-        <p className="veri">Bu kare sıralamaya girmedi, puanı gösterilmiyor.</p>
+        <p className="veri">Sıralamaya girmedi, puanı gizli.</p>
       ) : kare.ortalama == null ? (
         // Sıralamaya giren ama hiç puan almayan kare: kimse oylamamış olabilir
         <p className="veri">Bu kareye kimse puan vermemiş.</p>
       ) : (
-        <p className="veri">{kare.oy_sayisi} kişi puan verdi{!kare.sirali && kare.benim ? ' · bu puanı yalnız sen görüyorsun' : ''}.</p>
+        <p className="veri">{kare.oy_sayisi} kişi puan verdi{!kare.sirali && kare.benim ? '. Bu puanı yalnız sen görüyorsun' : ''}.</p>
       )}
       {dolu.length > 0 && (
         <div className="kunye">

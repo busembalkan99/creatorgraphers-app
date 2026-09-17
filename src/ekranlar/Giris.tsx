@@ -38,7 +38,7 @@ export function Kapak() {
       <div className="bosluk" />
       <Hata metin={hata} />
       <button className="btn" onClick={() => googleIleGir().catch(e => setHata(hataMetni(e)))}>Google ile gir</button>
-      <div className="alt-bilgi">Kulüp davetle çalışıyor. Hesabın listede yoksa yöneticiye istek bırakabilirsin.</div>
+      <div className="alt-bilgi">Kulüp davetle çalışıyor. Listede yoksan istek bırak.</div>
       <a className="link" href={import.meta.env.BASE_URL + 'privacy/'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Gizlilik</a>
     </div>
   )
@@ -126,7 +126,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
           <h2 className="t">İsteğin<br />yöneticide</h2>
           <div className="kutu">
             <div className="bas"><Ikon ad="saat" /><span>Onay bekleniyor</span></div>
-            <p>Yönetici onaylayınca uygulamayı açtığında doğrudan içeri girersin. Uygulama bildirim göndermiyor; istersen yöneticiye kulübün WhatsApp grubundan haber ver.</p>
+            <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
           </div>
           <div className="sec">Gönderdiğin</div>
           <Ozet istek={d.istek} />
@@ -141,7 +141,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
           <h2 className="t">İsteğin<br />kabul<br />edilmedi</h2>
           <div className="kutu">
             <div className="bas"><Ikon ad="info" /><span>Bu hesapla kulübe giremiyorsun</span></div>
-            <p>Yönetici bu isteği onaylamadı. Bir yanlışlık olduğunu düşünüyorsan notuna bunu yazarak tekrar isteyebilirsin.</p>
+            <p>Yönetici isteği onaylamadı. Yanlışlık varsa notuna yaz, tekrar iste.</p>
           </div>
           <div className="sec">Gönderdiğin</div>
           <Ozet istek={d.istek} />
@@ -193,8 +193,8 @@ function IstekFormu({ eposta, tekrar, ilkAd, kullaniciId, gonderildi }: {
       <h2 className="t">{tekrar ? <>Tekrar<br />istek bırak</> : <>Kulüpte<br />henüz yoksun</>}</h2>
       <p className="lede">
         {tekrar
-          ? 'Önceki isteğin kabul edilmedi. Yönetici bu isteğin tekrar olduğunu görecek; notuna neden tekrar istediğini yazabilirsin.'
-          : 'Bu hesap kulübün listesinde değil. Yöneticiye istek bırak, onaylayınca girebilirsin.'}
+          ? 'Önceki isteğin kabul edilmedi. Yönetici tekrar olduğunu görecek. Notuna sebebini yaz.'
+          : 'Bu hesap listede yok. İstek bırak, yönetici onaylasın.'}
       </p>
       <div className="hesap"><span className="lab">Google hesabın</span><b>{eposta}</b></div>
       <div className="alan">
@@ -230,7 +230,7 @@ function KulubuKur({ kullanici, bitti }: { kullanici: User; bitti: () => void })
     <div className="sc">
       <Kunye sol="Creatorgraphers" sag="Kurulum" />
       <h2 className="t">Kulübü<br />kur</h2>
-      <p className="lede">Kulübün henüz kurucusu yok. Kurarsan kurucu sen olursun: yönetici ekler, etkinlik kurar, istekleri onaylarsın.</p>
+      <p className="lede">Kulübün kurucusu yok. Kurarsan sen olursun: etkinliği sen kurarsın, istekleri sen onaylarsın.</p>
       <div className="hesap"><span className="lab">Google hesabın</span><b>{kullanici.email}</b></div>
       <div className="alan">
         <label className="lab" htmlFor="kad">Adın soyadın</label>

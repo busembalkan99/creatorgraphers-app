@@ -100,13 +100,13 @@ export function Oylama({ uye }: { uye: Uye }) {
                 : kalan === 0
                   ? 'Bitti'
                   : t.zorunlu
-                    ? `${kalan} kare kaldı · bu temaya kare verdin, oylaman gerekiyor`
-                    : `${kalan} kare kaldı · bu temada karen yok, oylamak zorunda değilsin`}
+                    ? `${kalan} kare kaldı · kare verdin, oylaman gerekiyor`
+                    : `${kalan} kare kaldı · karen yok, oylaman şart değil`}
             </div>
           </button>
         )
       })}
-      <p className="veri">Kimin çektiği sonuçlar açılana kadar gizli. Kendi karen listede yok.</p>
+      <p className="veri">Kimin çektiği sonuçlara kadar gizli. Kendi karen listede yok.</p>
     </div>
   )
 }
@@ -222,7 +222,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
         ) : (
           <>
             <h2>{tema.ad}<br />bitti</h2>
-            <p>Bu temadaki bütün karelere puan verdin. Puanını oylama kapanana kadar değiştirebilirsin.</p>
+            <p>Hepsini puanladın. Oylama kapanana kadar değiştirebilirsin.</p>
             <button className="btn" onClick={() => git('oyla')}>Temalara dön</button>
           </>
         )}

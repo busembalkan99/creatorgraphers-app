@@ -18,7 +18,7 @@ const HATALAR: Record<string, string> = {
   kurucu_var: 'Kulübün kurucusu zaten var.',
   tema_sayisi: 'Bir etkinlikte 1 ile 3 arası tema olabilir.',
   sure: 'Süreler en az 1 saat olmalı.',
-  acik_etkinlik_var: 'Bitmemiş bir etkinlik var. Yenisini o bitince kurabilirsin.',
+  acik_etkinlik_var: 'Bitmemiş bir etkinlik var. Önce onu bitir.',
   yukleme_kapali: 'Yükleme kapalı, kareler artık değişmiyor.',
   tarih_yok: 'Bu dosyada çekim tarihi yok.',
   tarih_tutmuyor: 'Bu kare buluşma günü çekilmemiş.',

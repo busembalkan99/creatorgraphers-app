@@ -88,7 +88,7 @@ bekle('istek kartı', await bekleMetin(A, 'Ayşe çağırdı'));
 bekle('ilk istekte tekrar işareti yok', (await A.locator('.tekrar').count()) === 0);
 await olc(A, '07-uyeler-istek');
 await A.click('.istek button:has-text("Reddet")');
-bekle('ret sonucu yazılır', await bekleMetin(A, 'Reddedildi. Kişi bunu görecek'));
+bekle('ret sonucu yazılır', await bekleMetin(A, 'Reddedildi. Kişi görecek'));
 bekle('sayaç 0 bekliyor', icerir(await metin(A), '0 bekliyor'));
 
 // 4 · Selin reddi görür, tekrar ister
@@ -313,7 +313,7 @@ bekle('oylama ekranında sekme çubuğu yok', (await A.locator('.tabs').count())
 await A.goto(APP + '#/oyla/00000000-0000-0000-0000-000000000000'); await A.waitForTimeout(1500);
 bekle('olmayan tema adresinde kilit ekranı', icerir(await metin(A), 'Oylama açık değil'), (await metin(A)).slice(0, 100));
 await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
-bekle('kurucuya zorunlu değil', icerir(await metin(A), 'oylamak zorunda değilsin'));
+bekle('kurucuya zorunlu değil', icerir(await metin(A), 'oylaman şart değil'), (await metin(A)).slice(0, 160));
 bekle('isim sızmıyor', !icerir(await metin(A), 'Selin') && !icerir(await metin(A), 'Deniz'));
 await olc(A, '27-oylama-temalar');
 await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);

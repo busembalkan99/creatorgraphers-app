@@ -87,7 +87,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
               <Ikon ad={r.sonuc === 'onay' ? 'tik' : 'kapat'} />
               <span>{r.sonuc === 'onay'
                 ? 'Onaylandı. Uygulamayı açınca içeri girecek.'
-                : 'Reddedildi. Kişi bunu görecek, isterse tekrar isteyebilir.'}</span>
+                : 'Reddedildi. Kişi görecek, tekrar isteyebilir.'}</span>
             </div>
           ) : (
             <div className="akt">
@@ -118,7 +118,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
           )}
         </div>
       ))}
-      {kurucu && <p className="veri">Yöneticileri yalnız kurucu ekleyip çıkarabiliyor.</p>}
+      {kurucu && <p className="veri">Yöneticiyi yalnız kurucu ekler ve çıkarır.</p>}
     </div>
   )
 }

@@ -97,7 +97,7 @@ export function Asama() {
       {soru === 'oylama' && (
         <div className="kutu">
           <div className="bas"><span>Oylama şimdi açılsın mı?</span></div>
-          <p>Yükleme kapanır, {toplam} kareyle oylama başlar. Oylama süresi aynı kalır. Geri alınamaz.</p>
+          <p>Yükleme kapanır, {toplam} kareyle oylama başlar. Geri alınamaz.</p>
           <div className="akt">
             <button className="btn ik" onClick={() => setSoru(null)}>Vazgeç</button>
             <button className="btn" onClick={() => cagir('oylamayi_ac', { p_etkinlik: e.id })}>Oylamayı aç</button>
@@ -123,7 +123,7 @@ export function Asama() {
           {kopyalandi ? 'Kopyalandı' : 'Kopyala'}
         </button>
       </div>
-      <p className="veri">Mesaj otomatik gitmiyor, uygulama bildirim göndermiyor. Kopyalayıp gruba sen yapıştırıyorsun.</p>
+      <p className="veri">Mesajı gruba sen yapıştıracaksın. Uygulama bildirim göndermiyor.</p>
 
       <Hata metin={hata} />
 

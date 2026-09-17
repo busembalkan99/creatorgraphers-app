@@ -308,7 +308,10 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
     const posta = `kalabalik${i}@test.local`;
     const k = liste.users.find(u => u.email === posta)
       ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
-    await admin.from('uyeler').insert({ id: k.id, ad: `Kalabalık ${i}`, eposta: posta });
+    // İlk iki kare eşit puan alacak. Adları bilerek ters: alfabetik sıra yükleme
+    // sırasının tersi, yani hangi kuralın işlediği ölçülebiliyor (karar 98).
+    const ad = i === 0 ? 'Zeynep Kalabalık' : i === 1 ? 'Ada Kalabalık' : `Kalabalık ${i}`;
+    await admin.from('uyeler').insert({ id: k.id, ad, eposta: posta });
     kimlikler.push(k.id);
     const yol = `${ek.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
     await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
@@ -322,12 +325,21 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   bekle('14 kare döndü', sonuc.length === 14, String(sonuc.length));
   bekle('karar 19 tavanı: en fazla 5 sıralı', sonuc.filter(k => k.sirali).length === 5,
     JSON.stringify(sonuc.map(k => [k.sira, k.ortalama])));
-  // Eşit puanda sıra yükleme saatine göre bozuluyor: ortak birincilik yok, sıra tek
-  bekle('eşit puanda sıra tek kalıyor', sonuc.filter(k => Number(k.sira) === 1).length === 1,
+  // Karar 98: eşit ortalama aynı numarayı alır, ortak birincilik var
+  bekle('eşit puanda ortak birincilik', sonuc.filter(k => Number(k.sira) === 1).length === 2,
     JSON.stringify(sonuc.slice(0, 3).map(k => [k.sira, k.ortalama])));
-  bekle('eşitlikte önce yüklenen önde', sonuc[0].id === yuklemeSirasi[0] && sonuc[1].id === yuklemeSirasi[1]
-    && Number(sonuc[0].ortalama) === 10 && Number(sonuc[1].ortalama) === 10,
-    `${sonuc[0].id} / ${yuklemeSirasi[0]}`);
+  bekle('ortak birincilikten sonra numara atlıyor',
+    !sonuc.some(k => Number(k.sira) === 2) && sonuc.filter(k => Number(k.sira) === 3).length === 1,
+    JSON.stringify(sonuc.slice(0, 4).map(k => [k.sira, k.sahip_ad])));
+  bekle('eşitler alfabetik dizilir, yükleme sırasına göre değil',
+    sonuc[0].sahip_ad === 'Ada Kalabalık' && sonuc[1].sahip_ad === 'Zeynep Kalabalık'
+    && sonuc[0].id === yuklemeSirasi[1] && sonuc[1].id === yuklemeSirasi[0],
+    JSON.stringify(sonuc.slice(0, 2).map(k => k.sahip_ad)));
+  bekle('ortak birincilerin ikisinin de puanı açık',
+    sonuc.filter(k => Number(k.sira) === 1).every(k => Number(k.ortalama) === 10),
+    JSON.stringify(sonuc.slice(0, 2).map(k => k.ortalama)));
+  bekle('ortak birincilik sıralı sayısını şişirmiyor', sonuc.filter(k => k.sirali).length === 5,
+    JSON.stringify(sonuc.filter(k => k.sirali).map(k => k.sira)));
   bekle('sonuç listesi yükleme saatini vermiyor', sonuc[0].yukleme_at === undefined);
   bekle('altıncı ve sonrası gizli', sonuc.filter(k => !k.sirali).every(k => k.ortalama === null && k.sira === null));
   // Sonuç açılmamış etkinlik
@@ -340,6 +352,38 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   }).select('id').single()).data;
   bekle('yükleme sürerken sonuç yok', ((await A2.c.rpc('sonuc_kareleri', { p_etkinlik: acik.id })).data ?? []).length === 0);
   await admin.from('etkinlikler').delete().eq('id', acik.id);
+}
+
+// ------------------------------------------------- puan almamış kare sıralamaya girmez
+{
+  // Karar 98'in ikinci yarısı. Tek kişi oyladıysa kendi karesi hiç puan almaz
+  // (karar 20: kimse kendi karesine puan vermiyor). Eskiden sıra yükleme saatinden
+  // çıktığı için o kare sıralı görünebiliyordu, şimdi galeriye düşüyor.
+  const ek = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun2,
+    yukleme_baslar: new Date(Date.now() - 5 * 86400000).toISOString(),
+    yukleme_biter: new Date(Date.now() - 4 * 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() - 3 * 86400000).toISOString(),
+    kuran: A2.id,
+  }).select('id').single()).data;
+  const tema = (await admin.from('temalar').insert({ etkinlik: ek.id, ad: 'Yarım', sira: 1, bulusmada: false }).select('id').single()).data;
+  const kareler = {};
+  for (const [kim, sahip] of [['a', A2.id], ['b', B2.id]]) {
+    const yol = `${ek.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
+    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    kareler[kim] = (await admin.from('kareler').insert({ tema: tema.id, sahip, dosya: yol, genislik: 10, yukseklik: 10 }).select('id').single()).data;
+  }
+  // Yalnız A oyladı: B'nin karesine puan verdi, kendi karesi puansız kaldı
+  await admin.from('oylar').insert({ kare: kareler.b.id, veren: A2.id, puan: 7 });
+  const sonuc = (await A2.c.rpc('sonuc_kareleri', { p_etkinlik: ek.id })).data ?? [];
+  const puansiz = sonuc.find(k => k.id === kareler.a.id);
+  const puanli = sonuc.find(k => k.id === kareler.b.id);
+  bekle('puan almamış kare sıralamaya girmiyor', puansiz?.sirali === false && puansiz?.sira === null,
+    JSON.stringify(puansiz));
+  bekle('puan almamış kendi karende de sıra yok', puansiz?.ortalama === null && puansiz?.oy_sayisi === 0,
+    JSON.stringify(puansiz));
+  bekle('puan alan kare birinci', puanli?.sirali === true && Number(puanli?.sira) === 1, JSON.stringify(puanli));
+  bekle('puansız kare galeride, sıralının arkasında', sonuc[0].id === kareler.b.id, JSON.stringify(sonuc.map(k => k.sira)));
 }
 
 rapor();

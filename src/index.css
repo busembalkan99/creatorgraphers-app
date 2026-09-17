@@ -402,6 +402,9 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 
 .odul{margin-top:18px}
 .odul .lab{margin-bottom:8px;display:block}
+/* Ortak birincilik (karar 98): kazananlar alt alta, fotoğraf kırpılmadan */
+.odul .esit{margin:-4px 0 10px}
+.odul .kazanan + .kazanan{margin-top:12px}
 .odul img{width:100%;height:auto;display:block;background:#17171A}
 .odul .serit{background:var(--ink);color:var(--paper);padding:13px 13px 14px;display:flex;align-items:baseline;gap:10px}
 .odul .serit b{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.62}
@@ -410,8 +413,9 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .odul .serit .ort{margin-left:auto;font-size:17px;max-width:40%;text-align:right;overflow-wrap:anywhere;letter-spacing:-.02em;flex:0 0 auto;
   font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
 
-.kursu{display:flex;gap:8px;margin-top:12px}
-.kursu figure{margin:0;flex:1;min-width:0;cursor:pointer}
+/* Eşitlik ikiden fazla kareyi kürsüye taşıyabilir: alt satıra sarar, boy değişmez */
+.kursu{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.kursu figure{margin:0;flex:0 1 calc(50% - 4px);min-width:0;cursor:pointer}
 .kursu img{width:100%;height:104px;object-fit:cover;display:block;background:#17171A}
 .kursu figcaption{margin-top:10px}
 .kursu .sat{display:flex;align-items:baseline;gap:8px}

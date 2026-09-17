@@ -571,7 +571,7 @@ bekle('oylanmayan temada ödül yok', (await A.locator('.odul').count()) === 0 &
 bekle('oylanmayan temanın kareleri galeride', (await A.locator('.izgara figure').count()) === 1);
 await olc(A, '40-oylanmayan-tema');
 await A.locator('.izgara figure').first().click(); await A.waitForTimeout(1200);
-bekle('detayda kimse puan vermemiş yazıyor', icerir(await metin(A), 'kimse puan vermemiş'), (await metin(A)).slice(0, 200));
+bekle('oylanmayan temada detay temayı söylüyor', icerir(await metin(A), 'Bu temayı kimse oylamamış'), (await metin(A)).slice(0, 200));
 await A.click('.detay .geri'); await A.waitForTimeout(1000);
 // kare detayı: makine bilgisi olan Sokak karesinden
 await A.locator('.sekmeler button').nth(0).click(); await A.waitForTimeout(1200);
@@ -630,6 +630,49 @@ await olc(B, '39-sonuc-uye');
   bekle('listedeki satır 04 numaralı', (await yaz(A, '.satir-kare .no')) === '04', await yaz(A, '.satir-kare .no'));
   bekle('geri kalanlar galeride', (await A.locator('.izgara figure').count()) === 5, String(await A.locator('.izgara figure').count()));
   await olc(A, '41-kalabalik-tema');
+
+  // Ortak birincilik (karar 98): iki kare eşit puan alırsa ikisi de birinci
+  {
+    const ek3 = (await admin.from('etkinlikler').insert({
+      bulusma_gunu: bugun,
+      yukleme_baslar: new Date(Date.now() - 7 * 86400000).toISOString(),
+      yukleme_biter: new Date(Date.now() - 6 * 86400000).toISOString(),
+      oylama_biter: new Date(Date.now() - 5 * 86400000).toISOString(),
+      kuran: A.kimlik,
+    }).select('id').single()).data;
+    // 8 kare: round(8/2,5)=3 sıralı. İlk iki kare eşit, yani 1, 1, 3 çıkmalı.
+    const tema3 = (await admin.from('temalar').insert({ etkinlik: ek3.id, ad: 'Eşit', sira: 1, bulusmada: false }).select('id').single()).data;
+    const { data: l3 } = await admin.auth.admin.listUsers();
+    // İlk ikisi eşit puanlı. Adlar bilerek ters: yüklemede Zeynep önce, alfabede Ada önce.
+    const kisiler = [['Zeynep Esen', 10], ['Ada Erim', 10], ['Can Uz', 8], ['Derya Ak', 7],
+      ['Efe Bal', 6], ['Fulya Ün', 5], ['Gökhan Er', 4], ['Hale Su', 3]];
+    for (let i = 0; i < kisiler.length; i++) {
+      const [ad, puan] = kisiler[i];
+      const posta = `esit${i}@test.local`;
+      const k = l3.users.find(u => u.email === posta)
+        ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
+      await admin.from('uyeler').insert({ id: k.id, ad, eposta: posta });
+      const yol = `${ek3.id}/${tema3.id}/${crypto.randomUUID()}.jpg`;
+      await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+      const kr = (await admin.from('kareler').insert({ tema: tema3.id, sahip: k.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
+      await admin.from('oylar').insert({ kare: kr.id, veren: A.kimlik, puan });
+    }
+    await A.goto(APP + `#/sonuc/${ek3.id}`); await A.waitForTimeout(2500);
+    bekle('eşitlikte iki kazanan', (await A.locator('.odul .kazanan').count()) === 2,
+      String(await A.locator('.odul .kazanan').count()));
+    bekle('eşitlik ekranda yazıyor', icerir(await yaz(A, '.odul .esit'), 'İki kare eşit puan aldı'), await yaz(A, '.odul .esit'));
+    bekle('kazananlar alfabetik', icerir(await yaz(A, '.odul .kazanan .ad', 0), 'Ada Erim')
+      && icerir(await yaz(A, '.odul .kazanan .ad', 1), 'Zeynep Esen'),
+      `${await yaz(A, '.odul .kazanan .ad', 0)} / ${await yaz(A, '.odul .kazanan .ad', 1)}`);
+    bekle('ikisinin de puanı ekranda', /\d,\d/.test(await yaz(A, '.odul .kazanan .ort', 0))
+      && /\d,\d/.test(await yaz(A, '.odul .kazanan .ort', 1)));
+    bekle('eşitlikten sonra kürsü 03 ile başlıyor', (await A.locator('.kursu figure').count()) === 1
+      && (await yaz(A, '.kursu .no')) === '03', await yaz(A, '.kursu .no'));
+    bekle('ekranda 02 numarası yok', !icerir(await metin(A), '02 '), (await metin(A)).replace(/\n/g, ' | ').slice(0, 200));
+    bekle('geri kalan beş kare galeride', (await A.locator('.izgara figure').count()) === 5,
+      String(await A.locator('.izgara figure').count()));
+    await olc(A, '43-ortak-birincilik');
+  }
 
   // hiç kare yüklenmemiş etkinlik
   const bos = (await admin.from('etkinlikler').insert({

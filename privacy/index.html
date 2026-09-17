@@ -14,7 +14,8 @@
 body{background:var(--paper);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 main{max-width:640px;margin:0 auto;padding:18px 16px 60px}
 .mast{display:flex;font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
-.mast a{margin-left:auto;color:var(--soft);text-decoration:none}
+.mast a{margin-left:auto;color:var(--soft);text-decoration:none;min-height:44px;display:flex;align-items:center}
+.mast a.geri{margin-left:0;color:var(--ink)}
 .rb{height:4px;background:var(--ink);margin-top:8px}
 h1{font-size:34px;line-height:.86;letter-spacing:-.045em;word-spacing:.14em;text-transform:uppercase;margin-top:14px;
   font-variation-settings:"wdth" 70,"wght" 900}
@@ -28,14 +29,14 @@ a{color:var(--ink)}
 </head>
 <body>
 <main>
-  <div class="mast"><span>Creatorgraphers</span><a href="#en">English</a></div>
+  <div class="mast"><a class="geri" href="../">← Uygulamaya dön</a><a href="#en">English</a></div>
   <div class="rb"></div>
   <h1>Gizlilik</h1>
   <p class="tarih">Son güncelleme: 17 Eylül 2026</p>
 
   <h2 id="tr">Türkçe</h2>
-  <p>Creatorgraphers, 20 kişilik kapalı bir fotoğraf kulübünün uygulamasıdır. Üyeler etkinliklere fotoğraf yükler
-     ve fotoğrafları isimsiz puanlar. Uygulamayı Buse Balkan yapıyor ve yönetiyor.</p>
+  <p>Creatorgraphers, kapalı bir fotoğraf kulübünün uygulamasıdır. Üyeler etkinliklere fotoğraf yükler
+     ve fotoğrafları isimsiz puanlar. Uygulamaya yalnız kulübe kabul edilen üyeler girebilir.</p>
 
   <h3>Google'dan aldıklarımız</h3>
   <p>Google ile girdiğinde Google bize adını, e-posta adresini ve profil fotoğrafının bağlantısını gönderir.
@@ -68,8 +69,8 @@ a{color:var(--ink)}
      <a href="mailto:busembalkan99l@gmail.com">busembalkan99l@gmail.com</a></p>
 
   <h2 id="en">English</h2>
-  <p>Creatorgraphers is the app of a private photography club of about 20 members. Members upload photos to events
-     and rate them anonymously. The app is built and run by Buse Balkan.</p>
+  <p>Creatorgraphers is the app of a private photography club. Members upload photos to events
+     and rate them anonymously. Only people accepted into the club can use the app.</p>
 
   <h3>What we receive from Google</h3>
   <p>When you sign in with Google, Google sends us your name, email address and a link to your profile picture.

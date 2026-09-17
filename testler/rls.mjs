@@ -386,4 +386,60 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   bekle('puansız kare galeride, sıralının arkasında', sonuc[0].id === kareler.b.id, JSON.stringify(sonuc.map(k => k.sira)));
 }
 
+// ---------------------------------------------------------------- üye çıkarma (karar 99)
+{
+  // A2 kurucu. Yönetici ve düz üye kur.
+  const Y = await kullanici('yonetici@test.local', 'Yönetici Kişi');
+  const U = await kullanici('duzuye@test.local', 'Düz Üye');
+  for (const k of [Y, U]) await admin.from('uyeler').insert({ id: k.id, ad: k === Y ? 'Yönetici Kişi' : 'Düz Üye', eposta: k === Y ? 'yonetici@test.local' : 'duzuye@test.local' });
+  await A2.c.rpc('rol_degistir', { p_uye: Y.id, p_yonetici: true });
+
+  bekle('üye kimseyi çıkaramaz', hata(await U.c.rpc('uye_cikar', { p_uye: Y.id, p_cikar: true })).includes('yetki_yok'));
+  bekle('kimse kurucuyu çıkaramaz', hata(await Y.c.rpc('uye_cikar', { p_uye: A2.id, p_cikar: true })).includes('kurucu_cikarilmaz'));
+  bekle('kimse kendini çıkaramaz', hata(await Y.c.rpc('uye_cikar', { p_uye: Y.id, p_cikar: true })).includes('kendini_cikaramazsin'));
+  // İkinci yönetici, yöneticinin yöneticiyi çıkaramadığını sınamak için
+  const Y2 = await kullanici('yonetici2@test.local', 'İkinci Yönetici');
+  await admin.from('uyeler').insert({ id: Y2.id, ad: 'İkinci Yönetici', eposta: 'yonetici2@test.local' });
+  await A2.c.rpc('rol_degistir', { p_uye: Y2.id, p_yonetici: true });
+  bekle('yönetici yöneticiyi çıkaramaz', hata(await Y.c.rpc('uye_cikar', { p_uye: Y2.id, p_cikar: true })).includes('yetki_yok'));
+  bekle('kurucu yöneticiyi çıkarır', !(await A2.c.rpc('uye_cikar', { p_uye: Y2.id, p_cikar: true })).error);
+  await A2.c.rpc('uye_cikar', { p_uye: Y2.id, p_cikar: false });
+
+  bekle('yönetici üyeyi çıkarır', !(await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: true })).error);
+
+  // Çıkarılan kişi: satırı duruyor ama hiçbir yere erişemiyor
+  const ben = (await U.c.rpc('ben')).data?.[0];
+  bekle('çıkarılanın satırı duruyor', !!ben && ben.ad === 'Düz Üye', JSON.stringify(ben));
+  bekle('çıkarılma anı kayıtlı', !!ben?.cikarildi_at, JSON.stringify(ben?.cikarildi_at));
+  bekle('çıkarılan üye sayılmıyor', (await U.c.rpc('uye_mi')).data === false);
+  bekle('çıkarılan etkinlik göremez', ((await U.c.from('etkinlikler').select('id')).data ?? []).length === 0);
+  bekle('çıkarılan üye listesi göremez', ((await U.c.from('uyeler').select('id, ad')).data ?? []).length === 0);
+  bekle('çıkarılan sonuç göremez', ((await U.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).length === 0);
+  bekle('çıkarılan sıralamayı göremez', ((await U.c.rpc('siralama')).data ?? []).length === 0);
+
+  // Adı ve kareleri geçmişte duruyor: kurucunun gördüğü sonuç değişmedi
+  const sonucAd = ((await A2.c.rpc('sonuc_kareleri', { p_etkinlik: E2 })).data ?? []).map(k => k.sahip_ad);
+  bekle('çıkarma geçmiş sonuçları bozmuyor', sonucAd.length > 0 && sonucAd.every(a => !!a), JSON.stringify(sonucAd));
+
+  // Listede duruyor, sonda ve işaretli
+  const liste2 = (await Y.c.rpc('uye_listesi')).data ?? [];
+  const cikan = liste2.find(x => x.id === U.id);
+  bekle('çıkarılan üye listesinde duruyor', !!cikan && !!cikan.cikarildi_at);
+  bekle('çıkarılanlar listenin sonunda', liste2[liste2.length - 1].id === U.id, JSON.stringify(liste2.map(x => x.ad)));
+
+  // İstek bırakıp geri dönebiliyor
+  const ist = await U.c.from('istekler').insert({ kullanici: U.id, eposta: 'duzuye@test.local', ad: 'Düz Üye', notu: 'Geri almanızı istiyorum' }).select('id').single();
+  bekle('çıkarılan istek bırakabiliyor', !ist.error, hata(ist));
+  const kart = ((await Y.c.rpc('bekleyen_istekler')).data ?? []).find(x => x.id === ist.data?.id);
+  bekle('kartta çıkarılmış olduğu yazıyor', kart?.cikarilmis === true, JSON.stringify(kart));
+  bekle('onaylanınca geri giriyor', !(await Y.c.rpc('istek_karar', { p_istek: ist.data.id, p_onay: true })).error
+    && (await U.c.rpc('uye_mi')).data === true);
+  bekle('geri alınınca çıkarılma anı siliniyor', (await U.c.rpc('ben')).data?.[0]?.cikarildi_at === null);
+
+  // Yönetici listeden de geri alabiliyor
+  await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: true });
+  bekle('listeden geri alma çalışıyor', !(await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: false })).error
+    && (await U.c.rpc('uye_mi')).data === true);
+}
+
 rapor();

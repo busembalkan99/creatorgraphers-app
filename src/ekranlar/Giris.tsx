@@ -30,7 +30,7 @@ export function Kapak() {
   const [hata, setHata] = useState<string | null>(null)
   return (
     <div className="sc">
-      <header className="ust">
+      <header className="tepe">
         <div className="mast"><span>Fotoğraf kulübü</span></div>
         <div className="rb" />
       </header>
@@ -46,6 +46,26 @@ export function Kapak() {
   )
 }
 
+/**
+ * Kulüpten çıkarılan kişi (karar 99). Satırı duruyor, kareleri geçmişte kalıyor,
+ * uygulamaya giremiyor. İstek bırakıp geri dönebiliyor; yönetici de listeden geri alabiliyor.
+ */
+export function Cikarildin({ ad, istekBirak }: { ad: string; istekBirak: () => void }) {
+  return (
+    <div className="sc">
+      <header className="tepe">
+        <div className="mast"><span>Creatorgraphers</span><span className="r">Kulüp</span></div>
+        <div className="rb" />
+      </header>
+      <h2 className="t orta">Artık<br />kulüpte değilsin</h2>
+      <p className="lede">{ad}, hesabın kapatıldı. Kareler ve sonuçlar yerinde duruyor.</p>
+      <div className="bosluk" />
+      <button className="btn" onClick={istekBirak}>İstek bırak</button>
+      <button className="btn ik" onClick={() => sb.auth.signOut()}>Çıkış yap</button>
+    </div>
+  )
+}
+
 type Durum =
   | { tip: 'yukleniyor' }
   | { tip: 'kur' }
@@ -55,7 +75,8 @@ type Durum =
   | { tip: 'hata'; metin: string }
 
 /** Oturum açık ama üye satırı yok: hangi ekranın görüneceğine karar verir. */
-export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () => void }) {
+export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
+  { kullanici: User; uyeOldu: () => void; cikarildi?: boolean }) {
   const [d, setD] = useState<Durum>({ tip: 'yukleniyor' })
 
   async function yenile() {
@@ -72,7 +93,9 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
       if (error) throw error
       const son = data?.[0] as Istek | undefined
       if (!son) return setD({ tip: 'istek', tekrar: false, ad: '' })
-      if (son.durum === 'onay') return uyeOldu()
+      // Çıkarılan kişinin eski onaylı isteği duruyor. Onu "zaten üye" saymak
+      // kişiyi kapalı ekrana geri atıyor ve istek bırakmasına izin vermiyordu.
+      if (son.durum === 'onay') return cikarildi ? setD({ tip: 'istek', tekrar: true, ad: son.ad }) : uyeOldu()
       if (son.durum === 'bekliyor') return setD({ tip: 'bekliyor', istek: son })
       setD({ tip: 'ret', istek: son })
     } catch (e) {

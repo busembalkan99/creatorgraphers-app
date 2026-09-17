@@ -763,7 +763,44 @@ await olc(B, '39-sonuc-uye');
   await olc(A, '46-kendi-profilin');
 }
 
-// 16 · Çıkış
+// 16 · Üye çıkarma ve geri alma (karar 99)
+{
+  await A.goto(APP + '#/uyeler'); await A.waitForTimeout(1500);
+  bekle('üyeler ekranı açıldı', icerir(await metin(A), 'Üyeler'));
+  // Tam ad eşleşmesi şart: hasText büyük-küçük harf ayırmıyor, "Çıkar" araması
+  // "Kulüpten çıkar" ve "Yöneticilikten çıkar" düğmelerine de takılıyor.
+  await A.getByRole('button', { name: 'Kulüpten çıkar', exact: true }).first().click();
+  await A.waitForTimeout(500);
+  bekle('onay kutusu ne olacağını yazıyor',
+    icerir(await metin(A), 'Kareleri ve adı geçmiş etkinliklerde kalır'), (await metin(A)).slice(0, 300));
+  bekle('onayda vazgeçme var', (await A.getByRole('button', { name: 'Vazgeç', exact: true }).count()) > 0);
+  await A.getByRole('button', { name: 'Çıkar', exact: true }).click();
+  await A.waitForTimeout(1800);
+  bekle('çıkarılan satır işaretli', icerir(await metin(A), 'Çıkarıldı'), (await metin(A)).slice(0, 300));
+  bekle('geri al düğmesi var', (await A.getByRole('button', { name: 'Geri al', exact: true }).count()) === 1);
+  bekle('üye sayacı çıkarılanı saymıyor', !icerir(await yaz(A, '.sec'), 'Çıkarıldı'));
+  await olc(A, '47-uye-cikarildi');
+
+  // Çıkarılan kişi ne görüyor
+  await B.goto(APP + '#/etkinlikler'); await B.reload(); await B.waitForTimeout(2000);
+  bekle('çıkarılan kapalı ekranı görüyor', icerir(await metin(B), 'Artık') && icerir(await metin(B), 'kulüpte değilsin'),
+    (await metin(B)).slice(0, 200));
+  bekle('çıkarılanda sekme çubuğu yok', (await B.locator('.tabs').count()) === 0);
+  bekle('kapalı ekranda çıkış var', (await B.getByRole('button', { name: 'Çıkış yap', exact: true }).count()) === 1);
+  await olc(B, '48-cikarildin');
+  await B.getByRole('button', { name: 'İstek bırak', exact: true }).click(); await B.waitForTimeout(1200);
+  bekle('çıkarılan istek formuna geçebiliyor', icerir(await metin(B), 'istek') || icerir(await metin(B), 'Ad'),
+    (await metin(B)).slice(0, 200));
+
+  // Yönetici geri alıyor
+  await A.goto(APP + '#/uyeler'); await A.reload(); await A.waitForTimeout(1800);
+  await A.getByRole('button', { name: 'Geri al', exact: true }).first().click(); await A.waitForTimeout(1800);
+  bekle('geri alınca işaret kalkıyor', !icerir(await metin(A), 'Çıkarıldı'), (await metin(A)).slice(0, 300));
+  await B.goto(APP + '#/etkinlikler'); await B.reload(); await B.waitForTimeout(2000);
+  bekle('geri alınan kişi içeri giriyor', !icerir(await metin(B), 'kulüpte değilsin'), (await metin(B)).slice(0, 160));
+}
+
+// 17 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
 bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));

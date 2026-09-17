@@ -4,7 +4,7 @@ import { git } from '../lib/yol'
 export function Kunye({ sol, sag, geri }: { sol: string; sag?: string; geri?: string }) {
   return (
     // Sabit ust cubuk: mast ve 4px ayrac birlikte yapisiyor (karar 100)
-    <header className="ust">
+    <header className="tepe">
       <div className="mast">
         {geri ? (
           <button className="geri" onClick={() => git(geri)}>

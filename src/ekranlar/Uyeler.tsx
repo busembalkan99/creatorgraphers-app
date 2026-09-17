@@ -12,6 +12,7 @@ interface BekleyenIstek {
   eposta: string
   notu: string | null
   onceki_red: number
+  cikarilmis: boolean
   sonuc?: 'onay' | 'red'
 }
 
@@ -20,6 +21,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
   const [uyeler, setUyeler] = useState<Uye[] | null>(null)
   const [hata, setHata] = useState<string | null>(null)
   const [mesgul, setMesgul] = useState<string | null>(null)
+  const [cikarilacak, setCikarilacak] = useState<Uye | null>(null)
 
   async function yukle() {
     const [i, u] = await sor(Promise.all([
@@ -50,6 +52,23 @@ export function Uyeler({ ben }: { ben: Uye }) {
     if (onay) yukle().catch(x => setHata(hataMetni(x)))
   }
 
+  /** Karar 99: satır duruyor, kareler ve ad geçmişte kalıyor; değişen tek şey giriş. */
+  async function cikar(u: Uye, cikarilsin: boolean) {
+    setMesgul(u.id)
+    setHata(null)
+    const { error } = await sb.rpc('uye_cikar', { p_uye: u.id, p_cikar: cikarilsin })
+    setMesgul(null)
+    setCikarilacak(null)
+    if (error) return setHata(hataMetni(error))
+    yukle().catch(x => setHata(hataMetni(x)))
+  }
+
+  /** Yönetici üyeyi çıkarır, yöneticiyi yalnız kurucu çıkarır, kurucu çıkarılmaz. */
+  function cikarabilirMi(u: Uye) {
+    if (u.rol === 'kurucu' || u.id === ben.id) return false
+    return u.rol === 'uye' ? true : ben.rol === 'kurucu'
+  }
+
   async function rol(u: Uye) {
     setMesgul(u.id)
     setHata(null)
@@ -66,6 +85,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
   }
 
   const bekleyen = istekler.filter(i => !i.sonuc).length
+  const icerideki = uyeler.filter(u => !u.cikarildi_at).length
   const kurucu = ben.rol === 'kurucu'
 
   return (
@@ -78,6 +98,9 @@ export function Uyeler({ ben }: { ben: Uye }) {
         <div className="istek" key={r.id}>
           <div className="ust"><b>{r.ad}</b>{!r.sonuc && <span className="rozet bekliyor">Bekliyor</span>}</div>
           <div className="mail">{r.eposta}</div>
+          {r.cikarilmis && (
+            <div className="tekrar"><Ikon ad="info" /><span>Bu kişi kulüpten çıkarılmıştı</span></div>
+          )}
           {r.onceki_red > 0 && (
             <div className="tekrar"><Ikon ad="info" /><span>Daha önce {r.onceki_red} kez reddedildi</span></div>
           )}
@@ -102,22 +125,43 @@ export function Uyeler({ ben }: { ben: Uye }) {
         </div>
       ))}
 
-      <div className="sec">Üyeler<span>{uyeler.length} üye</span></div>
-      {uyeler.map(u => (
-        <div key={u.id}>
-          <div className="satir" style={{ cursor: 'default' }}>
-            <div className="tx"><b>{u.ad}</b><span>{u.eposta}{u.id === ben.id ? ' · sen' : ''}</span></div>
-            <span className={`rozet ${u.rol}`}>{u.rol === 'kurucu' ? 'Kurucu' : u.rol === 'yonetici' ? 'Yönetici' : 'Üye'}</span>
-          </div>
-          {kurucu && u.rol !== 'kurucu' && (
-            <div className="rolakt">
-              <button disabled={mesgul === u.id} onClick={() => rol(u)}>
-                {u.rol === 'uye' ? 'Yönetici yap' : 'Yöneticilikten çıkar'}
-              </button>
+      <div className="sec">Üyeler<span>{icerideki} üye</span></div>
+      {uyeler.map(u => {
+        const disarda = !!u.cikarildi_at
+        return (
+          <div key={u.id} className={disarda ? 'cikarilmis' : ''}>
+            <div className="satir" style={{ cursor: 'default' }}>
+              <div className="tx"><b>{u.ad}</b><span>{u.eposta}{u.id === ben.id ? ' · sen' : ''}</span></div>
+              <span className={`rozet ${disarda ? 'disarda' : u.rol}`}>
+                {disarda ? 'Çıkarıldı' : u.rol === 'kurucu' ? 'Kurucu' : u.rol === 'yonetici' ? 'Yönetici' : 'Üye'}
+              </span>
             </div>
-          )}
-        </div>
-      ))}
+            {cikarilacak?.id === u.id ? (
+              <div className="onaykutu">
+                <b>{u.ad} çıkarılsın mı?</b>
+                <p>Kareleri ve adı geçmiş etkinliklerde kalır. Uygulamaya giremez, istek bırakarak geri dönebilir.</p>
+                <div className="akt">
+                  <button className="btn ik kucuk" onClick={() => setCikarilacak(null)}>Vazgeç</button>
+                  <button className="btn kucuk" disabled={mesgul === u.id} onClick={() => cikar(u, true)}>Çıkar</button>
+                </div>
+              </div>
+            ) : (
+              ((kurucu && u.rol !== 'kurucu' && !disarda) || cikarabilirMi(u) || disarda) && (
+                <div className="rolakt">
+                  {kurucu && u.rol !== 'kurucu' && !disarda && (
+                    <button disabled={mesgul === u.id} onClick={() => rol(u)}>
+                      {u.rol === 'uye' ? 'Yönetici yap' : 'Yöneticilikten çıkar'}
+                    </button>
+                  )}
+                  {disarda
+                    ? <button disabled={mesgul === u.id} onClick={() => cikar(u, false)}>Geri al</button>
+                    : cikarabilirMi(u) && <button disabled={mesgul === u.id} onClick={() => setCikarilacak(u)}>Kulüpten çıkar</button>}
+                </div>
+              )
+            )}
+          </div>
+        )
+      })}
       {kurucu && <p className="veri">Yöneticiyi yalnız kurucu ekler ve çıkarır.</p>}
     </div>
   )

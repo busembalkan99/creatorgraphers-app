@@ -7,6 +7,8 @@ export interface Uye {
   rol: Rol
   afis_izni: boolean
   hosgeldin_goruldu: boolean
+  /** Dolu ise kişi kulüpten çıkarılmış: satırı ve kareleri duruyor, giriş yapamıyor (karar 99) */
+  cikarildi_at?: string | null
 }
 
 export interface Istek {

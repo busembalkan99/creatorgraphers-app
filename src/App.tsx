@@ -5,7 +5,7 @@ import type { Uye } from './lib/tipler'
 import { git, useYol } from './lib/yol'
 import { Ikon } from './bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from './bilesenler/Kunye'
-import { Hosgeldin, Kapak, UyeDegil } from './ekranlar/Giris'
+import { Cikarildin, Hosgeldin, Kapak, UyeDegil } from './ekranlar/Giris'
 import { Etkinlikler } from './ekranlar/Etkinlikler'
 import { Yukleme } from './ekranlar/Yukleme'
 import { Profil } from './ekranlar/Profil'
@@ -41,6 +41,7 @@ function Icerik({ oturum }: { oturum: Session }) {
   const kullanici = oturum.user
   const [uye, setUye] = useState<Uye | null | undefined>(undefined)
   const [hata, setHata] = useState<string | null>(null)
+  const [istekAcik, setIstekAcik] = useState(false)
 
   const uyeYukle = useCallback(async () => {
     const { data, error } = await sor(sb.rpc('ben').maybeSingle()).catch(e => ({ data: null, error: e }))
@@ -63,6 +64,11 @@ function Icerik({ oturum }: { oturum: Session }) {
   }
   if (uye === undefined) return <Yukleniyor />
   if (uye === null) return <UyeDegil kullanici={kullanici} uyeOldu={uyeYukle} />
+  // Karar 99: çıkarılan kişi kapalı ekranı görür, isterse oradan istek bırakır
+  if (uye.cikarildi_at && !istekAcik) {
+    return <Cikarildin ad={uye.ad.split(' ')[0]} istekBirak={() => setIstekAcik(true)} />
+  }
+  if (uye.cikarildi_at) return <UyeDegil kullanici={kullanici} uyeOldu={uyeYukle} cikarildi />
   if (!uye.hosgeldin_goruldu && uye.rol !== 'kurucu') {
     return (
       <Hosgeldin

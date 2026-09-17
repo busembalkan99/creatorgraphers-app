@@ -222,7 +222,7 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
   const dolu = kunye.filter(([, v]) => v)
   return (
     <div className="sc detay">
-      <header className="ust">
+      <header className="tepe">
         <div className="mast">
           <button className="geri" onClick={kapat}>Sonuçlar</button>
           <span className="r">{kare.tema_ad}</span>

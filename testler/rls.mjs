@@ -218,6 +218,10 @@ bekle('yabancı tema durumunu göremez', ((await C.c.rpc('oylama_durumu', { p_et
 bekle('kendi oyunu silemez', ((await B2.c.from('oylar').delete().eq('kare', kA.id).select()).data ?? []).length === 0 && ((await admin.from('oylar').select('kare')).data ?? []).length === 1);
 bekle('sonuçta dosya hâlâ indirilebilir', !(await B2.c.storage.from('kareler').download(kA.dosya)).error);
 bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler').download(kA.dosya)).error);
-bekle('sonuçta kareler hâlâ okunur', ((await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? []).length >= 1);
+{
+  const l = (await B2.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [];
+  bekle('sonuçta A nın karesi listede, B nin kendi karesi değil',
+    l.some(x => x.id === kA.id) && !l.some(x => x.id === kB.id), JSON.stringify(l.map(x => x.id)));
+}
 
 rapor();

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Istek } from '../lib/tipler'
 import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
@@ -58,7 +58,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
 
   async function yenile() {
     try {
-      const { data: kurucuVar, error: e1 } = await sb.rpc('kurucu_var')
+      const { data: kurucuVar, error: e1 } = await sor(sb.rpc('kurucu_var'))
       if (e1) throw e1
       if (!kurucuVar) return setD({ tip: 'kur' })
       const { data, error } = await sb

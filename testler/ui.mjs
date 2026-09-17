@@ -454,26 +454,32 @@ bekle('yeni puan yazıldı', ((await admin.from('oylar').select('puan')).data ??
   await A.waitForTimeout(600);
   bekle('klavyeyle 10 üst sınırı', await yaz(A, '.puan .deger') === '10', await yaz(A, '.puan .deger'));
 }
-// sürükleme kesilirse verilen puan kayboluyor mu
+// telefonda sürükleme kaydırmaya dönerse (pointercancel) puan yazılmamalı
 {
   const k = A.locator('.kaydirici').first();
   await k.scrollIntoViewIfNeeded(); await A.waitForTimeout(300);
+  const onceki = await yaz(A, '.puan .deger');
+  const oncekiDb = JSON.stringify(((await admin.from('oylar').select('kare, puan')).data ?? []).sort((x, y) => x.kare.localeCompare(y.kare)));
   const kutu = await k.boundingBox();
   const y = kutu.y + kutu.height / 2;
   await A.mouse.move(kutu.x + 4, y);
   await A.mouse.down();
   await A.mouse.move(kutu.x + kutu.width * 0.35, y, { steps: 3 });
   await A.waitForTimeout(200);
-  const ekranda = await yaz(A, '.puan .deger');
   await A.evaluate(() => {
     const s = document.querySelector('.kaydirici');
     s.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }));
   });
-  await A.waitForTimeout(1200);
+  await A.waitForTimeout(400);
+  // parmak bambaşka bir yerde kalkıyor: kesilen sürükleme oradan da puan yazmamalı
+  await A.mouse.move(kutu.x + kutu.width * 0.95, y, { steps: 2 });
   await A.mouse.up();
-  bekle('sürükleme kesilince puan kaydediliyor',
-    ((await admin.from('oylar').select('puan')).data ?? []).some(o => String(o.puan).padStart(2, '0') === ekranda),
-    `ekranda ${ekranda}, dbde ${JSON.stringify(((await admin.from('oylar').select('puan')).data ?? []).map(o => o.puan))}`);
+  await A.waitForTimeout(1200);
+  bekle('kesilen sürüklemede puan yazılmıyor',
+    JSON.stringify(((await admin.from('oylar').select('kare, puan')).data ?? []).sort((x, y) => x.kare.localeCompare(y.kare))) === oncekiDb,
+    oncekiDb);
+  bekle('kesilen sürüklemede ekran eski puana dönüyor', await yaz(A, '.puan .deger') === onceki,
+    `${onceki} → ${await yaz(A, '.puan .deger')}`);
 }
 // oylama kapanmadan hemen önce ekranda duran (yani sunucunun kabul ettiği) puan
 const sunucudakiPuan = await yaz(A, '.puan .deger');
@@ -494,7 +500,27 @@ await admin.from('etkinlikler').update({
   bekle('sunucudaki puan değişmedi', ((await admin.from('oylar').select('puan')).data ?? []).some(o => String(o.puan).padStart(2, '0') === sunucudakiPuan));
 }
 
-// 12 · Çıkış
+// 12 · Ağ koparsa (oylama yeniden açık)
+await admin.from('etkinlikler').update({
+  yukleme_biter: new Date(Date.now() - 2000).toISOString(),
+  oylama_biter: new Date(Date.now() + 3600_000).toISOString(),
+}).eq('id', ev.id);
+await A.route('**/rest/v1/rpc/oylama_durumu*', r => r.abort());
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1500);
+bekle('oy durumu alınamazsa yanlış ilerleme yazmıyor',
+  !/kare kaldı/.test(await metin(A)) && !icerir(await metin(A), 'devam et'), (await metin(A)).slice(0, 160));
+bekle('oy durumu alınamazsa kart yine oylamaya götürüyor', (await A.locator('.live .act').count()) === 1);
+await A.unroute('**/rest/v1/rpc/oylama_durumu*');
+await A.route('**/rest/v1/etkinlikler*', r => r.abort());
+await A.goto(APP + '#/siralama'); await A.waitForTimeout(500);   // aynı adrese gitmek yeniden yüklemiyor
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(14000);
+bekle('etkinlikler alınamazsa hata görünüyor', icerir(await metin(A), 'Bağlantı kurulamadı') || icerir(await metin(A), 'ters gitti'), (await metin(A)).replace(/\n/g, ' | ').slice(0, 300));
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(14000);
+bekle('oylama ekranı da hatayı söylüyor', icerir(await metin(A), 'Bağlantı kurulamadı') || icerir(await metin(A), 'ters gitti'), (await metin(A)).slice(0, 160));
+await olc(A, '35-ag-hatasi');
+await A.unroute('**/rest/v1/etkinlikler*');
+
+// 13 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
 bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));

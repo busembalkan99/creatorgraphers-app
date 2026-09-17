@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, kalanYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
@@ -34,14 +34,14 @@ interface OyKare {
 const iki = (n: number) => String(n).padStart(2, '0')
 
 async function veriYukle(): Promise<{ e: Etkinlik | null; durum: TemaDurum[]; kareler: OyKare[] }> {
-  const { data: ev, error } = await sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false })
+  const { data: ev, error } = await sor(sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }))
   if (error) throw error
   const acik = acikEtkinlik((ev ?? []) as Etkinlik[]) ?? null
   if (!acik || asama(acik) !== 'oylama') return { e: null, durum: [], kareler: [] }
-  const [d, k] = await Promise.all([
+  const [d, k] = await sor(Promise.all([
     sb.rpc('oylama_durumu', { p_etkinlik: acik.id }),
     sb.rpc('oylama_kareleri', { p_etkinlik: acik.id }),
-  ])
+  ]))
   if (d.error) throw d.error
   if (k.error) throw k.error
   const durum = ((d.data ?? []) as TemaDurum[]).map(t => ({ ...t, toplam: Number(t.toplam), puanladigim: Number(t.puanladigim) }))
@@ -278,8 +278,17 @@ function Kaydirici({ puan, degisti }: { puan: number | null; degisti: (p: number
           boya(xTen(ev.clientX))
         }}
         onPointerMove={ev => tutuyor && boya(xTen(ev.clientX))}
-        onPointerUp={ev => bitir(xTen(ev.clientX))}
-        onPointerCancel={() => bitir(suan)}
+        onPointerUp={ev => {
+          if (!tutuyor) return
+          bitir(xTen(ev.clientX))
+        }}
+        onPointerCancel={() => {
+          // Telefonda parmak kaydırmaya dönerse tarayıcı sürüklemeyi iptal ediyor.
+          // Kişi puanı bilerek seçmedi: yazma, eski değere dön.
+          setTutuyor(false)
+          setOturuyor(false)
+          setSuan(puan)
+        }}
         onKeyDown={ev => {
           const d = ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowLeft' ? -1 : 0
           if (!d) return

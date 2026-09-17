@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { ayarEksik, sb, hataMetni } from './lib/supabase'
+import { ayarEksik, sb, hataMetni, sor } from './lib/supabase'
 import type { Uye } from './lib/tipler'
 import { git, useYol } from './lib/yol'
 import { Ikon } from './bilesenler/Ikon'
@@ -41,7 +41,7 @@ function Icerik({ oturum }: { oturum: Session }) {
   const [hata, setHata] = useState<string | null>(null)
 
   const uyeYukle = useCallback(async () => {
-    const { data, error } = await sb.rpc('ben').maybeSingle()
+    const { data, error } = await sor(sb.rpc('ben').maybeSingle()).catch(e => ({ data: null, error: e }))
     if (error) return setHata(hataMetni(error))
     setUye((data as Uye | null) ?? null)
   }, [kullanici.id])

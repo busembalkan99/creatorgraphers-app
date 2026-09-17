@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema } from '../lib/tipler'
 import { asama, ayAdi, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
@@ -16,14 +16,14 @@ export function Asama() {
   const [kopyalandi, setKopyalandi] = useState(false)
 
   async function yukle() {
-    const { data, error } = await sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false })
+    const { data, error } = await sor(sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }))
     if (error) throw error
     const acik = acikEtkinlik((data ?? []) as Etkinlik[]) ?? null
     if (!acik) return setE(null)
-    const [t, s] = await Promise.all([
+    const [t, s] = await sor(Promise.all([
       sb.from('temalar').select('*').eq('etkinlik', acik.id).order('sira'),
       sb.rpc('yukleme_sayilari', { p_etkinlik: acik.id }),
-    ])
+    ]))
     if (t.error) throw t.error
     if (s.error) throw s.error
     // Hepsi gelince birlikte: önce etkinlik çizilirse grup mesajı bir an temasız kalıyordu.

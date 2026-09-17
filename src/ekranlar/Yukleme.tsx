@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Kare, Tema, Uye } from '../lib/tipler'
 import { asama, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
 import { bilgiOku, DosyaHatasi, kucult, tarihKontrol } from '../lib/kare'
@@ -41,11 +41,11 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
 
   useEffect(() => {
     ;(async () => {
-      const { data: ev, error } = await sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false })
+      const { data: ev, error } = await sor(sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }))
       if (error) throw error
       const acik = acikEtkinlik((ev ?? []) as Etkinlik[]) ?? null
       if (!acik) return setE(null)
-      const { data: tm, error: e2 } = await sb.from('temalar').select('*').eq('etkinlik', acik.id).order('sira')
+      const { data: tm, error: e2 } = await sor(sb.from('temalar').select('*').eq('etkinlik', acik.id).order('sira'))
       if (e2) throw e2
       const temaList = (tm ?? []) as Tema[]
       setTemalar(temaList)

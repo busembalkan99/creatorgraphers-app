@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Uye } from '../lib/tipler'
 import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
@@ -22,10 +22,10 @@ export function Uyeler({ ben }: { ben: Uye }) {
   const [mesgul, setMesgul] = useState<string | null>(null)
 
   async function yukle() {
-    const [i, u] = await Promise.all([
+    const [i, u] = await sor(Promise.all([
       sb.rpc('bekleyen_istekler'),
       sb.rpc('uye_listesi'),
-    ])
+    ]))
     if (i.error) throw i.error
     if (u.error) throw u.error
     setIstekler(prev => {

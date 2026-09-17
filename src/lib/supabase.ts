@@ -30,6 +30,20 @@ const HATALAR: Record<string, string> = {
   iptal_olmaz: 'Oylama açıldığı için etkinlik artık iptal edilemiyor.',
 }
 
+/**
+ * Veri isteklerine süre sınırı. Bağlantı kopunca istemci bazen hiç cevap vermiyor
+ * ve ekran sonsuza kadar "yükleniyor" kalıyordu; bu, beklemeyi hataya çeviriyor.
+ */
+export function sor<T>(istek: PromiseLike<T>, saniye = 12): Promise<T> {
+  return new Promise<T>((coz, red) => {
+    const z = setTimeout(() => red(new Error('network: zaman aşımı')), saniye * 1000)
+    Promise.resolve(istek).then(
+      v => { clearTimeout(z); coz(v) },
+      e => { clearTimeout(z); red(e) },
+    )
+  })
+}
+
 export function hataMetni(e: unknown): string {
   const m = (e as { message?: string } | null)?.message ?? String(e)
   for (const [k, v] of Object.entries(HATALAR)) if (m.includes(k)) return v

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
@@ -19,19 +19,19 @@ interface Veri {
 }
 
 export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
-  const [e, t, k, u] = await Promise.all([
+  const [e, t, k, u] = await sor(Promise.all([
     sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }),
     sb.from('temalar').select('*').order('sira'),
     sb.from('kareler').select('tema').eq('sahip', uyeId),
     sb.from('uyeler').select('id', { count: 'exact', head: true }),
-  ])
+  ]))
   const hata = e.error ?? t.error ?? k.error ?? u.error
   if (hata) throw hata
   const etkinlikler = (e.data ?? []) as Etkinlik[]
   const acik = etkinlikler.find(x => asama(x) === 'oylama')
   let oyKalan: { kalan: number; toplam: number } | null = null
   if (acik) {
-    const d = await sb.rpc('oylama_durumu', { p_etkinlik: acik.id })
+    const d = await sor(sb.rpc('oylama_durumu', { p_etkinlik: acik.id })).catch(() => ({ error: true, data: null } as const))
     if (!d.error) {
       const satir = (d.data ?? []) as { toplam: number; puanladigim: number }[]
       oyKalan = {

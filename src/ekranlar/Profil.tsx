@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { sb, hataMetni } from '../lib/supabase'
+import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, kalanYaz, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
@@ -19,10 +19,10 @@ export function Profil({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => 
   useEffect(() => {
     if (!yonetici) return
     ;(async () => {
-      const [b, e] = await Promise.all([
+      const [b, e] = await sor(Promise.all([
         sb.rpc('bekleyen_istekler'),
         sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }),
-      ])
+      ]))
       if (b.error) throw b.error
       if (e.error) throw e.error
       setBekleyen((b.data ?? []).length)

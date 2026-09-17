@@ -39,6 +39,7 @@ export function Kapak() {
       <Hata metin={hata} />
       <button className="btn" onClick={() => googleIleGir().catch(e => setHata(hataMetni(e)))}>Google ile gir</button>
       <div className="alt-bilgi">Kulüp davetle çalışıyor. Hesabın listede yoksa yöneticiye istek bırakabilirsin.</div>
+      <a className="link" href={import.meta.env.BASE_URL + 'privacy/'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Gizlilik</a>
     </div>
   )
 }
@@ -113,7 +114,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
         <IstekFormu
           eposta={eposta}
           tekrar={d.tekrar}
-          ilkAd={d.ad || (kullanici.user_metadata?.full_name as string | undefined) || ''}
+          ilkAd={d.ad}
           kullaniciId={kullanici.id}
           gonderildi={yenile}
         />

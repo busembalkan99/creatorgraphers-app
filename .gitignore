@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ortam değişkenleri
+.env
+.env.*
+!.env.example

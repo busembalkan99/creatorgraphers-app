@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const anahtar = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+const anahtar = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined
 
 /** .env.local doldurulmadıysa uygulama bunu söyleyen bir ekran gösterir. */
 export const ayarEksik = !url || !anahtar || url.includes('PROJE-KIMLIGI')
 
-export const sb = createClient(url ?? 'http://localhost:54321', anahtar ?? 'eksik', {
+// Boş satır da eksik sayılır: createClient boş anahtarla hata fırlatıp sayfayı düşürüyordu.
+export const sb = createClient(ayarEksik ? 'http://localhost:54321' : url!, ayarEksik ? 'eksik' : anahtar!, {
   auth: { flowType: 'pkce', persistSession: true, detectSessionInUrl: true, autoRefreshToken: true },
 })
 

@@ -157,7 +157,7 @@ function AyarEksik() {
         <Kunye sol="Creatographers" sag="Kurulum" />
         <h2 className="t orta">Bağlantı<br />ayarı eksik</h2>
         <p className="lede">
-          .env.local dosyasına Supabase proje adresi ve anon anahtarı yazılmamış. Şablon: .env.example
+          .env.local dosyasına Supabase proje adresi ve publishable anahtarı yazılmamış. Şablon: .env.example
         </p>
       </div>
     </div>

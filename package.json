@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5180 --strictPort",
+    "dev:canli": "vite --port 5180 --strictPort --mode canli",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "yayinla": "bash scripts/yayinla.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

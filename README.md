@@ -51,8 +51,8 @@ npm run yayinla           # derler, dist/ içeriğini yerel gh-pages dalına com
 git push origin gh-pages  # ayrı adım
 ```
 
-GitHub > Settings > Pages: kaynak `gh-pages` dalı, kök klasör, özel alan adı `creatorgraphers.com` (`public/CNAME`).
-DNS Cloudflare'de: dört A ve dört AAAA kaydı GitHub Pages'e, `www` CNAME `busebalkan99.github.io`, hepsi proxy kapalı.
+Depo: github.com/busembalkan99/creatorgraphers-app. GitHub > Settings > Pages: kaynak `gh-pages` dalı, kök klasör, özel alan adı `creatorgraphers.com` (`public/CNAME`).
+DNS Cloudflare'de: dört A ve dört AAAA kaydı GitHub Pages'e, `www` CNAME `busembalkan99.github.io`, hepsi proxy kapalı.
 
 ## Veritabanı
 

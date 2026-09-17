@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema, Uye } from '../lib/tipler'
-import { asama, ayAdi, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
+import { asama, ayAdi, gunYaz, kalanYaz, saatEki, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
@@ -116,7 +116,12 @@ function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[
       <div className="live" data-asama="yukleme">
         <div className="kick">{ay} etkinliği</div>
         <h2>Buluşma<br />{gunYaz(e.bulusma_gunu, false)}</h2>
-        <div className="meta"><span>Yükleme</span><b>{saatYaz(e.yukleme_baslar)}</b><span>· açılıyor</span></div>
+        {/* Tek cümle olarak okunsun: "Yükleme 19 Eylül 16.00'da açılıyor" */}
+        <div className="meta">
+          <span>Yükleme</span>
+          <b>{saatYaz(e.yukleme_baslar)}'{saatEki(e.yukleme_baslar)}</b>
+          <span>açılıyor</span>
+        </div>
         <div className="temalar">{temalar.map(t => `${t.ad}${t.bulusmada ? '' : ' (serbest)'}`).join(' · ')}</div>
         <button className="act" onClick={() => git('yukle')}>Temalara bak</button>
       </div>

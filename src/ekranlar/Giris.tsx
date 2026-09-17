@@ -34,11 +34,11 @@ export function Kapak() {
       <div className="rb" />
       <div className="kapak"><img src={import.meta.env.BASE_URL + 'kapak.jpg'} alt="" /></div>
       <div className="marka">Creator&shy;graphers</div>
-      <p className="lede">İki ayda bir buluşup çekiyoruz, kareleri isimsiz oyluyoruz.</p>
       <div className="bosluk" />
       <Hata metin={hata} />
       <button className="btn" onClick={() => googleIleGir().catch(e => setHata(hataMetni(e)))}>Google ile gir</button>
-      <div className="alt-bilgi">Kulüp davetle çalışıyor. Listede yoksan istek bırak.</div>
+      {/* Kapakta tek cümle: "davetle çalışıyor" zaten "listede yoksan"ın içinde */}
+      <div className="alt-bilgi">Listede yoksan istek bırak.</div>
       <a className="link" href={import.meta.env.BASE_URL + 'privacy/'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Gizlilik</a>
     </div>
   )

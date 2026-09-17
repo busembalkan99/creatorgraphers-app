@@ -38,6 +38,21 @@ export function saatYaz(iso: string) {
   return `${Number(v('day'))} ${AYLAR[Number(v('month')) - 1]} ${v('hour')}.${v('minute')}`
 }
 
+/**
+ * Saate gelen bulunma eki: "16.00'da", "17.00'de", "15.00'te".
+ * Ek saatin okunuşuna göre değişiyor, son rakama bakmak yetmiyor:
+ * 10 "on" ile 20 "yirmi" aynı rakamla bitiyor ama ekleri farklı.
+ */
+const SAAT_EKI = ['da', 'de', 'de', 'te', 'te', 'te', 'da', 'de', 'de', 'da']
+
+export function saatEki(iso: string) {
+  const saat = Number(new Intl.DateTimeFormat('tr-TR', {
+    timeZone: 'Europe/Istanbul', hour: '2-digit', hour12: false,
+  }).format(new Date(iso)))
+  if (saat === 20) return 'de'  // "yirmi"
+  return SAAT_EKI[saat % 10]
+}
+
 /** Kalan süre: 2 günden fazlaysa gün, değilse saat, bir saatten azsa dakika. */
 export function kalanYaz(bitis: string, simdi = Date.now()) {
   const ms = Date.parse(bitis) - simdi

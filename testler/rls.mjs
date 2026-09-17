@@ -303,6 +303,7 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   const tema = (await admin.from('temalar').insert({ etkinlik: ek.id, ad: 'Kalabalık', sira: 1, bulusmada: false }).select('id').single()).data;
   const { data: liste } = await admin.auth.admin.listUsers();
   const kimlikler = [];
+  const yuklemeSirasi = [];
   for (let i = 0; i < 14; i++) {
     const posta = `kalabalik${i}@test.local`;
     const k = liste.users.find(u => u.email === posta)
@@ -312,6 +313,7 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
     const yol = `${ek.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
     await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
     const kr = (await admin.from('kareler').insert({ tema: tema.id, sahip: k.id, dosya: yol, genislik: 10, yukseklik: 10 }).select('id').single()).data;
+    yuklemeSirasi.push(kr.id);
     // puanlar: 10, 9, 8 ... ilk ikisi eşit olsun (sıra eşitliği sınanacak)
     const puan = i === 0 ? 10 : i === 1 ? 10 : Math.max(1, 10 - i);
     await admin.from('oylar').insert({ kare: kr.id, veren: A2.id, puan });
@@ -323,8 +325,10 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
   // Eşit puanda sıra yükleme saatine göre bozuluyor: ortak birincilik yok, sıra tek
   bekle('eşit puanda sıra tek kalıyor', sonuc.filter(k => Number(k.sira) === 1).length === 1,
     JSON.stringify(sonuc.slice(0, 3).map(k => [k.sira, k.ortalama])));
-  bekle('eşitlikte önce yüklenen önde', Number(sonuc[0].ortalama) === 10 && Number(sonuc[1].ortalama) === 10
-    && sonuc[0].yukleme_at === undefined, JSON.stringify(sonuc.slice(0, 2).map(k => k.sira)));
+  bekle('eşitlikte önce yüklenen önde', sonuc[0].id === yuklemeSirasi[0] && sonuc[1].id === yuklemeSirasi[1]
+    && Number(sonuc[0].ortalama) === 10 && Number(sonuc[1].ortalama) === 10,
+    `${sonuc[0].id} / ${yuklemeSirasi[0]}`);
+  bekle('sonuç listesi yükleme saatini vermiyor', sonuc[0].yukleme_at === undefined);
   bekle('altıncı ve sonrası gizli', sonuc.filter(k => !k.sirali).every(k => k.ortalama === null && k.sira === null));
   // Sonuç açılmamış etkinlik
   const acik = (await admin.from('etkinlikler').insert({

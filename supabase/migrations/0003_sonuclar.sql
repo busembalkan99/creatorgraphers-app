@@ -23,9 +23,10 @@ language sql stable security definer set search_path = public as $$
     group by k.id, t.ad, t.sira
   ), sirali as (
     select kare.*,
-           -- Puanlar eşitse önce yüklenen önde: sıra tek ve herkese aynı çıkıyor.
+           -- Puanlar eşitse önce yüklenen önde. Aynı anda yazılan kareler için son ayraç
+           -- kimlik: sıra her zaman tek ve herkese aynı çıkıyor.
            -- Ortak birincilik gösterilmiyor (karara bağlanmadı).
-           rank() over (partition by kare.tema order by kare.ort desc nulls last, kare.yukleme_at) as yer,
+           rank() over (partition by kare.tema order by kare.ort desc nulls last, kare.yukleme_at, kare.id) as yer,
            -- Karar 19: tema başına round(kare sayısı / 2,5), en fazla 5 kare sıralı gösterilir.
            -- En az 1: karar 18 her temaya bir kazanan veriyor, formül az karede 0 çıkarıyordu
            -- ve temanın karesi puansız kalıyordu.

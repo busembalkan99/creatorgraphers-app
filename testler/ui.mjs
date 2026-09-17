@@ -624,6 +624,8 @@ await olc(B, '39-sonuc-uye');
   }
   await A.goto(APP + `#/sonuc/${ek2.id}`); await A.waitForTimeout(2500);
   bekle('kalabalık temada kürsü iki kare', (await A.locator('.kursu figure').count()) === 2);
+  bekle('kürsü numaraları sunucudaki sıradan', (await yaz(A, '.kursu .no', 0)) === '02' && (await yaz(A, '.kursu .no', 1)) === '03',
+    `${await yaz(A, '.kursu .no', 0)} / ${await yaz(A, '.kursu .no', 1)}`);
   bekle('dördüncü sıra listede', (await A.locator('.satir-kare').count()) === 1, String(await A.locator('.satir-kare').count()));
   bekle('listedeki satır 04 numaralı', (await yaz(A, '.satir-kare .no')) === '04', await yaz(A, '.satir-kare .no'));
   bekle('geri kalanlar galeride', (await A.locator('.izgara figure').count()) === 5, String(await A.locator('.izgara figure').count()));
@@ -651,8 +653,7 @@ await olc(B, '39-sonuc-uye');
     kuran: A.kimlik,
   }).select('id').single()).data;
   await A.goto(APP + `#/sonuc/${yeni.id}`); await A.waitForTimeout(2000);
-  bekle('sonucu açılmamış etkinlikte kilit', icerir(await metin(A), 'Sonuçlar') && icerir(await metin(A), 'açılmadı'),
-    (await metin(A)).slice(0, 160));
+  bekle('sonucu açılmamış etkinlikte kilit', icerir(await yaz(A, 'h2.t'), 'Sonuçlar') && icerir(await yaz(A, 'h2.t'), 'açılmadı'), await yaz(A, 'h2.t'));
   await admin.from('etkinlikler').delete().eq('id', yeni.id);
 }
 

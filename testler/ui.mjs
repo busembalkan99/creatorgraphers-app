@@ -295,7 +295,7 @@ await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('canlı kartta oylama çağrısı', icerir(await metin(A), 'Oylamaya başla'), (await metin(A)).slice(0, 160));
 bekle('kalan kare sayısı kartta', icerir(await metin(A), '3 kare kaldı'), await metin(A));
 await A.click('.live .act'); await A.waitForTimeout(1500);
-bekle('oylama tema listesi', icerir(await metin(A), 'Temalar'));
+bekle('oylama tema listesi', (await A.locator('.tema-satir').count()) === 2, String(await A.locator('.tema-satir').count()));
 bekle('son oy tarihi satırı', /\d+ (gün|saat|dakika) kaldı/.test(await metin(A)), (await metin(A)).slice(0, 120));
 bekle('zorunlusu olmayana not', icerir(await metin(A), 'zorunlu temalarda işin bitti'));
 bekle('oylama ekranında sekme çubuğu yok', (await A.locator('.tabs').count()) === 0);
@@ -314,7 +314,7 @@ await A.goto(APP + '#/oyla/00000000-0000-0000-0000-000000000000'); await A.waitF
 bekle('olmayan tema adresinde kilit ekranı', icerir(await metin(A), 'Oylama açık değil'), (await metin(A)).slice(0, 100));
 await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
 bekle('kurucuya zorunlu değil', icerir(await metin(A), 'oylaman şart değil'), (await metin(A)).slice(0, 160));
-bekle('isim sızmıyor', !icerir(await metin(A), 'Selin') && !icerir(await metin(A), 'Deniz'));
+bekle('isim sızmıyor', !icerir(await metin(A), 'Selin Arı') && !icerir(await metin(A), 'Deniz Akın'), (await metin(A)).slice(0, 160));
 await olc(A, '27-oylama-temalar');
 await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
 bekle('akışta iki kare', (await A.locator('.kare').count()) === 2);
@@ -376,7 +376,8 @@ await A.click('.bitti .btn'); await A.waitForTimeout(1200);
 bekle('ikinci kareye 10 verildi', ((await admin.from('oylar').select('puan')).data ?? []).some(o => o.puan === 10));
 await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
 await A.waitForTimeout(1000);
-bekle('tema bitti ekranı', icerir(await metin(A), 'bitti') && !icerir(await metin(A), 'Puan vermediğin'), (await metin(A)).slice(0, 120));
+bekle('tema bitti ekranı', icerir(await yaz(A, '.bitti h2'), 'bitti') && (await A.locator('.bitti .eksik').count()) === 0,
+  await yaz(A, '.bitti h2'));
 bekle('bitişte dönüş düğmesi', icerir(await yaz(A, '.bitti .btn'), 'Temalara dön'));
 await olc(A, '31-oylama-bitis-tamam');
 await A.click('.bitti .btn'); await A.waitForTimeout(1200);

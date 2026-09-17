@@ -49,7 +49,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
     return () => window.clearInterval(z)
   }, [uye.id])
 
-  if (hata) return <div className="sc"><Kunye sol="Creatographers" /><Hata metin={hata} /></div>
+  if (hata) return <div className="sc"><Kunye sol="Creatorgraphers" /><Hata metin={hata} /></div>
   if (!v) return <Yukleniyor />
 
   const acik = acikEtkinlik(v.etkinlikler)
@@ -58,7 +58,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
 
   return (
     <div className="sc">
-      <Kunye sol="Creatographers" sag={`${v.uyeSayisi} üye`} />
+      <Kunye sol="Creatorgraphers" sag={`${v.uyeSayisi} üye`} />
       {acik ? (
         <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} />
       ) : (

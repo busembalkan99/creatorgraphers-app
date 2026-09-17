@@ -52,7 +52,7 @@ function Icerik({ oturum }: { oturum: Session }) {
   if (hata) {
     return (
       <div className="sc">
-        <Kunye sol="Creatographers" />
+        <Kunye sol="Creatorgraphers" />
         <Hata metin={hata} />
         <button className="btn" onClick={() => { setHata(null); uyeYukle() }}>Tekrar dene</button>
       </div>
@@ -140,7 +140,7 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
 function Siralama() {
   return (
     <div className="sc">
-      <Kunye sol="Creatographers" sag="Sıralama" />
+      <Kunye sol="Creatorgraphers" sag="Sıralama" />
       <h2 className="t orta">Sıralama<br />henüz yok</h2>
       <div className="kutu">
         <div className="bas"><Ikon ad="kilit" /><span>İlk sonuçlarla açılıyor</span></div>
@@ -154,7 +154,7 @@ function AyarEksik() {
   return (
     <div className="app">
       <div className="sc">
-        <Kunye sol="Creatographers" sag="Kurulum" />
+        <Kunye sol="Creatorgraphers" sag="Kurulum" />
         <h2 className="t orta">Bağlantı<br />ayarı eksik</h2>
         <p className="lede">
           .env.local dosyasına Supabase proje adresi ve publishable anahtarı yazılmamış. Şablon: .env.example

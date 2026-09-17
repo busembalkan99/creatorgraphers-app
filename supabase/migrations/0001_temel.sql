@@ -1,4 +1,4 @@
--- Creatographers: temel yapı (cumartesi kapsamı)
+-- Creatorgraphers: temel yapı (cumartesi kapsamı)
 -- Giriş ve katılma isteği (karar 95), roller (86), etkinlik ve temalar (26, 29, 32, 33, 72),
 -- kare yükleme (3, 41, 92, 93), isim gizliliği sunucuda (9).
 --

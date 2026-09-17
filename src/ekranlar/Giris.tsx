@@ -6,7 +6,7 @@ import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
- * Giriş (karar 95). Prototip: prototype/creatographers/2026-09-17_v23-giris.html
+ * Giriş (karar 95). Prototip: prototype/creatorgraphers/2026-09-17_v23-giris.html
  * Google ile girilir. Üye değilse istek bırakır; bekler, reddedilirse görür ve
  * istediği kadar tekrar ister. Kulübün kurucusu henüz yoksa ilk giren kulübü kurar.
  */
@@ -33,7 +33,7 @@ export function Kapak() {
       <div className="mast"><span>Fotoğraf kulübü</span></div>
       <div className="rb" />
       <div className="kapak"><img src={import.meta.env.BASE_URL + 'kapak.jpg'} alt="" /></div>
-      <div className="marka">Creato&shy;graphers</div>
+      <div className="marka">Creator&shy;graphers</div>
       <p className="lede">İki ayda bir buluşup çekiyoruz, kareleri isimsiz oyluyoruz.</p>
       <div className="bosluk" />
       <Hata metin={hata} />
@@ -101,7 +101,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
     case 'hata':
       return (
         <div className="sc">
-          <Kunye sol="Creatographers" sag="Giriş" />
+          <Kunye sol="Creatorgraphers" sag="Giriş" />
           <Hata metin={d.metin} />
           <button className="btn" onClick={() => { setD({ tip: 'yukleniyor' }); yenile() }}>Tekrar dene</button>
           <button className="link" onClick={baskaHesap}>Başka hesapla gir</button>
@@ -122,7 +122,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
     case 'bekliyor':
       return (
         <div className="sc">
-          <Kunye sol="Creatographers" sag="Giriş" />
+          <Kunye sol="Creatorgraphers" sag="Giriş" />
           <h2 className="t">İsteğin<br />yöneticide</h2>
           <div className="kutu">
             <div className="bas"><Ikon ad="saat" /><span>Onay bekleniyor</span></div>
@@ -137,7 +137,7 @@ export function UyeDegil({ kullanici, uyeOldu }: { kullanici: User; uyeOldu: () 
     case 'ret':
       return (
         <div className="sc">
-          <Kunye sol="Creatographers" sag="Giriş" />
+          <Kunye sol="Creatorgraphers" sag="Giriş" />
           <h2 className="t">İsteğin<br />kabul<br />edilmedi</h2>
           <div className="kutu">
             <div className="bas"><Ikon ad="info" /><span>Bu hesapla kulübe giremiyorsun</span></div>
@@ -189,7 +189,7 @@ function IstekFormu({ eposta, tekrar, ilkAd, kullaniciId, gonderildi }: {
 
   return (
     <div className="sc">
-      <Kunye sol="Creatographers" sag="Giriş" />
+      <Kunye sol="Creatorgraphers" sag="Giriş" />
       <h2 className="t">{tekrar ? <>Tekrar<br />istek bırak</> : <>Kulüpte<br />henüz yoksun</>}</h2>
       <p className="lede">
         {tekrar
@@ -228,7 +228,7 @@ function KulubuKur({ kullanici, bitti }: { kullanici: User; bitti: () => void })
   }
   return (
     <div className="sc">
-      <Kunye sol="Creatographers" sag="Kurulum" />
+      <Kunye sol="Creatorgraphers" sag="Kurulum" />
       <h2 className="t">Kulübü<br />kur</h2>
       <p className="lede">Kulübün henüz kurucusu yok. Kurarsan kurucu sen olursun: yönetici ekler, etkinlik kurar, istekleri onaylarsın.</p>
       <div className="hesap"><span className="lab">Google hesabın</span><b>{kullanici.email}</b></div>
@@ -248,7 +248,7 @@ function KulubuKur({ kullanici, bitti }: { kullanici: User; bitti: () => void })
 export function Hosgeldin({ ad, devam }: { ad: string; devam: () => void }) {
   return (
     <div className="sc">
-      <Kunye sol="Creatographers" />
+      <Kunye sol="Creatorgraphers" />
       <h2 className="t">Hoş geldin,<br />{ad.split(' ')[0]}</h2>
       <p className="lede">İsteğin onaylandı. Kulüp şöyle işliyor:</p>
       <div className="sec">Bir etkinlik</div>

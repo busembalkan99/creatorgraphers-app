@@ -1,10 +1,10 @@
-# Creatographers
+# Creatorgraphers
 
 20 kişilik fotoğraf kulübünün uygulaması. Telefonda linkten açılır, ana ekrana eklenebilir.
 
 - Arayüz: React + Vite, GitHub Pages'te
 - Giriş, veritabanı, fotoğraf deposu: Supabase
-- Tasarım ve kararlar: `buse-design-claude/ideations/creatographers/`
+- Tasarım ve kararlar: `buse-design-claude/ideations/creatorgraphers/`
 
 ## Ortam değişkenleri
 
@@ -34,7 +34,7 @@ npm run dev         # http://localhost:5180
 ```
 
 Port 5180, çünkü 5173 bu makinede başka bir projede. Supabase'de izinli adreslere
-`http://localhost:5180/**` ve `https://busebalkan99.github.io/creatographers-app/**` eklenmeli.
+`http://localhost:5180/**` ve `https://busebalkan99.github.io/creatorgraphers-app/**` eklenmeli.
 
 ## Google girişi
 
@@ -42,7 +42,7 @@ Port 5180, çünkü 5173 bu makinede başka bir projede. Supabase'de izinli adre
 `window.location.origin + import.meta.env.BASE_URL`, yani yerelde de yayında da doğru yere döner.
 Adresler `#/...` ile çalıştığı ve Google ana sayfaya döndüğü için GitHub Pages'te 404 ayarı gerekmez.
 
-Gizlilik sayfası: `public/privacy/index.html` → https://busebalkan99.github.io/creatographers-app/privacy/
+Gizlilik sayfası: `public/privacy/index.html` → https://busebalkan99.github.io/creatorgraphers-app/privacy/
 
 ## Yayın
 

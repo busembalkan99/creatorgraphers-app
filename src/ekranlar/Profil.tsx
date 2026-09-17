@@ -44,7 +44,7 @@ export function Profil({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => 
 
   return (
     <div className="sc">
-      <Kunye sol="Creatographers" sag="Profil" />
+      <Kunye sol="Creatorgraphers" sag="Profil" />
       <div className="sec">Profilin<span>{uye.ad}</span></div>
       <div className="satir" style={{ cursor: 'default' }}>
         <div className="tx"><b>{rolAdi}</b><span>{uye.eposta}</span></div>

@@ -9,7 +9,7 @@ import { acikEtkinlik } from './Etkinlikler'
 
 /**
  * Kare yükleme, kontakt baskı (kararlar 3, 29, 41, 92, 93, 94).
- * Prototip: prototype/creatographers/2026-09-17_v22-kare-yukleme.html
+ * Prototip: prototype/creatorgraphers/2026-09-17_v22-kare-yukleme.html
  */
 
 interface Ret {

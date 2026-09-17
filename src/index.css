@@ -456,3 +456,104 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .bos-tema h3{margin-top:9px;font-size:22px;line-height:.9;letter-spacing:-.03em;word-spacing:.1em;text-transform:uppercase;
   font-variation-settings:"wdth" 70,"wght" 900}
 .bos-tema p{margin-top:10px;font-size:11px;line-height:1.6;color:var(--dim)}
+
+/* ==========================================================
+   Sıralama ve Profil (kararlar 51-59, 62). Kaynak: prototype v17.
+   ========================================================== */
+
+/* sezon künyesi */
+.seas{margin-top:14px;display:flex;align-items:baseline;gap:9px}
+.seas h2{font-size:26px;line-height:.86;letter-spacing:-.035em;word-spacing:.22em;text-transform:uppercase;
+  font-variation-settings:"wdth" 70,"wght" 900}
+.seas .of{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
+  font-variant-numeric:tabular-nums}
+.prog{display:flex;gap:4px;margin-top:10px}
+.prog i{flex:1;height:4px;background:rgba(237,237,234,.14);display:block}
+.prog i.on{background:var(--ink)}
+
+/* Müdavim: ters çevrilmiş mürekkep şerit, çoğul ve tabansız (karar 55) */
+.mud{background:var(--ink);color:var(--paper);margin-top:14px;padding:11px var(--pad) 12px}
+.mud .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.6;display:flex}
+.mud .k span{margin-left:auto;letter-spacing:.14em}
+.mud .big{font-size:26px;line-height:.9;letter-spacing:-.03em;text-transform:uppercase;margin-top:6px;
+  font-variation-settings:"wdth" 70,"wght" 900}
+.mud button{appearance:none;border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:5px 0}
+.mud .one{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em;margin-top:5px;
+  line-height:2.2;font-variation-settings:"wdth" 78,"wght" 900}
+/* 12,5px x 3,1 = 34px dokunma hedefi; isim nerede görünüyorsa dokunulabilir (karar 58) */
+.mud .list{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
+  margin-top:9px;line-height:3.1;opacity:.78}
+.mud .me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:2px;opacity:1}
+
+/* sıralı liste: kare eşlikli, etkinlik galerisiyle aynı kalıp */
+.row{border-top:1px solid var(--rule);min-height:48px;display:flex;align-items:center;gap:10px;
+  padding:7px 0;cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;
+  width:100%;text-align:left;color:inherit;font:inherit;appearance:none}
+.row .no{font-size:11px;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;
+  font-variation-settings:"wdth" 68,"wght" 800;font-variant-numeric:tabular-nums}
+.row img{width:44px;height:44px;object-fit:cover;flex:0 0 auto;background:#17171A;display:block}
+.row .nm{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
+  line-height:1.2;overflow-wrap:anywhere;min-width:0}
+.row .av{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
+  font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
+.row.me{box-shadow:inset 3px 0 0 var(--oyla);padding-left:9px}
+
+/* sırasız blok: düz metin akışı, satıra çevirmek sıralıymış gibi okutur */
+.unr{margin-top:16px;border-top:4px solid var(--ink);padding-top:11px}
+.unr .hd{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--soft);line-height:1.5}
+.unr .names{margin-top:10px;font-size:12.5px;font-weight:900;text-transform:uppercase;
+  letter-spacing:.01em;color:var(--dim);line-height:2.8}
+/* Satır aralığı 2,8 (görünürde 35px) tasarımın kararı: 44px'e çıkarmak bloğu yeniden
+   liste gibi okutuyor. Dokunma alanı dikey dolguyla büyütülüyor; satır içi öğede dolgu
+   satır kutusunu büyütmediği için ritim aynı kalıyor, hedef 45px oluyor. */
+.unr .names button{appearance:none;border:0;background:none;font:inherit;color:inherit;
+  cursor:pointer;margin-right:9px;padding:5px 0}
+.unr .names button.me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:2px}
+
+/* kilitli ve boş bloklar: parça 1'deki kapalı künyeyle aynı kesikli dil */
+.empty{border:1px dashed rgba(237,237,234,.26);padding:15px 14px 16px;margin-top:12px}
+.empty b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+.empty span{display:block;font-size:11px;line-height:1.6;color:var(--soft);margin-top:6px;max-width:34ch}
+
+/* profil künyesi */
+.pname{font-size:29px;line-height:.86;letter-spacing:-.035em;text-transform:uppercase;margin-top:12px;
+  font-variation-settings:"wdth" 70,"wght" 900;overflow-wrap:anywhere}
+.since{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--soft);margin-top:8px;line-height:1.6}
+.stats{display:flex;margin-top:13px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.stats div{flex:1;padding:14px 12px 15px 0;border-right:1px solid var(--rule)}
+.stats div + div{padding-left:12px}
+.stats div:last-child{border-right:0;padding-right:0}
+.stats b{display:block;font-size:17px;letter-spacing:-.02em;
+  font-variation-settings:"wdth" 70,"wght" 900;font-variant-numeric:tabular-nums}
+.stats.zero b{color:var(--soft)}
+.stats span{display:block;font-size:11px;font-weight:800;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--soft);margin-top:6px}
+
+/* katkı işaretleri: çerçeveli, renksiz, 2px (karar 56, 61) */
+.badges{display:flex;flex-direction:column;gap:7px}
+.badge{border:1px solid var(--rule);border-radius:2px;padding:9px 11px 10px}
+.badge b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+.badge span{display:block;font-size:11px;line-height:1.5;color:var(--soft);margin-top:4px}
+
+/* çekim tarifi (karar 57, 69) */
+.habit{border-top:1px solid var(--rule);display:flex;align-items:baseline;gap:10px;padding:9px 0}
+.habit .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--soft);width:82px;flex:0 0 auto}
+.habit .v{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+.habit .n{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
+  font-variant-numeric:tabular-nums;text-align:right}
+
+/* profildeki kareler: künye yüksekliği sabit, puan kendi etiketinin yanında */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);column-gap:8px;row-gap:18px;margin-top:12px}
+.grid figure{margin:0;min-width:0;cursor:pointer}
+.grid img{width:100%;height:92px;object-fit:cover;display:block;background:#17171A}
+.grid figcaption{margin-top:5px;height:12px;font-size:11px;font-weight:800;letter-spacing:.04em;
+  color:var(--soft);display:flex;align-items:baseline;gap:5px;line-height:1;overflow:hidden}
+.grid figcaption b{font-size:11px;line-height:1;color:var(--ink);letter-spacing:.04em;
+  font-variation-settings:"wdth" 72,"wght" 800;font-variant-numeric:tabular-nums}
+/* sıralamaya giren karenin izi: 4px ayraç dilinin küçültülmüş hâli. Sıra gösterilmiyor. */
+.grid figcaption i{width:2px;height:9px;background:var(--ink);display:block;flex:0 0 auto}
+.grid figure.sirali figcaption{color:var(--dim)}
+.gridnot{margin-top:9px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.6}

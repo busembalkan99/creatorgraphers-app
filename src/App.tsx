@@ -14,6 +14,7 @@ import { Kur } from './ekranlar/Kur'
 import { Asama } from './ekranlar/Asama'
 import { Oylama, OylamaTema } from './ekranlar/Oylama'
 import { Sonuc } from './ekranlar/Sonuc'
+import { Siralama } from './ekranlar/Siralama'
 
 export default function App() {
   if (ayarEksik) return <AyarEksik />
@@ -91,11 +92,13 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   let sekme = 'etkinlikler'
   // Alt ekranlarda (yükleme, yönetim) sekme çubuğu yok; geri bağlantısı var.
   let altEkran = true
-  const profil = <Profil uye={uye} uyeDegisti={uyeDegisti} />
   const temaId = yol.startsWith('oyla/') ? yol.slice(5) : null
   const sonucId = yol.startsWith('sonuc/') ? yol.slice(6) : null
+  // profil/<kimlik>: başkasının profili, alt ekran. Kendi kimliğin sekmeye düşüyor.
+  const kisiId = yol.startsWith('profil/') && yol.slice(7) !== uye.id ? yol.slice(7) : null
+  const profil = <Profil uye={uye} uyeDegisti={uyeDegisti} hedef={kisiId ?? undefined} />
   const hedef = yonetici || !['uyeler', 'kur', 'asama'].includes(yol)
-    ? temaId ? 'oyla-tema' : sonucId ? 'sonuc' : yol
+    ? temaId ? 'oyla-tema' : sonucId ? 'sonuc' : kisiId ? 'kisi' : yol.startsWith('profil') ? 'profil' : yol
     : 'profil'
   switch (hedef) {
     case 'sonuc':
@@ -120,9 +123,12 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
       ekran = <Asama />
       break
     case 'siralama':
-      ekran = <Siralama />
+      ekran = <Siralama uye={uye} />
       sekme = 'siralama'
       altEkran = false
+      break
+    case 'kisi':
+      ekran = profil
       break
     case 'profil':
       ekran = profil
@@ -149,20 +155,6 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
         </nav>
       )}
     </>
-  )
-}
-
-/** Karar 34: sonuç yayınlanmadan Sıralama kilitli görünür, gizlenmez. */
-function Siralama() {
-  return (
-    <div className="sc">
-      <Kunye sol="Creatorgraphers" sag="Sıralama" />
-      <h2 className="t orta">Sıralama<br />henüz yok</h2>
-      <div className="kutu">
-        <div className="bas"><Ikon ad="kilit" /><span>İlk sonuçlarla açılıyor</span></div>
-        <p>İlk etkinlik bitince sıralama ve sezon tablosu burada olacak.</p>
-      </div>
-    </div>
   )
 }
 

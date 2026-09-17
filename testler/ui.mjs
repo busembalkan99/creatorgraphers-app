@@ -127,11 +127,22 @@ await B.reload(); await B.waitForTimeout(800);
 bekle('hoş geldin bir kez görünür', !icerir(await metin(B), 'Hoş geldin'));
 await B.click('.tabs button:has-text("Profil")');
 bekle('üye profilinde yönetim yok', await bekleMetin(B, 'Kulüp afişi') && !icerir(await metin(B), 'Yönetim'));
+// Yeni üye: künye sıfırlarla, üç blok boş (spec 7. bölüm)
+bekle('yeni üyenin sayaçları sönük', (await B.locator('.stats.zero').count()) === 1);
+bekle('yeni üyede kare yok', icerir(await metin(B), 'Henüz kare yok'), (await metin(B)).slice(0, 200));
+bekle('katkı ilk etkinlikten sonra', icerir(await metin(B), 'İlk etkinlikten sonra'));
+bekle('çekim tarifi üç kareden sonra', icerir(await metin(B), 'Üç kareden sonra'));
+bekle('kendi profilinde ortalama satırı yok', !icerir(await metin(B), 'Ortalaman'));
 await olc(B, '12-profil-uye');
 await B.goto(APP + '#/uyeler'); await B.waitForTimeout(600);
 bekle('üye #/uyeler açınca istekleri görmez', !icerir(await metin(B), 'Katılma istekleri'));
 await B.click('.tabs button:has-text("Sıralama")');
 bekle('sıralama kilitli', await bekleMetin(B, 'İlk sonuçlarla açılıyor'));
+bekle('kilitli sıralamada üç blok', (await B.locator('.empty').count()) === 3,
+  String(await B.locator('.empty').count()));
+bekle('sonuç yokken Müdavim şeridi yok', (await B.locator('.mud').count()) === 0);
+bekle('sezon künyesi kilitliyken de duruyor', icerir(await metin(B), 'Sezon 01') && icerir(await metin(B), '0 / 6'),
+  (await metin(B)).slice(0, 160));
 await olc(B, '13-siralama');
 
 // 7 · Kurucu etkinlik kurar
@@ -700,7 +711,59 @@ await olc(B, '39-sonuc-uye');
   await admin.from('etkinlikler').delete().eq('id', yeni.id);
 }
 
-// 15 · Çıkış
+// 15 · Sıralama dolu, isimden profile geçiş
+{
+  // Karar 53'ün eşiği: iki tamamlanmış etkinliğe katılmayan sıralamaya girmiyor.
+  // Buraya kadar herkes tek etkinliğe kare vermişti, yani sıralı blok hiç dolmuyordu.
+  const tm = (await admin.from('temalar').select('id, ad, etkinlik')).data ?? [];
+  const kalabalik = tm.find(t => t.ad === 'Kalabalık');
+  const esitTema = tm.find(t => t.ad === 'Eşit');
+  const { data: hepsi } = await admin.auth.admin.listUsers();
+  const ekle = async (tema, sahip, puan) => {
+    const yol = `${tema.etkinlik}/${tema.id}/${crypto.randomUUID()}.jpg`;
+    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    const kr = (await admin.from('kareler').insert({ tema: tema.id, sahip, dosya: yol, genislik: 1200, yukseklik: 800 })
+      .select('id').single()).data;
+    await admin.from('oylar').insert({ kare: kr.id, veren: hepsi.users.find(u => u.email === 'esit7@test.local').id, puan });
+  };
+  await ekle(kalabalik, A.kimlik, 10);
+  await ekle(esitTema, A.kimlik, 10);
+  await ekle(kalabalik, hepsi.users.find(u => u.email === 'esit1@test.local').id, 9);
+
+  await A.goto(APP + '#/siralama'); await A.waitForTimeout(2500);
+  bekle('sezon sıralaması açıldı', icerir(await metin(A), 'Sezon sıralaması'), (await metin(A)).slice(0, 200));
+  bekle('sıralı satır var', (await A.locator('.row').count()) > 0, String(await A.locator('.row').count()));
+  bekle('sıralı satırda kare görünüyor', (await A.locator('.row img').count()) === (await A.locator('.row').count()),
+    `${await A.locator('.row img').count()} / ${await A.locator('.row').count()}`);
+  bekle('sıralı satırda puan var', /\d,\d/.test(await yaz(A, '.row .av')), await yaz(A, '.row .av'));
+  bekle('Müdavim şeridi açıldı', (await A.locator('.mud').count()) === 1);
+  bekle('kendi satırın işaretli', (await A.locator('.row.me').count()) + (await A.locator('.unr .me').count()) > 0);
+  await olc(A, '44-siralama-dolu');
+
+  // Sırasız blokta isim varsa oraya, yoksa sıralı satıra dokun
+  const sirasiz = await A.locator('.unr .names button').count();
+  const hedefAd = sirasiz > 0 ? await yaz(A, '.unr .names button') : await yaz(A, '.row .nm');
+  await (sirasiz > 0 ? A.locator('.unr .names button').first() : A.locator('.row').first()).click();
+  await A.waitForTimeout(2000);
+  bekle('isimden profil açılıyor', icerir(await metin(A), hedefAd), `${hedefAd} | ${(await metin(A)).slice(0, 120)}`);
+  bekle('başkasının profilinde sekme çubuğu yok', (await A.locator('.tabs').count()) === 0);
+  bekle('başkasının profilinde geri var', (await A.locator('.geri').count()) === 1);
+  bekle('başkasının profilinde ayar yok', !icerir(await metin(A), 'Kulüp afişi') && !icerir(await metin(A), 'Çıkış yap'));
+  bekle('başkasının ortalaması yazmıyor', !icerir(await metin(A), 'Ortalaman'));
+  await olc(A, '45-baskasinin-profili');
+  await A.locator('.geri').click(); await A.waitForTimeout(1500);
+  bekle('geri sıralamaya döner', icerir(await metin(A), 'Sezon sıralaması') || icerir(await metin(A), 'İlk sonuçlarla'),
+    (await metin(A)).slice(0, 120));
+
+  // Kendi profilin: ortalama ve ayarlar burada
+  await A.goto(APP + '#/profil'); await A.waitForTimeout(2200);
+  bekle('kendi profilinde ortalaman var', icerir(await metin(A), 'Ortalaman'), (await metin(A)).slice(0, 220));
+  bekle('kendi profilinde kareler var', (await A.locator('.grid figure').count()) > 0);
+  bekle('kendi profilinde ayarlar var', icerir(await metin(A), 'Kulüp afişi'));
+  await olc(A, '46-kendi-profilin');
+}
+
+// 16 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
 bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));

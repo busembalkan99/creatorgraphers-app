@@ -442,4 +442,68 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
     && (await U.c.rpc('uye_mi')).data === true);
 }
 
+// ---------------------------------------------------------------- çıkarmanın açıkları (0007)
+{
+  const Y = await kullanici('yonetici@test.local', 'Yönetici Kişi');
+  const Y2 = await kullanici('yonetici2@test.local', 'İkinci Yönetici');
+  const U = await kullanici('duzuye@test.local', 'Düz Üye');
+
+  // 1) Çıkarılan yönetici istekle dönünce yönetici değil üye olarak döner
+  bekle('ikinci yönetici gerçekten yönetici', (await Y2.c.rpc('ben')).data?.[0]?.rol === 'yonetici');
+  await A2.c.rpc('uye_cikar', { p_uye: Y2.id, p_cikar: true });
+  const ist = await Y2.c.from('istekler').insert({ kullanici: Y2.id, eposta: 'yonetici2@test.local', ad: 'İkinci Yönetici' }).select('id').single();
+  bekle('çıkarılan yönetici istek bırakabiliyor', !ist.error, hata(ist));
+  bekle('sıradan yönetici isteği onaylayabiliyor', !(await Y.c.rpc('istek_karar', { p_istek: ist.data.id, p_onay: true })).error);
+  const donen = (await Y2.c.rpc('ben')).data?.[0];
+  bekle('istekle dönen yönetici üye olarak dönüyor', donen?.rol === 'uye' && donen?.cikarildi_at === null, JSON.stringify(donen));
+  bekle('istekle dönen kişi yönetici işi yapamıyor', hata(await Y2.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: true })).includes('yetki_yok'));
+  bekle('kurucu hâlâ geri çıkarıp yönetici yapabiliyor',
+    !(await A2.c.rpc('rol_degistir', { p_uye: Y2.id, p_yonetici: true })).error && (await Y2.c.rpc('ben')).data?.[0]?.rol === 'yonetici');
+
+  // 2) Çıkarılan kişi oylama açıkken puanını değiştiremiyor
+  const ev = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun2,
+    yukleme_baslar: new Date(Date.now() - 3 * 86400000).toISOString(),
+    yukleme_biter: new Date(Date.now() - 3600000).toISOString(),
+    oylama_biter: new Date(Date.now() + 86400000).toISOString(),
+    kuran: A2.id,
+  }).select('id').single()).data;
+  const tm = (await admin.from('temalar').insert({ etkinlik: ev.id, ad: 'Açık oy', sira: 1, bulusmada: false }).select('id').single()).data;
+  const yolO = `${ev.id}/${tm.id}/${crypto.randomUUID()}.jpg`;
+  await admin.storage.from('kareler').upload(yolO, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const kr = (await admin.from('kareler').insert({ tema: tm.id, sahip: A2.id, dosya: yolO, genislik: 10, yukseklik: 10 }).select('id').single()).data;
+  await admin.from('oylar').insert({ kare: kr.id, veren: U.id, puan: 5 });
+  const puan = async () => (await admin.from('oylar').select('puan').eq('kare', kr.id).eq('veren', U.id).single()).data?.puan;
+  await U.c.from('oylar').update({ puan: 6 }).eq('kare', kr.id).eq('veren', U.id);
+  bekle('üyeyken oylama açıkken puan değişiyor (kontrol)', (await puan()) === 6, String(await puan()));
+  await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: true });
+  await U.c.from('oylar').update({ puan: 1 }).eq('kare', kr.id).eq('veren', U.id);
+  bekle('çıkarılan kişi puanını değiştiremiyor', (await puan()) === 6, String(await puan()));
+  await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: false });
+  await admin.from('etkinlikler').delete().eq('id', ev.id);
+
+  // 3) Çıkarılan kişi yükleme açıkken kendi karesini ve dosyasını silemiyor
+  const ey = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: bugun2,
+    yukleme_baslar: new Date(Date.now() - 3600000).toISOString(),
+    yukleme_biter: new Date(Date.now() + 86400000).toISOString(),
+    oylama_biter: new Date(Date.now() + 2 * 86400000).toISOString(),
+    kuran: A2.id,
+  }).select('id').single()).data;
+  const ty = (await admin.from('temalar').insert({ etkinlik: ey.id, ad: 'Açık yükleme', sira: 1, bulusmada: false }).select('id').single()).data;
+  const yolY = `${ey.id}/${ty.id}/${crypto.randomUUID()}.jpg`;
+  const yuk = await U.c.storage.from('kareler').upload(yolY, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  bekle('üye dosyasını yükleyebiliyor (kontrol)', !yuk.error, JSON.stringify(yuk.error));
+  const ukr = await U.c.from('kareler').insert({ tema: ty.id, dosya: yolY, genislik: 10, yukseklik: 10 }).select('id').single();
+  bekle('üye karesini ekleyebiliyor (kontrol)', !ukr.error, hata(ukr));
+  await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: true });
+  await U.c.from('kareler').delete().eq('id', ukr.data.id);
+  bekle('çıkarılan kişi karesini silemiyor', ((await admin.from('kareler').select('id').eq('id', ukr.data.id)).data ?? []).length === 1);
+  await U.c.storage.from('kareler').remove([yolY]);
+  const kalan = (await admin.storage.from('kareler').list(`${ey.id}/${ty.id}`)).data ?? [];
+  bekle('çıkarılan kişi dosyasını silemiyor', kalan.some(f => yolY.endsWith(f.name)), JSON.stringify(kalan.map(f => f.name)));
+  await Y.c.rpc('uye_cikar', { p_uye: U.id, p_cikar: false });
+  await admin.from('etkinlikler').delete().eq('id', ey.id);
+}
+
 rapor();

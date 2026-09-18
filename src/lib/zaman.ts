@@ -44,7 +44,7 @@ export function saatYaz(iso: string) {
  * Yalnız 0-99 arası: saat, dakika ve yılın son iki hanesi.
  */
 const BIRLER = ['', 'de', 'de', 'te', 'te', 'te', 'da', 'de', 'de', 'da']   // bir iki üç dört beş altı yedi sekiz dokuz
-const ONLAR = ['da', 'da', 'de', 'da', 'ta', 'de', 'da', 'de', 'de', 'da']  // sıfır on yirmi otuz kırk elli altmış yetmiş seksen doksan
+const ONLAR = ['da', 'da', 'de', 'da', 'ta', 'de', 'ta', 'te', 'de', 'da']  // sıfır on yirmi otuz kırk elli altmış yetmiş seksen doksan
 
 export function sayiEki(n: number) {
   const b = n % 10

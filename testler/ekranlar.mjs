@@ -37,6 +37,7 @@ const A = await oturum('kurucu@test.local');
   bekle('çekim tarifi: ışık satırı', habit.some(h => h.includes('Işık') && h.includes('Bol ışıkta')), JSON.stringify(habit));
   bekle('katkı: tam set rozeti', t.includes('Tam set'));
   bekle('katkı: tema sayısı rozeti', t.includes('4 tema'), t.slice(0, 200));
+  bekle('kendi profilinde rozet ikinci tekil: verdin', t.includes('temalara kare verdin.') && t.includes('temada kare verdin.'));
   const yil = Number(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 4));
   bekle(`katılım satırı doğru ekle: ${yil}'${sayiEki(yil % 100)}n beri`, t.includes(`${yil}'${sayiEki(yil % 100)}n beri`), t.slice(0, 120));
 }
@@ -48,6 +49,7 @@ const A = await oturum('kurucu@test.local');
   bekle('makine bilgisi olmayan üç kare: doğru boş durum', t.includes('Karelerinde makine bilgisi yok.') && !t.includes('Üç kareden sonra'), t);
   bekle('başkasının gizli puan notu', t.includes('Sıralamaya girmeyen karelerin puanı gizli.'));
   bekle('bir temayı atlayanda tam set yok', !t.includes('Tam set'));
+  bekle('başkasının profilinde rozet üçüncü tekil: verdi', t.includes('temada kare verdi.') && !t.includes('verdin'));
 
   await ac(A, 'profil/' + zeynep.id);
   const z = await yazi(A);
@@ -121,22 +123,45 @@ const A = await oturum('kurucu@test.local');
   await B.locator('button.satir.acilir', { hasText: 'deniz@test.local' }).click(); await B.waitForTimeout(300);
   bekle('yönetici üyeyi çıkarabiliyor', (await B.getByRole('button', { name: 'Kulüpten çıkar', exact: true }).count()) === 1);
   bekle('yönetici rol veremiyor', (await B.getByRole('button', { name: 'Yönetici yap', exact: true }).count()) === 0);
+  bekle('yönetici gözünde kurucunun satırı açılmıyor', (await B.locator('button.satir.acilir', { hasText: 'kurucu@test.local' }).count()) === 0);
+  await ac(A, 'uyeler');
+  await A.locator('button.satir.acilir', { hasText: 'baris@test.local' }).click(); await A.waitForTimeout(300);
+  bekle('kurucu yöneticiyi çıkarabiliyor', (await A.getByRole('button', { name: 'Kulüpten çıkar', exact: true }).count()) === 1);
+  bekle('kurucu yöneticinin yetkisini alabiliyor', (await A.getByRole('button', { name: 'Yöneticilikten çıkar', exact: true }).count()) === 1);
   await A.evaluate(async ids => { for (const id of ids) await window.__sb.rpc('rol_degistir', { p_uye: id, p_yonetici: false }) }, [baris.id, can.id]);
 }
 
 // ---------------------------------------------------------------- Aynı adrese dokunup sonra geri
+// Aynı sekmeye dokunmak olay üretmiyor. git() orada işaret bırakırsa sonraki gerçek geri
+// hareketi uygulamanın kendi geçişi sanılır ve yer geri gelmez. Aradaki başka bir geçiş
+// işareti sıfırladığı için hemen ardından geri gidilmeli, yoksa test kusuru görmez.
 {
-  const ctx = A.context();
   await A.setViewportSize({ width: 390, height: 460 });
   await ac(A, 'siralama');
   const y1 = await A.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop) });
-  await A.locator('.tabs button', { hasText: 'Sıralama' }).click(); await A.waitForTimeout(500);   // aynı adres: olay yok
-  const y1b = await A.evaluate(() => Math.round(document.querySelector('.sc').scrollTop));
-  await A.locator('.unr .names button, .row').last().click(); await A.waitForTimeout(1600);
+  await A.locator('.tabs button', { hasText: 'Profil' }).click(); await A.waitForTimeout(1400);
+  await A.locator('.tabs button', { hasText: 'Profil' }).click(); await A.waitForTimeout(400);   // aynı adres
   await A.goBack(); await A.waitForTimeout(1500);
   const y2 = await A.evaluate(() => Math.round(document.querySelector('.sc')?.scrollTop ?? -1));
-  bekle('aynı sekmeye dokunmak sonraki geri dönüşü bozmuyor', y1 > 40 && Math.abs(y2 - y1b) <= 2, `${y2} / ${y1b} (${y1})`);
+  bekle('aynı sekmeye dokunmak sonraki geri dönüşü bozmuyor', y1 > 40 && Math.abs(y2 - y1) <= 2, `${y2} / ${y1}`);
   await A.setViewportSize({ width: 390, height: 844 });
+}
+
+// ---------------------------------------------------------------- Yakında başlayacak etkinlik kartı
+// Kart "Yükleme 19 Eylül 18.30'da açılıyor" diyor; ek dakikanın okunuşuna göre (zaman.mjs)
+{
+  const yarin = new Date(Date.now() + 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+  const baslar = new Date(`${yarin}T18:30:00+03:00`);
+  const { data: ev } = await admin.from('etkinlikler').insert({
+    bulusma_gunu: yarin, yukleme_baslar: baslar.toISOString(),
+    yukleme_biter: new Date(baslar.getTime() + 48 * 3600000).toISOString(),
+    oylama_biter: new Date(baslar.getTime() + 120 * 3600000).toISOString(), kuran: ayse.id,
+  }).select('id').single();
+  await admin.from('temalar').insert({ etkinlik: ev.id, ad: 'Doku', sira: 1, bulusmada: true });
+  await ac(A, 'etkinlikler');
+  const meta = (await A.locator('.live .meta').textContent().catch(() => '')) ?? '';
+  bekle('yakında başlayacak kart: saat doğru ekle', meta.replace(/\s+/g, ' ').includes("18.30'da açılıyor"), meta);
+  await admin.from('etkinlikler').delete().eq('id', ev.id);
 }
 
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));

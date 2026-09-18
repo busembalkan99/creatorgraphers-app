@@ -130,9 +130,11 @@ function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[
         <div className="kick">{ay} etkinliği</div>
         <h2>Buluşma<br />{gunYaz(e.bulusma_gunu, false)}</h2>
         {/* Tek cümle olarak okunsun: "Yükleme 19 Eylül 16.00'da açılıyor" */}
+        {/* Aradaki {' '}: flex boşluğu yalnız görünüşte ayırıyor, metinde kelimeler
+            yapışıyordu ("18.30'daaçılıyor"), ekran okuyucu da öyle okuyordu */}
         <div className="meta">
-          <span>Yükleme</span>
-          <b>{saatYaz(e.yukleme_baslar)}'{saatEki(e.yukleme_baslar)}</b>
+          <span>Yükleme</span>{' '}
+          <b>{saatYaz(e.yukleme_baslar)}'{saatEki(e.yukleme_baslar)}</b>{' '}
           <span>açılıyor</span>
         </div>
         <div className="temalar">{temalar.map(t => `${t.ad}${t.bulusmada ? '' : ' (serbest)'}`).join(' · ')}</div>
@@ -153,8 +155,8 @@ function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[
       <div className="kick">{ay} etkinliği <i><span className="dot" aria-hidden="true" />Canlı</i></div>
       <h2>{yukleme ? <>Yükleme<br />açık</> : <>Oylama<br />açık</>}</h2>
       <div className="meta">
-        <span>Kalan</span>
-        <b>{kalanYaz(yukleme ? e.yukleme_biter : e.oylama_biter)}</b>
+        <span>Kalan</span>{' '}
+        <b>{kalanYaz(yukleme ? e.yukleme_biter : e.oylama_biter)}</b>{' '}
         {yukleme && <span>· {tamam} / {temalar.length} tema</span>}
       </div>
       <div className="prog">

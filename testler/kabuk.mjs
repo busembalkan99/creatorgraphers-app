@@ -196,6 +196,24 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
 }
 await p.setViewportSize({ width: 390, height: 844 });
 
+// Sıkı harf aralıklı kalın büyük harflerde kelime arası kayboluyor ("BARIŞAK").
+// Negatif harf aralığı olan büyük harf başlıklarda kelime arası payı olmalı.
+for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1500);
+  const r = await p.evaluate(() => [...document.querySelectorAll('.sc *')]
+    .filter(e => {
+      const s2 = getComputedStyle(e);
+      const t = e.textContent.trim();
+      return s2.textTransform === 'uppercase' && parseFloat(s2.fontSize) >= 17
+        && parseFloat(s2.letterSpacing) < 0 && t.includes(' ') && e.getBoundingClientRect().width
+        && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+    })
+    .map(e => ({ metin: e.textContent.trim().slice(0, 20), kelimeArasi: getComputedStyle(e).wordSpacing }))
+    .filter(x => x.kelimeArasi === 'normal' || parseFloat(x.kelimeArasi) === 0));
+  bekle(`${yol}: sıkışık başlıkta kelime arası var`, r.length === 0, JSON.stringify(r));
+}
+
 // Geri bağlantısı her ekranda aynı görünsün: metin + ok
 for (const yol of ['uyeler', 'kur', 'asama']) {
   await p.goto(APP + '#/' + yol);

@@ -116,7 +116,9 @@ export function Profil({ uye, uyeDegisti, hedef }:
       {v.tarif.length === 0 ? (
         <div className="empty" style={{ marginTop: 0 }}>
           <b>Çekim tarifi</b>
-          <span>Üç kareden sonra.</span>
+          {/* Üç karesi varken "üç kareden sonra" demek yanlış: eksik olan kare değil,
+              karelerdeki makine bilgisi. Telefonla düzenlenen dosyalarda siliniyor. */}
+          <span>{Number(k.kare_sayisi) >= 3 ? 'Karelerinde makine bilgisi yok.' : 'Üç kareden sonra.'}</span>
         </div>
       ) : (
         <>

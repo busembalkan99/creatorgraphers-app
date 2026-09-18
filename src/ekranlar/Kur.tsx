@@ -70,11 +70,11 @@ export function Kur() {
       <div className="iki">
         <div className="alan">
           <label className="lab" htmlFor="ys">Yükleme · saat</label>
-          <input id="ys" inputMode="numeric" value={yukSaat} onChange={e => setYukSaat(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+          <input id="ys" inputMode="numeric" enterKeyHint="next" value={yukSaat} onChange={e => setYukSaat(e.target.value.replace(/\D/g, '').slice(0, 3))} />
         </div>
         <div className="alan">
           <label className="lab" htmlFor="os">Oylama · saat</label>
-          <input id="os" inputMode="numeric" value={oySaat} onChange={e => setOySaat(e.target.value.replace(/\D/g, '').slice(0, 3))} />
+          <input id="os" inputMode="numeric" enterKeyHint="next" value={oySaat} onChange={e => setOySaat(e.target.value.replace(/\D/g, '').slice(0, 3))} />
         </div>
       </div>
       {bitis && <div className="ipucu">Son yükleme: {bitis}. Oylama hemen ardından açılır.</div>}
@@ -87,7 +87,9 @@ export function Kur() {
         <div className="tema-kur" key={i}>
           <div className="alan">
             <label className="lab" htmlFor={`t${i}`}>Tema {i + 1}</label>
-            <input id={`t${i}`} value={t.ad} maxLength={40} placeholder="ÖRNEK: SOKAK" onChange={e => tema(i, { ad: e.target.value })} />
+            <input id={`t${i}`} value={t.ad} maxLength={40} placeholder="ÖRNEK: SOKAK"
+              autoCapitalize="words" autoCorrect="off" spellCheck={false} enterKeyHint="done"
+              onChange={e => tema(i, { ad: e.target.value })} />
           </div>
           <div className="secim" role="group" aria-label="Çekim şartı">
             <button className={t.bulusmada ? 'on' : ''} aria-pressed={t.bulusmada} onClick={() => tema(i, { bulusmada: true })}>Buluşmada</button>

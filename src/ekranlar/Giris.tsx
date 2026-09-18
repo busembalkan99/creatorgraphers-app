@@ -224,12 +224,14 @@ function IstekFormu({ eposta, tekrar, ilkAd, kullaniciId, gonderildi }: {
       <div className="hesap"><span className="lab">Google hesabın</span><b>{eposta}</b></div>
       <div className="alan">
         <label className="lab" htmlFor="ad">Adın soyadın</label>
-        <input id="ad" value={ad} onChange={e => setAd(e.target.value)} placeholder="ÖRNEK: SELİN ARI" maxLength={40} autoComplete="name" />
+        <input id="ad" value={ad} onChange={e => setAd(e.target.value)} placeholder="ÖRNEK: SELİN ARI" maxLength={40}
+          autoComplete="name" autoCapitalize="words" autoCorrect="off" spellCheck={false} enterKeyHint="next" />
         <div className="ipucu">Kulüpte bu adla görüneceksin.</div>
       </div>
       <div className="alan">
         <label className="lab" htmlFor="not">Yöneticiye not · isteğe bağlı</label>
-        <input id="not" className="not" value={not} onChange={e => setNot(e.target.value)} placeholder="Kulüpten kimi tanıyorsun?" maxLength={80} />
+        <input id="not" className="not" value={not} onChange={e => setNot(e.target.value)} placeholder="Kulüpten kimi tanıyorsun?" maxLength={80}
+          autoCapitalize="sentences" enterKeyHint="send" />
       </div>
       <div className="bosluk" />
       <Hata metin={hata} />
@@ -259,7 +261,8 @@ function KulubuKur({ kullanici, bitti }: { kullanici: User; bitti: () => void })
       <div className="hesap"><span className="lab">Google hesabın</span><b>{kullanici.email}</b></div>
       <div className="alan">
         <label className="lab" htmlFor="kad">Adın soyadın</label>
-        <input id="kad" value={ad} onChange={e => setAd(e.target.value)} maxLength={40} autoComplete="name" />
+        <input id="kad" value={ad} onChange={e => setAd(e.target.value)} maxLength={40}
+          autoComplete="name" autoCapitalize="words" autoCorrect="off" spellCheck={false} enterKeyHint="done" />
         <div className="ipucu">Kulüpte bu adla görüneceksin.</div>
       </div>
       <div className="bosluk" />

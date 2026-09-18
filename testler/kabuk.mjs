@@ -159,6 +159,43 @@ for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
   bekle(`${yol}: etiket stili altıyı aşmıyor`, stiller.length <= 6, `${stiller.length}: ${stiller.join(' | ')}`);
 }
 
+// Boşluğa doğru kaydırmak: içerik bittikten sonra kalan ölü alan
+for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1600);
+  const r = await p.evaluate(() => {
+    const sc = document.querySelector('.sc'); if (!sc) return null;
+    let alt = 0;
+    for (const e of sc.querySelectorAll('*')) {
+      const q = e.getBoundingClientRect();
+      if (q.height > 0 && q.width > 0 && (e.textContent.trim().length || e.querySelector('img, svg')))
+        alt = Math.max(alt, q.bottom + sc.scrollTop - sc.getBoundingClientRect().top);
+    }
+    return Math.round(sc.scrollHeight - Math.max(alt, sc.clientHeight));
+  });
+  bekle(`${yol}: boşluğa doğru kaydırma yok`, r !== null && r <= 24, String(r));
+}
+
+// Yatay çevirince kırılma olmasın
+await p.setViewportSize({ width: 844, height: 390 });
+for (const yol of ['etkinlikler', 'siralama', 'profil']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1500);
+  const r = await p.evaluate(() => ({
+    belgeKayar: document.documentElement.scrollHeight > document.documentElement.clientHeight,
+    tabsAlt: Math.round(document.querySelector('.tabs').getBoundingClientRect().bottom),
+    gorunen: window.innerHeight,
+    tasma: [...document.querySelectorAll('.app *')].some(e => {
+      const q = e.getBoundingClientRect();
+      return q.width && (q.right > window.innerWidth + 1 || q.left < -1);
+    }),
+  }));
+  bekle(`${yol} (yatay): belge kaymıyor`, !r.belgeKayar, JSON.stringify(r));
+  bekle(`${yol} (yatay): alt çubuk yerinde`, r.tabsAlt === r.gorunen, `${r.tabsAlt} / ${r.gorunen}`);
+  bekle(`${yol} (yatay): taşma yok`, !r.tasma);
+}
+await p.setViewportSize({ width: 390, height: 844 });
+
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));
 await b.close();
 rapor();

@@ -40,7 +40,11 @@ html,body{overflow:hidden;position:relative}
 /* Zemin uygulamayla ayni siyah: telefonda lastik gibi esneyen kenarda ya da tarayici
    cubugunun arkasinda farkli bir siyah gorunuyordu, ekran kesilmis gibi duruyordu.
    Genis ekranda uygulama ortada duracagi icin koyu cerceve orada geri geliyor. */
-body{background:var(--paper);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;
+/* Uygulamanın dışındaki zemin, içindeki grenli zeminin GÖRÜNEN rengi: #0A0A0B üstüne
+   %4,5 gren telefonda #0D0D0E ölçüldü. theme-color ile aynı; tarayıcı çubukları, kenar
+   esnemesi ve gövde tek renk dursun. */
+html{background:#0D0D0E}
+body{background:#0D0D0E;color:var(--ink);font-family:"Archivo",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;overscroll-behavior:none}
 @media (min-width:481px){body{background:#050506}}
 button,input{font:inherit;color:inherit}

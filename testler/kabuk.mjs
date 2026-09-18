@@ -17,7 +17,13 @@ const oku = y => fs.readFileSync(KOK + y, 'utf8');
   const manifest = JSON.parse(oku('public/manifest.webmanifest'));
 
   bekle('viewport-fit=cover var', /viewport-fit=cover/.test(html));
-  bekle('theme-color var', /name="theme-color" content="#0A0A0B"/.test(html), html.match(/theme-color[^>]*/)?.[0]);
+  // Tarayıcı çubukları ile uygulama arasında dikiş olmasın: theme-color, gövde ve manifest
+  // aynı rengi, grenli zeminin görünen rengini (#0D0D0E) söylemeli
+  const tema = html.match(/name="theme-color" content="(#[0-9A-Fa-f]{6})"/)?.[1];
+  bekle('theme-color grenli zeminin görünen rengi', tema === '#0D0D0E', tema);
+  bekle('gövde zemini theme-color ile aynı', /body\{background:#0D0D0E/.test(css.replace(/\s+/g, '')));
+  bekle('manifest renkleri theme-color ile aynı', manifest.theme_color === tema && manifest.background_color === tema,
+    `${manifest.theme_color} ${manifest.background_color}`);
   bekle('kabuk yüksekliği ölçülen ekrandan', /body\{height:100dvh;height:var\(--ekran,100dvh\)\}/.test(css.replace(/\s+/g, '')),
     css.split('\n').filter(l => l.includes('100dvh')).join(' | '));
   bekle('ekran yüksekliği index.html içinde ölçülüyor', /--ekran/.test(html) && /window\.innerHeight/.test(html));
@@ -39,7 +45,7 @@ const oku = y => fs.readFileSync(KOK + y, 'utf8');
   bekle('alt çubukta güvenli alan payı düğmenin içinde',
     /\.tabsbutton\{[^}]*padding-bottom:env\(safe-area-inset-bottom\)/.test(css.replace(/\s+/g, '')),
     css.split('\n').filter(l => l.includes('safe-area-inset-bottom')).join(' | '));
-  bekle('gövde zemini uygulamayla aynı siyah', /body\{background:var\(--paper\)/.test(css.replace(/\s+/g, '')));
+
 
   // Link önizlemesi ve simgeler
   for (const [ad, etiket] of [['og:image', 'link kartı'], ['og:title', 'başlık'], ['og:description', 'açıklama'], ['og:url', 'adres']])

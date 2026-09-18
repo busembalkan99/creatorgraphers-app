@@ -280,6 +280,13 @@ await A.locator('.kutu button.btn:has-text("Oylamayı aç")').click();
 bekle('oylama açıldı', await bekleMetin(A, 'Oylama açık'));
 bekle('oylamada iptal bölümü yok', !icerir(await metin(A), 'İptali başlat'));
 
+// Yönetici oylamayı erken açtı. Uygulaması açık olan kişi bunu yenilemeden görmeli:
+// aşamayı saatten hesaplamak yetmiyor, eski satır elde duruyor.
+await B.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+await B.waitForTimeout(1800);
+bekle('oylama açılınca kart yenilemeden güncelleniyor',
+  (await B.locator('.live').getAttribute('data-asama')) === 'oylama', (await metin(B)).slice(0, 120));
+
 // 10 · Selin kilidi görür
 await B.reload(); await B.waitForTimeout(800);
 bekle('canlı kart oylama', (await B.locator('.live').getAttribute('data-asama')) === 'oylama');

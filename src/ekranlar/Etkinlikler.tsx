@@ -58,10 +58,15 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   const [, setTik] = useState(0)
 
   useEffect(() => {
-    etkinlikVerisi(uye.id).then(setV).catch(e => setHata(hataMetni(e)))
-    // Kalan süre ve aşama dakikada bir yeniden hesaplansın
-    const z = window.setInterval(() => setTik(x => x + 1), 60_000)
-    return () => window.clearInterval(z)
+    const yukle = () => etkinlikVerisi(uye.id).then(setV).catch(e => setHata(hataMetni(e)))
+    yukle()
+    // Kalan süre ve aşama dakikada bir yeniden hesaplansın. Veri de tazelensin:
+    // yönetici süreyi uzatırsa ya da oylamayı erken açarsa, uygulaması açık olan
+    // kişi bunu yenilemeden görmeliydi; saatten hesaplamak eski satırı düzeltmiyor.
+    const z = window.setInterval(() => { setTik(x => x + 1); yukle() }, 60_000)
+    const gorunur = () => { if (document.visibilityState === 'visible') { setTik(x => x + 1); yukle() } }
+    document.addEventListener('visibilitychange', gorunur)
+    return () => { window.clearInterval(z); document.removeEventListener('visibilitychange', gorunur) }
   }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Creatorgraphers" /><Hata metin={hata} /></div>

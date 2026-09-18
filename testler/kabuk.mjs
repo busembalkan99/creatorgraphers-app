@@ -196,6 +196,20 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
 }
 await p.setViewportSize({ width: 390, height: 844 });
 
+// Yavaş bağlantıda ekran bomboş kalmasın: çerçeve yerinde dursun
+{
+  await ctx.route('**/rest/v1/**', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue() });
+  await p.goto(APP + '#/siralama');
+  await p.reload(); await p.waitForTimeout(900);
+  const r = await p.evaluate(() => ({
+    metin: (document.querySelector('.app')?.innerText || '').trim(),
+    yukleniyor: !!document.querySelector('.yukleniyor'),
+  }));
+  bekle('yavaş bağlantıda yükleme göstergesi var', r.yukleniyor, JSON.stringify(r));
+  bekle('yavaş bağlantıda ekran boş değil', r.metin.length > 2, JSON.stringify(r));
+  await ctx.unroute('**/rest/v1/**');
+}
+
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));
 await b.close();
 rapor();

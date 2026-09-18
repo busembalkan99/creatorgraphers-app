@@ -71,7 +71,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
   }, [etkinlikId, uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" /><Hata metin={hata} /></div>
-  if (!v) return <Yukleniyor />
+  if (!v) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" /><Yukleniyor /></div>
   if (!v.etkinlik || asama(v.etkinlik) !== 'sonuc') {
     return (
       <div className="sc">

@@ -32,7 +32,9 @@ function Oturum() {
 
   return (
     <div className="app">
-      {oturum === undefined ? <Yukleniyor /> : oturum === null ? <Kapak /> : <Icerik oturum={oturum} />}
+      {oturum === undefined
+        ? <div className="sc"><Kunye sol="Creatorgraphers" /><Yukleniyor /></div>
+        : oturum === null ? <Kapak /> : <Icerik oturum={oturum} />}
     </div>
   )
 }
@@ -62,7 +64,8 @@ function Icerik({ oturum }: { oturum: Session }) {
       </div>
     )
   }
-  if (uye === undefined) return <Yukleniyor />
+  // Künyeli yükleme: ilk boyamada ekran tamamen boş kalmasın, çerçeve yerinde dursun
+  if (uye === undefined) return <div className="sc"><Kunye sol="Creatorgraphers" /><Yukleniyor /></div>
   if (uye === null) return <UyeDegil kullanici={kullanici} uyeOldu={uyeYukle} />
   // Karar 99: çıkarılan kişi kapalı ekranı görür, isterse oradan istek bırakır
   if (uye.cikarildi_at && !istekAcik) {

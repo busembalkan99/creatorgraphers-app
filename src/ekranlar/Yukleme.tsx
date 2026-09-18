@@ -73,7 +73,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
   }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Yükleme" /><Hata metin={hata} /></div>
-  if (e === undefined) return <Yukleniyor />
+  if (e === undefined) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Yükleme" /><Yukleniyor /></div>
   if (e === null || temalar.length === 0) {
     return (
       <div className="sc">

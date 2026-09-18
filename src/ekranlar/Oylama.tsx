@@ -58,7 +58,7 @@ export function Oylama({ uye }: { uye: Uye }) {
   }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Oylama" /><Hata metin={hata} /></div>
-  if (!v) return <Yukleniyor />
+  if (!v) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Oylama" /><Yukleniyor /></div>
   if (!v.e) {
     return (
       <div className="sc">

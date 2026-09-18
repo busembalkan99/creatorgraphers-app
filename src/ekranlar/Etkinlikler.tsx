@@ -65,7 +65,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Creatorgraphers" /><Hata metin={hata} /></div>
-  if (!v) return <Yukleniyor />
+  if (!v) return <div className="sc"><Kunye sol="Creatorgraphers" /><Yukleniyor /></div>
 
   const acik = acikEtkinlik(v.etkinlikler)
   const gecmis = v.etkinlikler.filter(e => e !== acik && !e.iptal)

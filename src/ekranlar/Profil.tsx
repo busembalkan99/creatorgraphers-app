@@ -64,7 +64,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
     : <Kunye sol="Sıralama" geri="siralama" sag="Profil" />
 
   if (hata) return <div className="sc">{baslik}<Hata metin={hata} /></div>
-  if (!v) return <Yukleniyor />
+  if (!v) return <div className="sc">{baslik}<Yukleniyor /></div>
   if (!v.kunye) return <div className="sc">{baslik}<h2 className="t orta">Bu kişi<br />kulüpte yok</h2></div>
 
   const k = v.kunye

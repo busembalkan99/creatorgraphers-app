@@ -55,7 +55,8 @@ export function Siralama({ uye }: { uye: Uye }) {
   }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Creatorgraphers" sag="Sıralama" /><Hata metin={hata} /></div>
-  if (!v) return <Yukleniyor />
+  // Veri gelirken de künye yerinde kalsın: sekme değiştirince başlık yanıp sönmesin
+  if (!v) return <div className="sc"><Kunye sol="Creatorgraphers" sag="Sıralama" /><Yukleniyor /></div>
 
   const ozet = v.ozet
   const sirali = v.liste.filter(x => x.sirali)

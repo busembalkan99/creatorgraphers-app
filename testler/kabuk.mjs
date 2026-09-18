@@ -259,8 +259,91 @@ for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
   // telefonda :active için index.html'deki boş touchstart dinleyicisi var.
   await p.mouse.move(kutu.x + kutu.width / 2, kutu.y + kutu.height / 2); await p.mouse.down(); await p.waitForTimeout(250);
   const basili = await btn.evaluate(e => new DOMMatrix(getComputedStyle(e).transform).a);
-  await p.mouse.up();
+  await p.mouse.up(); await p.waitForTimeout(40);
+  // Bırakınca bu künyedeki geri bağlantısı: geri hareketi sayılmalı
+  const kunyeGeri = await gecis();
+  bekle('hareket: künyedeki geri bağlantısı da soldan beliriyor', kunyeGeri.sinif.includes('yon-geri') && kunyeGeri.anim.includes('soldan'), JSON.stringify(kunyeGeri));
   bekle('hareket: basınca düğme küçülüyor', Math.abs(basili - 0.97) < 0.005, String(basili));
+
+  // Bellek boşken (ör. sekme uzun süre arkada kalıp sayfa yeniden kurulduysa) içerik geç
+  // geliyor: ekran yerine oturana kadar gizli bekliyor, sonra kaldığın yerde görünüyor
+  await p.waitForTimeout(800);
+  const yer2 = await p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop); });
+  await p.locator('button.satir', { hasText: 'Katılma istekleri, üye listesi' }).or(p.locator('button.satir', { hasText: 'İstekler, roller' })).first().click();
+  await p.waitForTimeout(1200);
+  await p.evaluate(() => {
+    window.__bellek.clear();
+    window.__ornek = []; window.__bekledi = false;
+    const t0 = performance.now();
+    const f = () => {
+      const sc = document.querySelector('.sc');
+      if (document.querySelector('.gecis.bekliyor')) window.__bekledi = true;
+      const profilde = !!document.querySelector('.tabs button.on')?.textContent.includes('Profil') && !!sc?.textContent.includes('Yönetim');
+      if (profilde && !document.querySelector('.gecis.bekliyor')) window.__ornek.push(Math.round(sc.scrollTop));
+      if (performance.now() - t0 < 2600) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+  await p.goBack(); await p.waitForTimeout(2800);
+  const bos = await p.evaluate(() => ({ ornek: window.__ornek, bekledi: window.__bekledi, hala: !!document.querySelector('.gecis.bekliyor') }));
+  bekle('hareket: bellek boşken ekran yerine oturana kadar gizli', bos.bekledi, JSON.stringify(bos).slice(0, 200));
+  bekle('hareket: bellek boşken de görünen her karede kaldığın yer', bos.ornek.length > 5 && Math.min(...bos.ornek) >= yer2 - 2 && !bos.hala,
+    `${yer2} · ${bos.ornek.slice(0, 12).join(',')} (${bos.ornek.length})`);
+
+  // Sıralamadan kişiye gidip dönünce de hiçbir karede başa dönmüyor
+  await p.click('.tabs button:has-text("Sıralama")'); await p.waitForTimeout(1500);
+  const yer3 = await p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop); });
+  bekle('hareket: sıralama kaydırılabilir', yer3 > 80, String(yer3));
+  await p.locator('.sc .mud button, .sc .unr .names button').last().click();
+  await p.waitForTimeout(1500);
+  await p.evaluate(() => {
+    window.__ornek = [];
+    const t0 = performance.now();
+    const f = () => {
+      const sc = document.querySelector('.sc');
+      const sirada = !!document.querySelector('.tabs button.on')?.textContent.includes('Sıralama');
+      if (sirada && sc && !document.querySelector('.gecis.bekliyor')) window.__ornek.push(Math.round(sc.scrollTop));
+      if (performance.now() - t0 < 900) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+  await p.goBack(); await p.waitForTimeout(1100);
+  const sira = await p.evaluate(() => window.__ornek);
+  bekle('hareket: sıralamaya dönünce görünen her karede kaldığın yer', sira.length > 5 && Math.min(...sira) >= yer3 - 2,
+    `${yer3} · ${sira.slice(0, 12).join(',')} (${sira.length})`);
+
+  // Bellek üyeye bağlı: aynı sekmede başka biri girince öncekinin ekranı bir kare bile görünmüyor
+  const kurucuId = await p.evaluate(async () => (await window.__sb.auth.getUser()).data.user.id);
+  const anahtarlar = await p.evaluate(() => [...window.__bellek.keys()]);
+  bekle('bellek: anahtarlar üye kimliğini taşıyor', anahtarlar.length > 0 && anahtarlar.every(k => k.startsWith(kurucuId + ':')), JSON.stringify(anahtarlar));
+  await p.goto(APP + '#/profil'); await p.waitForTimeout(1500);
+  const kurucuMetni = await p.evaluate(() => document.querySelector('.sc')?.textContent ?? '');
+  bekle('bellek: kurucunun profili adını gösteriyor (ön koşul)', kurucuMetni.includes('Ayşe Kaya'), kurucuMetni.slice(0, 120));
+  // Başka biri aynı sekmede girip Profil'i ilk kez açınca ekran bellekten kurucunun
+  // verisiyle başlamamalı: her karede ada bak
+  // Hangi veri kümesi kuruluysa oradaki düz bir üye (siralama.mjs ile ui.mjs farklı kişiler kuruyor)
+  const { data: duzler } = await admin.from('uyeler').select('id, ad, eposta').eq('rol', 'uye').is('cikarildi_at', null).like('eposta', '%@test.local').order('ad');
+  const baska = duzler?.[0];
+  bekle('bellek: denenecek ikinci üye var (ön koşul)', !!baska);
+  await admin.from('uyeler').update({ hosgeldin_goruldu: true }).eq('id', baska.id);
+  await p.click('.tabs button:has-text("Etkinlikler")'); await p.waitForTimeout(800);
+  await p.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error; }, baska.eposta);
+  await p.waitForTimeout(2000);
+  await p.evaluate(() => {
+    window.__sizinti = false; window.__kare = 0;
+    const t0 = performance.now();
+    const f = () => {
+      window.__kare++;
+      if (document.querySelector('.sc')?.textContent.includes('Ayşe Kaya')) window.__sizinti = true;
+      if (performance.now() - t0 < 1500) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  });
+  await p.click('.tabs button:has-text("Profil")'); await p.waitForTimeout(1700);
+  const sonra = await p.evaluate(() => ({ sizinti: window.__sizinti, kare: window.__kare, metin: document.querySelector('.sc')?.textContent.slice(0, 80) }));
+  bekle('bellek: başka üye girince öncekinin profili bir kare bile görünmüyor', !sonra.sizinti && sonra.kare > 10 && sonra.metin?.includes(baska.ad), `${baska.ad} · ${JSON.stringify(sonra)}`);
+  await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
+  await p.waitForTimeout(800);
   await p.setViewportSize({ width: 390, height: 844 });
 }
 

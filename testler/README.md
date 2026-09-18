@@ -19,5 +19,8 @@ Testler yerel veritabanını her seferinde temizler.
 
 `kabuk.mjs` uygulamanın çerçevesini ölçer: belge kaymıyor mu, alt çubuk ekranın alt
 kenarında mı, üst künye kaydırınca tepede kalıyor mu, güvenli alan payı doğru yerde mi,
-link kartı ve simgeler yerinde mi. Bu dosya gözle yakalanan kusurlar yüzünden var;
+link kartı ve simgeler yerinde mi. Sayfa hareketini de ölçer: ileri, geri ve sekme
+geçişinin yönü, geri dönünce hiçbir karede başa dönülmemesi (her karede örnekleyerek,
+bellek doluyken ve boşken), bellekteki verinin başka üyeye sızmaması, sayfa
+yakınlaştırmasının kapalı olması. Fotoğraf büyütecinin jestleri `ui.mjs` içinde. Bu dosya gözle yakalanan kusurlar yüzünden var;
 her kontrolün kusur konunca gerçekten kaldığı denendi.

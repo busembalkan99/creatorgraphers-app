@@ -383,6 +383,28 @@ bekle('kare görünüyor', await A.locator('.kare .tutucu img').first().evaluate
   await res.dblclick(); await A.waitForTimeout(300);
   await A.keyboard.press('Escape'); await A.waitForTimeout(200);
   bekle('büyüteç: Esc kapatıyor', (await A.locator('.buyutec').count()) === 0);
+  // Sayfadaki fotoğrafa iki parmak inince açılıyor
+  await res.evaluate(i => { for (const id of [11, 12]) i.dispatchEvent(new PointerEvent('pointerdown', { pointerId: id, clientX: 150 + id, clientY: 300, bubbles: true, pointerType: 'touch' })); });
+  await A.waitForTimeout(200);
+  bekle('büyüteç: iki parmak inince açılıyor', (await A.locator('.buyutec').count()) === 1 && Math.abs(await olcek() - 1.15) < 0.01, String(await olcek()));
+  // Tam boya kadar küçültüp bırakınca kapanıyor
+  if (!(await A.locator('.buyutec').count())) { await res.dblclick(); await A.waitForTimeout(300); }
+  await jest('pointerdown', 1, 95, 400); await jest('pointerdown', 2, 295, 400);
+  await jest('pointermove', 2, 145, 400);
+  bekle('büyüteç: tam boyun altına inmiyor', Math.abs(await olcek() - 1) < 0.001, String(await olcek()));
+  await jest('pointerup', 2, 145, 400); await jest('pointerup', 1, 95, 400); await A.waitForTimeout(200);
+  bekle('büyüteç: tam boya küçültünce kapanıyor', (await A.locator('.buyutec').count()) === 0);
+  // En fazla 6 kat, gezdirirken fotoğrafın kenarı ekranın kenarını geçmiyor
+  await A.keyboard.press('Escape'); await A.waitForTimeout(200);
+  await res.dblclick(); await A.waitForTimeout(300);
+  await jest('pointerdown', 1, 190, 400); await jest('pointerdown', 2, 200, 400);
+  await jest('pointermove', 2, 390, 400);
+  bekle('büyüteç: en fazla 6 kat', Math.abs(await olcek() - 6) < 0.001, String(await olcek()));
+  await jest('pointerup', 2, 390, 400); await jest('pointerup', 1, 190, 400);
+  await jest('pointerdown', 1, 20, 300); await jest('pointermove', 1, 3000, 300); await jest('pointerup', 1, 3000, 300);
+  const sol = await A.evaluate(() => document.querySelector('.buyutec img')?.getBoundingClientRect().left ?? null);
+  bekle('büyüteç: gezdirince fotoğrafın sol kenarı ekranın sol kenarında duruyor', sol !== null && Math.abs(sol) < 1, String(sol));
+  await A.keyboard.press('Escape'); await A.waitForTimeout(200);
 }
 bekle('puan boşken sürükle yazıyor', (await A.locator('.puan .deger').first().innerText()).toLowerCase().includes('sürükle'));
 await olc(A, '28-oylama-kare');

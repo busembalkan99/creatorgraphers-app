@@ -8,3 +8,6 @@ const bellek = new Map<string, unknown>()
 
 export const bellektenAl = <T,>(anahtar: string) => bellek.get(anahtar) as T | undefined
 export const bellegeYaz = <T,>(anahtar: string, veri: T) => { bellek.set(anahtar, veri); return veri }
+
+// Testler geri dönüşün bellek boşken de zıplamadığını denetlemek için belleği boşaltıyor
+if (import.meta.env.DEV) (window as unknown as { __bellek: typeof bellek }).__bellek = bellek

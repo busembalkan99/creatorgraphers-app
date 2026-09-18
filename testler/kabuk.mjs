@@ -196,6 +196,15 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
 }
 await p.setViewportSize({ width: 390, height: 844 });
 
+// Geri bağlantısı her ekranda aynı görünsün: metin + ok
+for (const yol of ['uyeler', 'kur', 'asama']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1400);
+  const r = await p.evaluate(() => [...document.querySelectorAll('.geri')]
+    .map(e => ({ metin: e.textContent.trim().slice(0, 18), ok: !!e.querySelector('svg') })));
+  bekle(`${yol}: geri bağlantısında ok var`, r.length > 0 && r.every(x => x.ok), JSON.stringify(r));
+}
+
 // Yavaş bağlantıda ekran bomboş kalmasın: çerçeve yerinde dursun
 {
   await ctx.route('**/rest/v1/**', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue() });

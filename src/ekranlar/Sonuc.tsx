@@ -3,6 +3,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
+import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
@@ -224,7 +225,7 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
     <div className="sc detay">
       <header className="tepe">
         <div className="mast">
-          <button className="geri" onClick={kapat}>Sonuçlar</button>
+          <button className="geri" onClick={kapat}><Ikon ad="geri" />Sonuçlar</button>
           <span className="r">{kare.tema_ad}</span>
         </div>
         <div className="rb" />

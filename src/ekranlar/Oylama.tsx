@@ -3,6 +3,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, kalanYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
+import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 
@@ -177,7 +178,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
       {kareler.map((k, i) => (
         <section className="kare" key={k.id} data-kare={k.id}>
           <div className="mast">
-            <button className="geri" onClick={() => git('oyla')}>Temalar</button>
+            <button className="geri" onClick={() => git('oyla')}><Ikon ad="geri" />Temalar</button>
             <span className="r">{tema.ad}</span>
           </div>
           <div className="rb" />

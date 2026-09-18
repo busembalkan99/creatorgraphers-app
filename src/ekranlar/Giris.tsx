@@ -36,6 +36,8 @@ export function Kapak() {
       </header>
       <div className="kapak"><img src={import.meta.env.BASE_URL + 'kapak.jpg'} alt="" /></div>
       <div className="marka">Creator&shy;graphers</div>
+      {/* Buse'nin cümlesi (2026-09-18) */}
+      <p className="lede">Birlikte çektiğimiz fotoğrafları birlikte değerlendiriyoruz.</p>
       <div className="bosluk" />
       <Hata metin={hata} />
       <button className="btn" onClick={() => googleIleGir().catch(e => setHata(hataMetni(e)))}>Google ile gir</button>

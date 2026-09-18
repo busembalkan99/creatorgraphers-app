@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz } from '../lib/zaman'
@@ -66,6 +66,18 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
   const [hata, setHata] = useState<string | null>(null)
   const [sekme, setSekme] = useState(0)
   const [detay, setDetay] = useState<SonucKare | null>(null)
+  // Detaydan dönünce galeri kaldığın yerde kalsın (Buse, 2026-09-18)
+  const donus = useRef<number | null>(null)
+  const ac = (k: SonucKare) => {
+    donus.current = document.querySelector('.sc')?.scrollTop ?? null
+    setDetay(k)
+  }
+  useEffect(() => {
+    if (detay || donus.current == null) return
+    const sc = document.querySelector('.sc')
+    if (sc) sc.scrollTop = donus.current
+    donus.current = null
+  }, [detay])
 
   useEffect(() => {
     sonucVerisi(etkinlikId).then(setV).catch(x => setHata(hataMetni(x)))
@@ -149,7 +161,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
                 <div className="kazanan" key={k.id}>
                   {k.url && (
                     <img src={k.url} width={k.genislik} height={k.yukseklik}
-                      alt={`${secili.ad} temasının kazanan karesi`} onClick={() => setDetay(k)} />
+                      alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} />
                   )}
                   <div className="serit">
                     <b>{secili.ad}</b>
@@ -164,7 +176,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
           {kursu.length > 0 && (
             <div className="kursu">
               {kursu.map(k => (
-                <figure key={k.id} onClick={() => setDetay(k)}>
+                <figure key={k.id} onClick={() => ac(k)}>
                   {k.url && <img src={k.url} alt="" />}
                   <figcaption>
                     {/* Numara sunucudaki sıradan gelir, dizideki yerden değil */}
@@ -178,7 +190,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
           )}
 
           {liste.map(k => (
-            <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => setDetay(k)}>
+            <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => ac(k)}>
               <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>
               {k.url && <img src={k.url} alt="" />}
               <span className="ad">{k.sahip_ad}</span>
@@ -191,7 +203,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
               <h2 className="sec">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></h2>
               <div className="izgara">
                 {galeri.map(k => (
-                  <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => setDetay(k)}>
+                  <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => ac(k)}>
                     {k.url && <img src={k.url} alt="" />}
                     {/* Karar 38: kendi ortalamanı her zaman görürsün, başkasınınki gizli */}
                     <figcaption>{k.sahip_ad}{k.benim ? ' · sen' : ''}{k.benim && k.ortalama != null ? ` · ${puanYaz(k.ortalama)}` : ''}</figcaption>

@@ -22,6 +22,9 @@ export function Uyeler({ ben }: { ben: Uye }) {
   const [hata, setHata] = useState<string | null>(null)
   const [mesgul, setMesgul] = useState<string | null>(null)
   const [cikarilacak, setCikarilacak] = useState<Uye | null>(null)
+  // Düğmeler satıra dokununca açılıyor (Buse, 2026-09-18): hep açıkken 20 kişide
+  // 40 düğme alt alta duruyordu.
+  const [acik, setAcik] = useState<string | null>(null)
 
   async function yukle() {
     const [i, u] = await sor(Promise.all([
@@ -60,6 +63,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
     setMesgul(null)
     setCikarilacak(null)
     if (error) return setHata(hataMetni(error))
+    setAcik(null)
     yukle().catch(x => setHata(hataMetni(x)))
   }
 
@@ -128,15 +132,31 @@ export function Uyeler({ ben }: { ben: Uye }) {
       <h2 className="sec">Üyeler<span>{icerideki} üye</span></h2>
       {uyeler.map(u => {
         const disarda = !!u.cikarildi_at
+        const aksiyonVar = (kurucu && u.rol !== 'kurucu' && !disarda) || cikarabilirMi(u) || disarda
+        const satirIci = (
+          <>
+            <div className="tx"><b>{u.ad}</b><span>{u.eposta}{u.id === ben.id ? ' · sen' : ''}</span></div>
+            <span className={`rozet ${disarda ? 'disarda' : u.rol}`}>
+              {disarda ? 'Çıkarıldı' : u.rol === 'kurucu' ? 'Kurucu' : u.rol === 'yonetici' ? 'Yönetici' : 'Üye'}
+            </span>
+          </>
+        )
         return (
           <div key={u.id} className={disarda ? 'cikarilmis' : ''}>
-            <div className="satir" style={{ cursor: 'default' }}>
-              <div className="tx"><b>{u.ad}</b><span>{u.eposta}{u.id === ben.id ? ' · sen' : ''}</span></div>
-              <span className={`rozet ${disarda ? 'disarda' : u.rol}`}>
-                {disarda ? 'Çıkarıldı' : u.rol === 'kurucu' ? 'Kurucu' : u.rol === 'yonetici' ? 'Yönetici' : 'Üye'}
-              </span>
-            </div>
-            {cikarilacak?.id === u.id ? (
+            {aksiyonVar ? (
+              <button className="satir acilir" aria-expanded={acik === u.id}
+                onClick={() => { setCikarilacak(null); setAcik(acik === u.id ? null : u.id) }}>
+                {satirIci}
+                <span className="ok"><Ikon ad="asagi" /></span>
+              </button>
+            ) : (
+              <div className="satir" style={{ cursor: 'default' }}>
+                {satirIci}
+                {/* Okun yeri boş kalıyor: yoksa rozet sütunu açılır satırlarla hizasını kaybediyor */}
+                <span className="ok" style={{ visibility: 'hidden' }} aria-hidden="true"><Ikon ad="asagi" /></span>
+              </div>
+            )}
+            {acik !== u.id ? null : cikarilacak?.id === u.id ? (
               <div className="onaykutu">
                 <b>{u.ad} çıkarılsın mı?</b>
                 <p>Kareleri ve adı geçmiş etkinliklerde kalır. Uygulamaya giremez, istek bırakarak geri dönebilir.</p>

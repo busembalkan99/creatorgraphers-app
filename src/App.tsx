@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { ayarEksik, sb, hataMetni, sor } from './lib/supabase'
 import type { Uye } from './lib/tipler'
 import { git, useYol } from './lib/yol'
+import { geriAlinacak } from './lib/kaydirma'
 import { Ikon } from './bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from './bilesenler/Kunye'
 import { Cikarildin, Hosgeldin, Kapak, UyeDegil } from './ekranlar/Giris'
@@ -96,6 +97,20 @@ const SEKMELER = [
 function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }) {
   const yol = useYol()
   const yonetici = uye.rol !== 'uye'
+
+  // Geri dönülüyorsa bırakılan yere dön. Veri geç gelebildiği için içerik o yere
+  // yetecek kadar uzayana kadar bekleniyor (en fazla 2 saniye).
+  useEffect(() => {
+    const y = geriAlinacak(yol)
+    if (y == null || y <= 0) return
+    let n = 0
+    const z = window.setInterval(() => {
+      const sc = document.querySelector('.sc')
+      if (sc && sc.scrollHeight - sc.clientHeight >= y - 2) { sc.scrollTop = y; window.clearInterval(z) }
+      else if (++n > 40) { if (sc) sc.scrollTop = y; window.clearInterval(z) }
+    }, 50)
+    return () => window.clearInterval(z)
+  }, [yol])
 
   let ekran
   let sekme = 'etkinlikler'

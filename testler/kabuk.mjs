@@ -244,6 +244,60 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   bekle(`${yol}: geri bağlantısında ok var`, r.length > 0 && r.every(x => x.ok), JSON.stringify(r));
 }
 
+// Geri dönünce bırakılan yer korunuyor; sekmeye dokununca baştan açılıyor (Buse, 2026-09-18).
+// Test verisinde Sıralama tek ekrana sığıyor, kaydırma olsun diye ekran kısaltılıyor.
+{
+  await p.setViewportSize({ width: 390, height: 460 });
+  const sirala = async () => {
+    await p.goto(APP + '#/siralama'); await p.waitForTimeout(1600);
+    return p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop) });
+  };
+  const yer = () => p.evaluate(() => Math.round(document.querySelector('.sc')?.scrollTop ?? -1));
+
+  const y1 = await sirala();
+  bekle('geri dönüş testi: Sıralama gerçekten kayıyor', y1 > 40, String(y1));
+  await p.locator('.unr .names button, .row').last().click(); await p.waitForTimeout(1600);
+  await p.locator('.geri').click(); await p.waitForTimeout(1400);
+  const y2 = await yer();
+  bekle('künyedeki geri ile dönünce yer korunuyor', Math.abs(y2 - y1) <= 2, `${y2} / ${y1}`);
+
+  await p.locator('.unr .names button, .row').last().click(); await p.waitForTimeout(1600);
+  await p.goBack(); await p.waitForTimeout(1400);
+  const y3 = await yer();
+  bekle('tarayıcının geri tuşuyla da yer korunuyor', Math.abs(y3 - y1) <= 2, `${y3} / ${y1}`);
+
+  await p.locator('.tabs button', { hasText: 'Profil' }).click(); await p.waitForTimeout(1400);
+  await p.locator('.tabs button', { hasText: 'Sıralama' }).click(); await p.waitForTimeout(1400);
+  bekle('sekmeye dokununca baştan açılıyor', (await yer()) === 0, String(await yer()));
+
+  // Sonuç ekranında kare detayından dönüş
+  const { data: ev } = await admin.from('etkinlikler').select('id').order('bulusma_gunu', { ascending: false }).limit(1);
+  await p.goto(APP + '#/sonuc/' + ev[0].id); await p.waitForTimeout(1800);
+  const s1 = await p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop) });
+  await p.locator('.izgara figure, .satir-kare, .kursu figure').last().click(); await p.waitForTimeout(1000);
+  await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await p.waitForTimeout(600);
+  const s2 = await yer();
+  bekle('kare detayından dönünce galeri yerinde', s1 > 40 && Math.abs(s2 - s1) <= 2, `${s2} / ${s1}`);
+  await p.setViewportSize({ width: 390, height: 844 });
+}
+
+// Üyeler: düğmeler kapalıyken görünmüyor, rozet sütunu hizalı (açılır ve açılmaz satırlar)
+{
+  await p.goto(APP + '#/uyeler'); await p.reload(); await p.waitForTimeout(1500);
+  const r = await p.evaluate(() => ({
+    acikAksiyon: document.querySelectorAll('.rolakt').length,
+    rozetSag: [...new Set([...document.querySelectorAll('.satir .rozet')].map(e => Math.round(e.getBoundingClientRect().right)))],
+  }));
+  bekle('üyeler: düğmeler kapalıyken görünmüyor', r.acikAksiyon === 0, JSON.stringify(r));
+  bekle('üyeler: rozet sütunu hizalı', r.rozetSag.length === 1, JSON.stringify(r.rozetSag));
+}
+
+// Oylamada kareye uzun basınca kaydet menüsü çıkmasın (Chromium bu özelliği okumuyor, kural denetleniyor)
+{
+  const css = oku('src/index.css').replace(/\s+/g, '');
+  bekle('oylamada uzun basma menüsü kapalı', /\.akisimg\{[^}]*-webkit-touch-callout:none/.test(css));
+}
+
 // Yavaş bağlantıda ekran bomboş kalmasın: çerçeve yerinde dursun
 {
   await ctx.route('**/rest/v1/**', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue() });

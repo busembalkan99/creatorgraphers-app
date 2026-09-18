@@ -112,6 +112,12 @@ await olc(A, '09-uyeler-tekrar');
 await A.click('.istek button:has-text("Onayla")');
 bekle('onay sonucu', await bekleMetin(A, 'Onaylandı'));
 bekle('üye listesinde Selin', await bekleMetin(A, 'selin@test.local'));
+// Düğmeler satıra dokununca açılıyor: kapalıyken görünmemeli
+bekle('üye düğmeleri kapalıyken görünmüyor', (await A.locator('.rolakt').count()) === 0);
+await A.locator('button.satir.acilir', { hasText: 'selin@test.local' }).click();
+await A.waitForTimeout(300);
+bekle('satır açılınca durumunu söylüyor',
+  (await A.locator('button.satir.acilir', { hasText: 'selin@test.local' }).getAttribute('aria-expanded')) === 'true');
 bekle('Selin için Yönetici yap düğmesi', (await A.locator('.rolakt button:has-text("Yönetici yap")').count()) === 1);
 await olc(A, '10-uyeler-onay');
 
@@ -778,6 +784,7 @@ await olc(B, '39-sonuc-uye');
   bekle('üyeler ekranı açıldı', icerir(await metin(A), 'Üyeler'));
   // Tam ad eşleşmesi şart: hasText büyük-küçük harf ayırmıyor, "Çıkar" araması
   // "Kulüpten çıkar" ve "Yöneticilikten çıkar" düğmelerine de takılıyor.
+  await A.locator('button.satir.acilir', { hasText: 'selin@test.local' }).click(); await A.waitForTimeout(300);
   await A.getByRole('button', { name: 'Kulüpten çıkar', exact: true }).first().click();
   await A.waitForTimeout(500);
   bekle('onay kutusu ne olacağını yazıyor',
@@ -786,6 +793,8 @@ await olc(B, '39-sonuc-uye');
   await A.getByRole('button', { name: 'Çıkar', exact: true }).click();
   await A.waitForTimeout(1800);
   bekle('çıkarılan satır işaretli', icerir(await metin(A), 'Çıkarıldı'), (await metin(A)).slice(0, 300));
+  // İşlemden sonra satır kapanıyor; geri al için yeniden açılıyor
+  await A.locator('button.satir.acilir', { hasText: 'selin@test.local' }).click(); await A.waitForTimeout(300);
   bekle('geri al düğmesi var', (await A.getByRole('button', { name: 'Geri al', exact: true }).count()) === 1);
   bekle('üye sayacı çıkarılanı saymıyor', !icerir(await yaz(A, '.sec'), 'Çıkarıldı'));
   await olc(A, '47-uye-cikarildi');
@@ -803,6 +812,7 @@ await olc(B, '39-sonuc-uye');
 
   // Yönetici geri alıyor
   await A.goto(APP + '#/uyeler'); await A.reload(); await A.waitForTimeout(1800);
+  await A.locator('button.satir.acilir', { hasText: 'selin@test.local' }).click(); await A.waitForTimeout(300);
   await A.getByRole('button', { name: 'Geri al', exact: true }).first().click(); await A.waitForTimeout(1800);
   bekle('geri alınca işaret kalkıyor', !icerir(await metin(A), 'Çıkarıldı'), (await metin(A)).slice(0, 300));
   await B.goto(APP + '#/etkinlikler'); await B.reload(); await B.waitForTimeout(2000);

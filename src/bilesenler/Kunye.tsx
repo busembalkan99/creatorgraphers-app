@@ -1,5 +1,5 @@
 import { Ikon } from './Ikon'
-import { git } from '../lib/yol'
+import { geriGit } from '../lib/yol'
 
 export function Kunye({ sol, sag, geri }: { sol: string; sag?: string; geri?: string }) {
   return (
@@ -7,7 +7,7 @@ export function Kunye({ sol, sag, geri }: { sol: string; sag?: string; geri?: st
     <header className="tepe">
       <div className="mast">
         {geri ? (
-          <button className="geri" onClick={() => git(geri)}>
+          <button className="geri" onClick={() => geriGit(geri)}>
             <Ikon ad="geri" />
             {sol}
           </button>

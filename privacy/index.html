@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Creatorgraphers · Gizlilik / Privacy</title>
-<link rel="icon" href="../ikon.svg" type="image/svg+xml">
+<link rel="icon" href="../ikon-32.png" sizes="32x32" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@ a{color:var(--ink)}
 </head>
 <body>
 <main>
-  <div class="mast"><a class="geri" href="../">← Uygulamaya dön</a><a href="#en">English</a></div>
+  <div class="mast"><a class="geri" href="../">← Uygulamaya dön</a><a href="#en" lang="en">English</a></div>
   <div class="rb"></div>
   <h1>Gizlilik</h1>
   <p class="tarih">Son güncelleme: 17 Eylül 2026</p>
@@ -68,6 +68,9 @@ a{color:var(--ink)}
   <p>Hesabının ve fotoğraflarının silinmesini istemek ya da bir soru sormak için:
      <a href="mailto:busembalkan99l@gmail.com">busembalkan99l@gmail.com</a></p>
 
+  <!-- lang="en" sart: sayfa lang="tr" oldugu icin tarayici text-transform:uppercase'i
+       Turkce kuraliyla uyguluyor ve "i" harfini "İ" yapiyor (DELETİON). -->
+  <section lang="en">
   <h2 id="en">English</h2>
   <p>Creatorgraphers is the app of a private photography club. Members upload photos to events
      and rate them anonymously. Only people accepted into the club can use the app.</p>
@@ -101,6 +104,7 @@ a{color:var(--ink)}
   <h3>Deletion and contact</h3>
   <p>To have your account and photos deleted, or for any question:
      <a href="mailto:busembalkan99l@gmail.com">busembalkan99l@gmail.com</a></p>
+  </section>
 </main>
 </body>
 </html>

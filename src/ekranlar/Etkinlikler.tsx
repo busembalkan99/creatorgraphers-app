@@ -23,7 +23,8 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
     sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }),
     sb.from('temalar').select('*').order('sira'),
     sb.from('kareler').select('tema').eq('sahip', uyeId),
-    sb.from('uyeler').select('id', { count: 'exact', head: true }),
+    // Çıkarılan üyeler sayılmıyor (karar 99): sayım sunucuda, uye_sayisi() (0008)
+    sb.rpc('uye_sayisi'),
   ]))
   const hata = e.error ?? t.error ?? k.error ?? u.error
   if (hata) throw hata
@@ -44,7 +45,7 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
     etkinlikler,
     temalar: (t.data ?? []) as Tema[],
     benimTemalarim: new Set((k.data ?? []).map(r => r.tema as string)),
-    uyeSayisi: u.count ?? 0,
+    uyeSayisi: Number(u.data ?? 0),
     oyKalan,
   }
 }

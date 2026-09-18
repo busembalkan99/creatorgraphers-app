@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
-import { asama, ayAdi, kalanYaz, saatYaz } from '../lib/zaman'
+import { asama, ayAdi, kalanYaz, saatYaz, sayiEki } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
@@ -257,16 +257,14 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 const rolAdi = (r: string) => (r === 'kurucu' ? 'Kulüp kurucusu' : r === 'yonetici' ? 'Yönetici' : 'Üye')
 
 /**
- * "Eylül 2026'dan beri". Ek yılın son rakamının okunuşuna göre değişiyor:
- * 2025 beş ile bitiyor ("'ten"), 2026 altı ile ("'dan").
+ * "Eylül 2026'dan beri". Ayrılma eki yılın okunuşunun son kelimesine göre:
+ * 2026 "altı" → 'dan, 2020 "yirmi" → 'den, 2025 "beş" → 'ten. Yıl İstanbul saatine göre.
  */
-const YIL_EKI = ['dan', 'den', 'den', 'ten', 'ten', 'ten', 'dan', 'den', 'den', 'dan']
-
 function aydanBeri(t: string) {
-  const d = new Date(t)
-  const g = d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' })
-  const yil = d.getFullYear()
-  return `${ayAdi(g)} ${yil}'${YIL_EKI[yil % 10]} beri`
+  const g = new Date(t).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' })
+  const yil = Number(g.slice(0, 4))
+  const ek = yil % 100 === 0 ? 'den' : sayiEki(yil % 100) + 'n'   // 2000 "bin" → 'den
+  return `${ayAdi(g)} ${yil}'${ek} beri`
 }
 
 function asamaCumlesi(e: Etkinlik) {

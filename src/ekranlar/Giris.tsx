@@ -73,7 +73,7 @@ export function Cikarildin({ istekBirak }: { istekBirak: () => void }) {
 type Durum =
   | { tip: 'yukleniyor' }
   | { tip: 'kur' }
-  | { tip: 'istek'; tekrar: boolean; ad: string }
+  | { tip: 'istek'; tekrar: boolean; ad: string; cikarildi?: boolean }
   | { tip: 'bekliyor'; istek: Istek }
   | { tip: 'ret'; istek: Istek }
   | { tip: 'hata'; metin: string }
@@ -99,7 +99,7 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
       if (!son) return setD({ tip: 'istek', tekrar: false, ad: '' })
       // Çıkarılan kişinin eski onaylı isteği duruyor. Onu "zaten üye" saymak
       // kişiyi kapalı ekrana geri atıyor ve istek bırakmasına izin vermiyordu.
-      if (son.durum === 'onay') return cikarildi ? setD({ tip: 'istek', tekrar: true, ad: son.ad }) : uyeOldu()
+      if (son.durum === 'onay') return cikarildi ? setD({ tip: 'istek', tekrar: true, ad: son.ad, cikarildi: true }) : uyeOldu()
       if (son.durum === 'bekliyor') return setD({ tip: 'bekliyor', istek: son })
       setD({ tip: 'ret', istek: son })
     } catch (e) {
@@ -143,6 +143,7 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
         <IstekFormu
           eposta={eposta}
           tekrar={d.tekrar}
+          cikarildi={d.cikarildi}
           ilkAd={d.ad}
           kullaniciId={kullanici.id}
           gonderildi={yenile}
@@ -192,8 +193,8 @@ function Ozet({ istek }: { istek: Istek }) {
   )
 }
 
-function IstekFormu({ eposta, tekrar, ilkAd, kullaniciId, gonderildi }: {
-  eposta: string; tekrar: boolean; ilkAd: string; kullaniciId: string; gonderildi: () => void
+function IstekFormu({ eposta, tekrar, cikarildi, ilkAd, kullaniciId, gonderildi }: {
+  eposta: string; tekrar: boolean; cikarildi?: boolean; ilkAd: string; kullaniciId: string; gonderildi: () => void
 }) {
   // Google'daki ad "selo_1999" olabilir; yalnız tekrar isteğinde önceki ad hazır gelir.
   const [ad, setAd] = useState(tekrar ? ilkAd : '')
@@ -221,7 +222,11 @@ function IstekFormu({ eposta, tekrar, ilkAd, kullaniciId, gonderildi }: {
       <Kunye sol="Creatorgraphers" sag="Giriş" />
       <h2 className="t">{tekrar ? <>Tekrar<br />istek bırak</> : <>Kulüpte<br />henüz yoksun</>}</h2>
       <p className="lede">
-        {tekrar
+        {/* Çıkarılan kişinin isteği kabul edilmişti; "kabul edilmedi" demek yanlıştı.
+            Bu forma "Artık kulüpte değilsin" ekranından geliyor, bağlamı biliyor. */}
+        {cikarildi
+          ? 'Notuna neden dönmek istediğini yaz.'
+          : tekrar
           ? 'Önceki isteğin kabul edilmedi. Notuna sebebini yaz.'
           : 'Bu hesap listede yok. İstek bırak, yönetici onaylasın.'}
       </p>

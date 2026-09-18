@@ -10,6 +10,8 @@ node testler/rls.mjs                          # sunucu kuralları
 node testler/siralama.mjs                     # sezon sıralaması, profil, çekim tarifi
 node testler/ui.mjs                           # ekranlar, iki kişi baştan sona
 node testler/kabuk.mjs                        # telefon kabuğu (siralama.mjs'den sonra)
+node testler/ekranlar.mjs                     # ekranların veri hâlleri (siralama.mjs'den sonra)
+node testler/zaman.mjs                        # Türkçe saat ve yıl ekleri (veritabanı istemez)
 ```
 
 `ui.mjs` ve `exifjpeg.mjs` Playwright'ı `~/.local/playwright-mcp` altından alıyor.

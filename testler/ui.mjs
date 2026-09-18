@@ -796,7 +796,12 @@ await olc(B, '39-sonuc-uye');
   // İşlemden sonra satır kapanıyor; geri al için yeniden açılıyor
   await A.locator('button.satir.acilir', { hasText: 'selin@test.local' }).click(); await A.waitForTimeout(300);
   bekle('geri al düğmesi var', (await A.getByRole('button', { name: 'Geri al', exact: true }).count()) === 1);
-  bekle('üye sayacı çıkarılanı saymıyor', !icerir(await yaz(A, '.sec'), 'Çıkarıldı'));
+  // Önceki hâli ilk .sec'i ("Katılma istekleri") okuyordu, sayacı hiç ölçmüyordu
+  {
+    const sayac = await A.evaluate(() => [...document.querySelectorAll('h2.sec')].find(h => h.textContent.startsWith('Üyeler'))?.querySelector('span')?.textContent);
+    const iceride = await A.evaluate(() => [...document.querySelectorAll('.satir')].filter(e => !e.closest('.cikarilmis')).length);
+    bekle('üye sayacı çıkarılanı saymıyor', sayac === `${iceride} üye`, `${sayac} / ${iceride}`);
+  }
   await olc(A, '47-uye-cikarildi');
 
   // Çıkarılan kişi ne görüyor
@@ -807,7 +812,10 @@ await olc(B, '39-sonuc-uye');
   bekle('kapalı ekranda çıkış var', (await B.getByRole('button', { name: 'Çıkış yap', exact: true }).count()) === 1);
   await olc(B, '48-cikarildin');
   await B.getByRole('button', { name: 'İstek bırak', exact: true }).click(); await B.waitForTimeout(1200);
-  bekle('çıkarılan istek formuna geçebiliyor', icerir(await metin(B), 'istek') || icerir(await metin(B), 'Ad'),
+  // Önceki hâli "istek" kelimesini arıyordu; "İstek bırak" düğmesi zaten eşleştiği için
+  // form hiç açılmasa da geçiyordu. Artık formun alanına ve doğru metne bakıyor.
+  bekle('çıkarılan istek formuna geçebiliyor', (await B.locator('#ad').count()) === 1, (await metin(B)).slice(0, 200));
+  bekle('çıkarılana "kabul edilmedi" denmiyor', !icerir(await metin(B), 'kabul edilmedi') && icerir(await metin(B), 'neden dönmek istediğini'),
     (await metin(B)).slice(0, 200));
 
   // Yönetici geri alıyor

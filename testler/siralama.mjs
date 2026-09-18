@@ -215,4 +215,23 @@ bekle('yabancı sıralamayı göremez', ((await istemci().rpc('siralama')).data 
   bekle('üç kareden az makine bilgisi varsa tarif yok', az.length === 0, JSON.stringify(az));
 }
 
+// ---------------------------------------------------------------- 0008: üye sayısı ve oysuz sezon
+{
+  bekle('üye sayısı altı', Number((await A.c.rpc('uye_sayisi')).data) === 6, String((await A.c.rpc('uye_sayisi')).data));
+  await A.c.rpc('uye_cikar', { p_uye: kisiler.zeynep.id, p_cikar: true });
+  bekle('çıkarılan üye sayılmıyor', Number((await A.c.rpc('uye_sayisi')).data) === 5, String((await A.c.rpc('uye_sayisi')).data));
+  bekle('sezon künyesi de çıkarılanı saymıyor', Number((await A.c.rpc('sezon_ozeti')).data?.[0]?.uye_sayisi) === 5);
+  await A.c.rpc('uye_cikar', { p_uye: kisiler.zeynep.id, p_cikar: false });
+  bekle('yabancı üye sayısını alamıyor', Number((await istemci().rpc('uye_sayisi')).data ?? 0) === 0);
+
+  // Sezonda hiç oy yoksa kimse sıralanmıyor: puansız "sıralı" satır olmamalı
+  const oylar = (await admin.from('oylar').select('*')).data ?? [];
+  await admin.from('oylar').delete().neq('puan', -1);
+  const s = (await A.c.rpc('siralama')).data ?? [];
+  bekle('oysuz sezonda liste yine dolu', s.length === 5, String(s.length));
+  bekle('oysuz sezonda kimse sıralı değil', s.every(x => !x.sirali && x.sira === null), JSON.stringify(s.map(x => [x.ad, x.sira])));
+  if (oylar.length) await admin.from('oylar').insert(oylar);
+  bekle('oylar geri kondu', ((await admin.from('oylar').select('kare')).data ?? []).length === oylar.length);
+}
+
 rapor();

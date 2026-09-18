@@ -1,0 +1,144 @@
+// Ekranların veri hâlleri: kapsam analizinin (2026-09-18) test edilmemiş dediği dallar.
+// siralama.mjs'in kurduğu veriyi kullanır, önce o çalıştırılmalı. Değiştirdiği her şeyi
+// sonunda geri koyar; kabuk.mjs aynı veriye güveniyor.
+import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
+import { admin, bekle, rapor } from './ortak.mjs';
+import { sayiEki } from '../src/lib/zaman.ts';
+
+const APP = 'http://localhost:5180/';
+const { data: liste } = await admin.auth.admin.listUsers();
+const kim = e => liste.users.find(u => u.email === e);
+const [ayse, baris, can, deniz, zeynep] = ['kurucu', 'baris', 'can', 'deniz', 'zeynep'].map(k => kim(`${k}@test.local`));
+bekle('siralama.mjs verisi duruyor', !!(ayse && baris && can && zeynep), 'önce node testler/siralama.mjs');
+// Hoş geldin ekranı ilk girişte bir kez çıkıyor; bu dosya o ekranı değil sonrasını sınıyor
+await admin.from('uyeler').update({ hosgeldin_goruldu: true }).neq('id', '00000000-0000-0000-0000-000000000000');
+
+const b = await chromium.launch();
+const hatalar = [];
+async function oturum(eposta) {
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => hatalar.push(`${eposta}: ${e}`));
+  await p.goto(APP); await p.waitForFunction(() => window.__sb);
+  await p.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error }, eposta);
+  return p;
+}
+const ac = async (p, yol) => { await p.goto(APP + '#/' + yol); await p.reload(); await p.waitForTimeout(1800) };
+const yazi = p => p.evaluate(() => document.querySelector('.sc')?.textContent ?? '');
+const A = await oturum('kurucu@test.local');
+
+// ---------------------------------------------------------------- Profil: kendi, dolu
+{
+  await ac(A, 'profil');
+  const t = await yazi(A);
+  const habit = await A.evaluate(() => [...document.querySelectorAll('.habit')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
+  bekle('çekim tarifi: en çok kullanılan odak ve oranı', habit.some(h => h.includes('En çok') && h.includes('35mm') && h.includes('3 / 4 kare')), JSON.stringify(habit));
+  bekle('çekim tarifi: diyafram satırı', habit.some(h => h.includes('Diyafram') && h.includes('Genelde açık')), JSON.stringify(habit));
+  bekle('çekim tarifi: ışık satırı', habit.some(h => h.includes('Işık') && h.includes('Bol ışıkta')), JSON.stringify(habit));
+  bekle('katkı: tam set rozeti', t.includes('Tam set'));
+  bekle('katkı: tema sayısı rozeti', t.includes('4 tema'), t.slice(0, 200));
+  const yil = Number(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 4));
+  bekle(`katılım satırı doğru ekle: ${yil}'${sayiEki(yil % 100)}n beri`, t.includes(`${yil}'${sayiEki(yil % 100)}n beri`), t.slice(0, 120));
+}
+
+// ---------------------------------------------------------------- Profil: başkası ve boş hâller
+{
+  await ac(A, 'profil/' + baris.id);
+  const t = await yazi(A);
+  bekle('makine bilgisi olmayan üç kare: doğru boş durum', t.includes('Karelerinde makine bilgisi yok.') && !t.includes('Üç kareden sonra'), t);
+  bekle('başkasının gizli puan notu', t.includes('Sıralamaya girmeyen karelerin puanı gizli.'));
+  bekle('bir temayı atlayanda tam set yok', !t.includes('Tam set'));
+
+  await ac(A, 'profil/' + zeynep.id);
+  const z = await yazi(A);
+  bekle('karesi olmayan: henüz kare yok', z.includes('Henüz kare yok'));
+  bekle('karesi olmayan: üç kareden sonra', z.includes('Üç kareden sonra.'));
+  bekle('karesi olmayan: sayaçlar sönük', (await A.locator('.stats.zero').count()) === 1);
+
+  await ac(A, 'profil/00000000-0000-0000-0000-000000000000');
+  bekle('olmayan kişi: kulüpte yok', (await yazi(A)).includes('kulüpte yok'), await yazi(A));
+}
+
+// ---------------------------------------------------------------- Sıralama: Müdavim ve boş durum
+{
+  await ac(A, 'siralama');
+  bekle('Müdavim çok kişilik: sayı yazıyor', (await A.locator('.mud .big').textContent())?.includes('2 kişi'));
+  bekle('sırasız blokta üç isim', (await A.locator('.unr .names button').count()) === 3);
+
+  // Tek Müdavim: Barış'ın ilk etkinlikteki karesi geçici olarak kaldırılıyor
+  const { data: bk } = await admin.from('kareler').select('*, temalar!inner(etkinlik, etkinlikler!inner(bulusma_gunu))').eq('sahip', baris.id);
+  const eski = bk.sort((x, y) => x.temalar.etkinlikler.bulusma_gunu.localeCompare(y.temalar.etkinlikler.bulusma_gunu))[0];
+  const { data: eskiOy } = await admin.from('oylar').select('*').eq('kare', eski.id);
+  await admin.from('kareler').delete().eq('id', eski.id);
+  await ac(A, 'siralama');
+  bekle('Müdavim tek kişilik: adı büyük yazıyor', (await A.locator('.mud .one').count()) === 1 && (await A.locator('.mud .big').count()) === 0);
+  const { temalar: _t, ...satir } = eski;
+  await admin.from('kareler').insert(satir);
+  if (eskiOy?.length) await admin.from('oylar').insert(eskiOy);
+
+  // Sezonda hiç oy yok: sıralı satır yerine boş durum
+  const oylar = (await admin.from('oylar').select('*')).data ?? [];
+  await admin.from('oylar').delete().neq('puan', -1);
+  await ac(A, 'siralama');
+  bekle('oysuz sezonda boş durum', (await yazi(A)).includes('Sezonda hiç puan verilmemiş') && (await A.locator('.row').count()) === 0, await yazi(A));
+  await admin.from('oylar').insert(oylar);
+  await ac(A, 'siralama');
+  bekle('veri geri kondu: sıralı satırlar döndü', (await A.locator('.row').count()) > 0);
+}
+
+// ---------------------------------------------------------------- Üyeler: rozet, sayaç, yetki
+{
+  await ac(A, 'uyeler');
+  const r = await A.evaluate(() => [...document.querySelectorAll('.satir')].map(e => ({
+    ad: e.querySelector('.tx b')?.textContent, rozet: e.querySelector('.rozet')?.textContent ?? null })));
+  bekle('düz üyelerde rozet yok', r.filter(x => x.ad !== 'Ayşe Kaya').every(x => x.rozet === null), JSON.stringify(r));
+  bekle('kurucuda rozet var', r.find(x => x.ad === 'Ayşe Kaya')?.rozet === 'Kurucu');
+
+  // Çıkarılan üye sayılmıyor: hem Üyeler sayacı hem Etkinlikler başlığı
+  await A.evaluate(async id => window.__sb.rpc('uye_cikar', { p_uye: id, p_cikar: true }), zeynep.id);
+  await ac(A, 'uyeler');
+  const sayac = await A.evaluate(() => [...document.querySelectorAll('h2.sec')].find(h => h.textContent.startsWith('Üyeler'))?.querySelector('span')?.textContent);
+  bekle('üyeler sayacı çıkarılanı saymıyor', sayac === '5 üye', sayac);
+  await ac(A, 'etkinlikler');
+  bekle('etkinlikler başlığı çıkarılanı saymıyor', (await A.locator('.mast .r').textContent())?.trim() === '5 üye', await A.locator('.mast .r').textContent());
+
+  // Çıkarılan kişi istek bırakınca yönetici bunu kartta görüyor
+  const Z = await oturum('zeynep@test.local');
+  const ist = await Z.evaluate(async () => {
+    const u = (await window.__sb.auth.getUser()).data.user;
+    return (await window.__sb.from('istekler').insert({ kullanici: u.id, eposta: u.email, ad: 'Zeynep Ar', notu: 'Dönmek istiyorum' }).select('id').single()).data?.id;
+  });
+  await ac(A, 'uyeler');
+  bekle('istek kartında çıkarılmış olduğu yazıyor', (await yazi(A)).includes('Bu kişi kulüpten çıkarılmıştı'));
+  await admin.from('istekler').delete().eq('id', ist);
+  await A.evaluate(async id => window.__sb.rpc('uye_cikar', { p_uye: id, p_cikar: false }), zeynep.id);
+
+  // Yönetici yöneticiyi çıkaramaz; kurucu değilse rol de veremez
+  await A.evaluate(async ids => { for (const id of ids) await window.__sb.rpc('rol_degistir', { p_uye: id, p_yonetici: true }) }, [baris.id, can.id]);
+  const B = await oturum('baris@test.local');
+  await ac(B, 'uyeler');
+  bekle('yönetici gözünde yöneticinin satırı açılmıyor', (await B.locator('button.satir.acilir', { hasText: 'can@test.local' }).count()) === 0);
+  await B.locator('button.satir.acilir', { hasText: 'deniz@test.local' }).click(); await B.waitForTimeout(300);
+  bekle('yönetici üyeyi çıkarabiliyor', (await B.getByRole('button', { name: 'Kulüpten çıkar', exact: true }).count()) === 1);
+  bekle('yönetici rol veremiyor', (await B.getByRole('button', { name: 'Yönetici yap', exact: true }).count()) === 0);
+  await A.evaluate(async ids => { for (const id of ids) await window.__sb.rpc('rol_degistir', { p_uye: id, p_yonetici: false }) }, [baris.id, can.id]);
+}
+
+// ---------------------------------------------------------------- Aynı adrese dokunup sonra geri
+{
+  const ctx = A.context();
+  await A.setViewportSize({ width: 390, height: 460 });
+  await ac(A, 'siralama');
+  const y1 = await A.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop) });
+  await A.locator('.tabs button', { hasText: 'Sıralama' }).click(); await A.waitForTimeout(500);   // aynı adres: olay yok
+  const y1b = await A.evaluate(() => Math.round(document.querySelector('.sc').scrollTop));
+  await A.locator('.unr .names button, .row').last().click(); await A.waitForTimeout(1600);
+  await A.goBack(); await A.waitForTimeout(1500);
+  const y2 = await A.evaluate(() => Math.round(document.querySelector('.sc')?.scrollTop ?? -1));
+  bekle('aynı sekmeye dokunmak sonraki geri dönüşü bozmuyor', y1 > 40 && Math.abs(y2 - y1b) <= 2, `${y2} / ${y1b} (${y1})`);
+  await A.setViewportSize({ width: 390, height: 844 });
+}
+
+bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));
+await b.close();
+rapor();

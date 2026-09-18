@@ -39,18 +39,29 @@ export function saatYaz(iso: string) {
 }
 
 /**
- * Saate gelen bulunma eki: "16.00'da", "17.00'de", "15.00'te".
- * Ek saatin okunuşuna göre değişiyor, son rakama bakmak yetmiyor:
- * 10 "on" ile 20 "yirmi" aynı rakamla bitiyor ama ekleri farklı.
+ * Bir sayının Türkçe okunuşunun son kelimesine göre bulunma eki: 16'da, 17'de, 15'te, 40'ta.
+ * Son rakama bakmak yetmiyor: 10 "on" ile 20 "yirmi" aynı rakamla bitiyor ama ekleri farklı.
+ * Yalnız 0-99 arası: saat, dakika ve yılın son iki hanesi.
  */
-const SAAT_EKI = ['da', 'de', 'de', 'te', 'te', 'te', 'da', 'de', 'de', 'da']
+const BIRLER = ['', 'de', 'de', 'te', 'te', 'te', 'da', 'de', 'de', 'da']   // bir iki üç dört beş altı yedi sekiz dokuz
+const ONLAR = ['da', 'da', 'de', 'da', 'ta', 'de', 'da', 'de', 'de', 'da']  // sıfır on yirmi otuz kırk elli altmış yetmiş seksen doksan
 
+export function sayiEki(n: number) {
+  const b = n % 10
+  return b ? BIRLER[b] : ONLAR[Math.floor(n / 10) % 10]
+}
+
+/**
+ * Saate gelen bulunma eki. Ek son okunan kelimeye bağlı: dakika sıfır değilse dakikaya
+ * bakılıyor. "18.00'de" (on sekiz) ama "18.30'da" (otuz), "18.15'te" (on beş).
+ */
 export function saatEki(iso: string) {
-  const saat = Number(new Intl.DateTimeFormat('tr-TR', {
-    timeZone: 'Europe/Istanbul', hour: '2-digit', hour12: false,
-  }).format(new Date(iso)))
-  if (saat === 20) return 'de'  // "yirmi"
-  return SAAT_EKI[saat % 10]
+  const f = new Intl.DateTimeFormat('tr-TR', {
+    timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(new Date(iso))
+  const saat = Number(f.find(x => x.type === 'hour')?.value ?? 0)
+  const dakika = Number(f.find(x => x.type === 'minute')?.value ?? 0)
+  return sayiEki(dakika || saat)
 }
 
 /** Kalan süre: 2 günden fazlaysa gün, değilse saat, bir saatten azsa dakika. */

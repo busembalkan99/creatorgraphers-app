@@ -1,10 +1,23 @@
+import { useLayoutEffect, useRef } from 'react'
 import { Ikon } from './Ikon'
 import { geriGit } from '../lib/yol'
 
 export function Kunye({ sol, sag, geri }: { sol: string; sag?: string; geri?: string }) {
+  // Künyenin yüksekliği ekrana göre değişiyor (geri bağlantısı 44px dokunma alanı taşıyor:
+  // 56 ya da 68px). Altına yapışan öğeler (sonuçtaki tema sekmeleri) bu değişkeni kullanıyor.
+  const ref = useRef<HTMLElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const yaz = () => document.documentElement.style.setProperty('--tepe-boy', `${el.getBoundingClientRect().height}px`)
+    yaz()
+    const g = new ResizeObserver(yaz)
+    g.observe(el)
+    return () => g.disconnect()
+  }, [])
   return (
     // Sabit ust cubuk: mast ve 4px ayrac birlikte yapisiyor (karar 100)
-    <header className="tepe">
+    <header className="tepe" ref={ref}>
       <div className="mast">
         {geri ? (
           <button className="geri" onClick={() => geriGit(geri)}>

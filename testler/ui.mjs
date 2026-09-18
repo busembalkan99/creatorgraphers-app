@@ -36,6 +36,10 @@ const icerir = (a, b) => a.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR').inclu
 const yaz = (p, sec, i = 0) => p.evaluate(([s, j]) => (document.querySelectorAll(s)[j]?.textContent ?? '').trim(), [sec, i]);
 const bekleMetin = (p, t) => p.getByText(t, { exact: false }).first().waitFor({ timeout: 8000 }).then(() => true, () => false);
 async function olc(p, ad) {
+  // Sayfa geçişi sürerken ekran yandan kayıyor; ölçüm oturmuş ekranda yapılsın.
+  // Sonsuz dönen yükleme çubuğu beklenmez.
+  await p.waitForFunction(() => document.getAnimations().every(a =>
+    a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 3000 });
   const r = await p.evaluate(() => {
     const sc = document.querySelector('.sc');
     const tasma = [...document.querySelectorAll('.app *')].filter(e => { const b = e.getBoundingClientRect(); return b.width && (b.right > window.innerWidth + 1 || b.left < -1) && !e.closest('.kapak'); }).map(e => e.className).slice(0, 3);
@@ -345,6 +349,41 @@ await olc(A, '27-oylama-temalar');
 await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
 bekle('akışta iki kare', (await A.locator('.kare').count()) === 2);
 bekle('kare görünüyor', await A.locator('.kare .tutucu img').first().evaluate(i => i.complete && i.naturalWidth > 0));
+// Büyüteç: sayfa yakınlaştırması kapalı, fotoğrafa yakından bakmak yalnız burada
+{
+  const res = A.locator('.kare .tutucu img').first();
+  await res.click(); await A.waitForTimeout(400);
+  bekle('büyüteç: tek dokunuş açmıyor (kaydırmaya kalıyor)', (await A.locator('.buyutec').count()) === 0);
+  await res.dblclick(); await A.waitForTimeout(300);
+  bekle('büyüteç: çift dokununca açılıyor', (await A.locator('.buyutec').count()) === 1);
+  bekle('büyüteç: temayı ve kare sırasını söylüyor', icerir(await A.locator('.buyutec .bar').innerText(), '01 / 02'),
+    await A.locator('.buyutec .bar').innerText());
+  const donusum = () => A.evaluate(() => { const i = document.querySelector('.buyutec img'); return i ? new DOMMatrix(getComputedStyle(i).transform) : null; });
+  const olcek = async () => (await donusum())?.a ?? null;
+  bekle('büyüteç: çift dokunuş büyütülmüş açıyor', Math.abs(await olcek() - 2.2) < 0.01, String(await olcek()));
+  bekle('büyüteç: gren ve sekmelerin üstünde', await A.evaluate(() => {
+    const r = document.querySelector('.buyutec').getBoundingClientRect();
+    return document.elementFromPoint(r.width / 2, r.height - 2)?.closest('.buyutec') != null && Number(getComputedStyle(document.querySelector('.buyutec')).zIndex) > 30;
+  }));
+  // İki parmak: aradaki uzaklık 100'den 200'e çıkınca ölçek iki katına
+  const jest = (tip, id, x, y) => A.evaluate(([t, i, px, py]) => document.querySelector('.buyutec')?.dispatchEvent(
+    new PointerEvent(t, { pointerId: i, clientX: px, clientY: py, bubbles: true, pointerType: 'touch', isPrimary: i === 1 })), [tip, id, x, y]);
+  await jest('pointerdown', 1, 145, 400); await jest('pointerdown', 2, 245, 400);
+  await jest('pointermove', 2, 345, 400);
+  const iki = await olcek();
+  await jest('pointerup', 2, 345, 400); await jest('pointerup', 1, 145, 400);
+  bekle('büyüteç: iki parmakla büyüyor', Math.abs(iki - 4.4) < 0.05, String(iki));
+  bekle('büyüteç: jestten sonra açık kalıyor', (await A.locator('.buyutec').count()) === 1);
+  await jest('pointerdown', 1, 300, 300); await jest('pointermove', 1, 50, 300);
+  bekle('büyüteç: büyükken tek parmakla gezdiriliyor', ((await donusum())?.e ?? 0) < 0);
+  await jest('pointerup', 1, 50, 300);
+  bekle('büyüteç: sürüklemek kapatmıyor', (await A.locator('.buyutec').count()) === 1);
+  await jest('pointerdown', 1, 100, 300); await jest('pointerup', 1, 100, 300); await A.waitForTimeout(200);
+  bekle('büyüteç: dokununca kapanıyor', (await A.locator('.buyutec').count()) === 0);
+  await res.dblclick(); await A.waitForTimeout(300);
+  await A.keyboard.press('Escape'); await A.waitForTimeout(200);
+  bekle('büyüteç: Esc kapatıyor', (await A.locator('.buyutec').count()) === 0);
+}
 bekle('puan boşken sürükle yazıyor', (await A.locator('.puan .deger').first().innerText()).toLowerCase().includes('sürükle'));
 await olc(A, '28-oylama-kare');
 // ilk kareye 7 ver
@@ -606,6 +645,11 @@ bekle('detayda makine künyesi açık', icerir(await metin(A), 'Makine') && icer
 bekle('detayda diyafram ve ISO', icerir(await metin(A), 'f/2.8') && icerir(await metin(A), 'ISO'));
 bekle('detayda kaç kişi puan verdi', icerir(await metin(A), 'kişi puan verdi'));
 await olc(A, '38-kare-detay');
+await A.click('.detay > img'); await A.waitForTimeout(300);
+bekle('kare detayında fotoğrafa dokununca büyüteç açılıyor', (await A.locator('.buyutec').count()) === 1);
+await olc(A, '38b-kare-buyutec');
+await A.locator('.buyutec').click(); await A.waitForTimeout(200);
+bekle('büyüteç kapanınca detay yerinde', (await A.locator('.buyutec').count()) === 0 && (await A.locator('.detay').count()) === 1);
 await A.click('.detay .geri'); await A.waitForTimeout(1200);
 bekle('detaydan geri dönülüyor', (await A.locator('.sekmeler').count()) === 1);
 // üyenin gözünden: kendi karesi işaretli, başkasının sırasız karesinde puan yok

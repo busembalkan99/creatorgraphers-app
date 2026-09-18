@@ -3,6 +3,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz, kalanYaz, saatEki, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
+import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
@@ -54,7 +55,7 @@ export const acikEtkinlik = (liste: Etkinlik[]) =>
   liste.find(e => ['baslamadi', 'yukleme', 'oylama'].includes(asama(e)))
 
 export function Etkinlikler({ uye }: { uye: Uye }) {
-  const [v, setV] = useState<Veri | null>(null)
+  const [v, setV] = useState<Veri | null>(() => bellektenAl<Veri>(`${uye.id}:etkinlikler`) ?? null)
   const [hata, setHata] = useState<string | null>(null)
   const [, setTik] = useState(0)
 
@@ -64,7 +65,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
     // çevirip orada bırakıyordu. Başarılı yenileme önceki hatayı da temizler.
     let ilk = true
     const yukle = () => etkinlikVerisi(uye.id)
-      .then(d => { setV(d); setHata(null) })
+      .then(d => { setV(bellegeYaz(`${uye.id}:etkinlikler`, d)); setHata(null) })
       .catch(e => { if (ilk) setHata(hataMetni(e)) })
       .finally(() => { ilk = false })
     yukle()

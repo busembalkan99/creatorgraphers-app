@@ -3,6 +3,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, kalanYaz, saatYaz, sayiEki } from '../lib/zaman'
 import { git } from '../lib/yol'
+import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 
@@ -52,11 +53,13 @@ async function profilVerisi(hedef: string | undefined) {
 export function Profil({ uye, uyeDegisti, hedef }:
   { uye: Uye; uyeDegisti: (u: Uye) => void; hedef?: string }) {
   const benim = !hedef || hedef === uye.id
-  const [v, setV] = useState<Awaited<ReturnType<typeof profilVerisi>> | null>(null)
+  type Veri = Awaited<ReturnType<typeof profilVerisi>>
+  const anahtar = `${uye.id}:profil:${hedef ?? ''}`
+  const [v, setV] = useState<Veri | null>(() => bellektenAl<Veri>(anahtar) ?? null)
   const [hata, setHata] = useState<string | null>(null)
 
   useEffect(() => {
-    profilVerisi(hedef).then(setV).catch(x => setHata(hataMetni(x)))
+    profilVerisi(hedef).then(d => setV(bellegeYaz(anahtar, d))).catch(x => setHata(hataMetni(x)))
   }, [hedef, uye.id])
 
   const baslik = benim

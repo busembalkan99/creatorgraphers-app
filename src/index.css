@@ -15,6 +15,12 @@
   --yukle:#B52D12;
   --oyla:#0C6E4A;
   --acc:var(--ink);
+  /* Grenli zeminin telefonda görünen rengi: #0A0A0B üstüne %4,5 gren #0D0D0E ölçüldü.
+     Tarayıcının çizdiği her şey (theme-color, gövde, künyenin altındaki şerit) bunu kullanıyor. */
+  --gorunen:#0D0D0E;
+  /* Yapışkan künyenin yüksekliği: 14 üst pay + 32 mast + 6 ara + 4 ayraç. Künyenin altına
+     yapışan başka öğeler (sonuçtaki tema sekmeleri) buna göre duruyor. */
+  --tepe-boy:calc(56px + env(safe-area-inset-top));
   --acc-ink:var(--paper);
   --glow:0 0 7px rgba(181,45,18,.7), 0 0 22px rgba(181,45,18,.34);
 }
@@ -43,8 +49,13 @@ html,body{overflow:hidden;position:relative}
 /* Uygulamanın dışındaki zemin, içindeki grenli zeminin GÖRÜNEN rengi: #0A0A0B üstüne
    %4,5 gren telefonda #0D0D0E ölçüldü. theme-color ile aynı; tarayıcı çubukları, kenar
    esnemesi ve gövde tek renk dursun. */
-html{background:#0D0D0E}
-body{background:#0D0D0E;color:var(--ink);font-family:"Archivo",system-ui,sans-serif;
+/* Sayfa yakınlaştırması kapalı (Buse, 2026-09-18): uygulama gibi dursun, iki parmak
+   ekranı büyütmesin. touch-action alt öğelere kesişerek iniyor, yani burada pinch-zoom
+   yazılmayınca hiçbir yerde yok. Çift dokunarak büyütme de böyle kapanıyor. Yakından
+   bakmak yalnız fotoğrafta var (.buyutec). Safari için index.html'de gesturestart da
+   engelleniyor. */
+html{background:var(--gorunen);touch-action:pan-x pan-y}
+body{background:var(--gorunen);color:var(--ink);font-family:"Archivo",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;overscroll-behavior:none}
 @media (min-width:481px){body{background:#050506}}
 button,input{font:inherit;color:inherit}
@@ -67,15 +78,18 @@ input,textarea{-webkit-user-select:text;user-select:text}
 /* Yatay kayma kapalı: overflow-y:auto verilince tarayıcı yatayı da auto sayıyor ve iOS
    içerik sığsa bile alanı sağa sola esnetiyordu (Buse'nin telefonu, 18 Eylül). Chromium bunu
    taklit etmiyor; ölçümde taşma sıfırdı. touch-action tarayıcıya burada yalnız dikey
-   kaydırma ve iki parmakla yakınlaştırma olduğunu söylüyor. */
-.sc{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y pinch-zoom;
+   kaydırma olduğunu söylüyor. */
+.sc{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;
   padding:0 var(--pad) 18px;scrollbar-width:none;display:flex;flex-direction:column}
 /* Ust kunye sabit. Dikey pay .sc'den buraya tasindi: yapiskan ogenin top:0'i kabin
    DOLGU kutusuna gore hizalaniyor, .sc'nin ust dolgusu kunyeyi o kadar asagi
    yapistirip ustunde icerigin gorundugu bir bant birakiyordu.
    Yatay negatif pay tam genislikte zemin veriyor; yoksa tam genislige tasan ogeler
    (kapak gorseli gibi) kunyenin yanindan gecip gorunuyor. */
-.tepe{position:sticky;top:0;z-index:6;flex:0 0 auto;background:var(--paper);
+/* Künye grenin üstünde (z 31 > 30) ve düz --gorunen renkte: iOS Safari üstteki durum
+   çubuğu şeridini en üstteki öğenin YAZILI zemin renginden alıyor, üstündeki greni görmüyor.
+   Künye --paper iken şerit #0A0A0B, grenli içerik #0D0D0E kalıyor, dikiş görünüyordu. */
+.tepe{position:sticky;top:0;z-index:31;flex:0 0 auto;background:var(--gorunen);
   margin:0 calc(var(--pad) * -1);padding:calc(14px + env(safe-area-inset-top)) var(--pad) 0}
 .sc::-webkit-scrollbar{display:none}
 .bosluk{flex:1;min-height:12px}
@@ -468,7 +482,9 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .bas .meta{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap;font-size:11px;font-weight:800;
   letter-spacing:.04em;color:var(--soft)}
 
-.sekmeler{position:sticky;top:0;z-index:5;background:var(--paper);display:grid;margin-top:24px}
+/* Künyenin altına yapışıyor: top:0 iken künye de top:0'a yapıştığı için sekmeler
+   kaydırınca künyenin arkasında kayboluyordu */
+.sekmeler{position:sticky;top:var(--tepe-boy);z-index:5;background:var(--paper);display:grid;margin-top:24px}
 .sekmeler button{appearance:none;background:none;border:0;border-top:4px solid var(--rule);cursor:pointer;
   padding:11px 8px 12px;color:var(--soft);font-size:13px;font-weight:900;letter-spacing:.14em;
   text-transform:uppercase;overflow-wrap:anywhere}
@@ -634,3 +650,52 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 /* Sıralamaya giren karenin işareti mürekkep çubuk ve görünen puan. Künyeyi ayrıca
    bir ton açmak ölçeğe yedinci stili ekliyordu ve 0,09'luk fark zaten iş görmüyordu. */
 .gridnot{margin-top:9px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.6}
+
+/* ==========================================================
+   Hareket (Buse, 2026-09-18). iOS gibi: alt ekran sağdan kayarak gelir, geri dönüşte
+   önceki sayfa soldan belirir, sekmeler arası hareket yok. Basınca düğme hafifçe
+   küçülür, açılan içerik kısa ve sade belirir. "Hareketi azalt" açıksa hepsi kapalı
+   (yukarıdaki prefers-reduced-motion bloğu).
+   ========================================================== */
+.gecis{flex:1;min-height:0;display:flex;flex-direction:column}
+.gecis.yon-ileri{animation:sagdan .32s cubic-bezier(.32,.72,0,1)}
+.gecis.yon-geri{animation:soldan .28s cubic-bezier(.32,.72,0,1)}
+@keyframes sagdan{from{transform:translateX(100%)}to{transform:none}}
+@keyframes soldan{from{transform:translateX(-24%);opacity:.5}to{transform:none;opacity:1}}
+/* Geri dönüşte yer ayarlanana kadar görünmez: önce başta açılıp sonra zıplamasın */
+.gecis.bekliyor{visibility:hidden}
+
+/* Basınca küçülme. Düğmeler %3, tam genişlikteki satırlar %1,5: tam genişlikte %3
+   kenarları 6px içeri çekip titrek gösteriyordu. Sekme çubuğunda yok, orada zemin
+   zaten değişiyor. */
+.btn,.act,.rolakt button,.deg,.izin,.kk,.onaykutu .btn,.geri{transition:transform .12s cubic-bezier(.32,.72,0,1)}
+.btn:active:not(:disabled),.act:active,.rolakt button:active:not(:disabled),.deg:active,.kk:active,.geri:active{transform:scale(.97)}
+.satir.acilir,.row,.ev,.satir-kare,.izin,.unr .names button,.mud button,.izgara figure,.grid figure,.kursu figure{
+  transition:transform .12s cubic-bezier(.32,.72,0,1)}
+.satir.acilir:active,.row:active,.ev:active,.satir-kare:active,.izin:active{transform:scale(.985)}
+.unr .names button:active,.mud button:active,.izgara figure:active,.grid figure:active,.kursu figure:active{transform:scale(.97)}
+
+/* Açılan içerik: kısa ve sade, esneme ya da zıplama yok */
+@keyframes belir{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.rolakt,.onaykutu,.hata,.karar{animation:belir .18s cubic-bezier(.32,.72,0,1)}
+.satir .ok{transition:transform .18s cubic-bezier(.32,.72,0,1)}
+/* Onay kutusunun tiki basınca yerine oturuyor */
+@keyframes tik{from{transform:translate(-50%,-50%) rotate(45deg) scale(.4);opacity:0}to{transform:translate(-50%,-50%) rotate(45deg) scale(1);opacity:1}}
+.box.on::after{animation:tik .16s cubic-bezier(.32,.72,0,1)}
+
+/* Fotoğraf büyüteci (v12'den). Uygulamada sayfa yakınlaştırması kapalı, yakından bakmak
+   burada. Gren katmanının da üstünde: fotoğrafın üstüne hiçbir şey binmesin. */
+.buyutec{position:fixed;inset:0;z-index:50;height:var(--ekran,100dvh);background:#050506;
+  display:grid;place-items:center;overflow:hidden;touch-action:none;cursor:zoom-out;
+  animation:acil .18s cubic-bezier(.32,.72,0,1)}
+@keyframes acil{from{opacity:0}to{opacity:1}}
+.buyutec img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;
+  transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none}
+.buyutec .bar,.buyutec .alt{position:absolute;left:0;right:0;z-index:2;display:flex;gap:10px;
+  font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);pointer-events:none}
+.buyutec .bar{top:0;align-items:baseline;padding:calc(14px + env(safe-area-inset-top)) var(--pad) 14px;
+  background:linear-gradient(to bottom,rgba(5,5,6,.9),transparent)}
+.buyutec .bar .r{margin-left:auto;font-variant-numeric:tabular-nums}
+.buyutec .alt{bottom:0;justify-content:center;padding:14px var(--pad) calc(16px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,rgba(5,5,6,.9),transparent)}
+.tutucu img,.detay>img{cursor:zoom-in}

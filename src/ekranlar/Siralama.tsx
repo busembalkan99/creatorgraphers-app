@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Uye } from '../lib/tipler'
 import { git } from '../lib/yol'
+import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
@@ -47,11 +48,12 @@ async function siralamaVerisi() {
 }
 
 export function Siralama({ uye }: { uye: Uye }) {
-  const [v, setV] = useState<Awaited<ReturnType<typeof siralamaVerisi>> | null>(null)
+  type Veri = Awaited<ReturnType<typeof siralamaVerisi>>
+  const [v, setV] = useState<Veri | null>(() => bellektenAl<Veri>(`${uye.id}:siralama`) ?? null)
   const [hata, setHata] = useState<string | null>(null)
 
   useEffect(() => {
-    siralamaVerisi().then(setV).catch(x => setHata(hataMetni(x)))
+    siralamaVerisi().then(d => setV(bellegeYaz(`${uye.id}:siralama`, d))).catch(x => setHata(hataMetni(x)))
   }, [uye.id])
 
   if (hata) return <div className="sc"><Kunye sol="Creatorgraphers" sag="Sıralama" /><Hata metin={hata} /></div>

@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { ayarEksik, sb, hataMetni, sor } from './lib/supabase'
 import type { Uye } from './lib/tipler'
-import { git, useYol } from './lib/yol'
+import { git, sekmeGit, sonYon, useYol } from './lib/yol'
 import { geriAlinacak } from './lib/kaydirma'
 import { Ikon } from './bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from './bilesenler/Kunye'
@@ -98,18 +98,33 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   const yol = useYol()
   const yonetici = uye.rol !== 'uye'
 
-  // Geri dönülüyorsa bırakılan yere dön. Veri geç gelebildiği için içerik o yere
-  // yetecek kadar uzayana kadar bekleniyor (en fazla 2 saniye).
-  useEffect(() => {
+  // Sayfa hareketinin yönü bu geçişte okunuyor (iOS gibi: alt ekran sağdan gelir,
+  // geri dönüşte önceki sayfa soldan belirir, sekmeler arası hareket yok).
+  const yon = sonYon()
+  const sarmal = useRef<HTMLDivElement>(null)
+
+  // Geri dönülüyorsa bırakılan yere BOYAMADAN ÖNCE dön. Sekme verisi bellekte olduğu için
+  // ekran genelde ilk karede tam boyunda (onbellek.ts); o zaman zıplama yok. Değilse ekran
+  // içerik o yere yetene kadar gizli bekliyor (en fazla 2 sn): önce başta açılıp sonra
+  // aşağı kayması "buggy" görünüyordu (Buse, 2026-09-18).
+  useLayoutEffect(() => {
     const y = geriAlinacak(yol)
     if (y == null || y <= 0) return
+    const sc = sarmal.current?.querySelector('.sc')
+    if (sc && sc.scrollHeight - sc.clientHeight >= y - 2) { sc.scrollTop = y; return }
+    const kap = sarmal.current
+    kap?.classList.add('bekliyor')
     let n = 0
     const z = window.setInterval(() => {
-      const sc = document.querySelector('.sc')
-      if (sc && sc.scrollHeight - sc.clientHeight >= y - 2) { sc.scrollTop = y; window.clearInterval(z) }
-      else if (++n > 40) { if (sc) sc.scrollTop = y; window.clearInterval(z) }
+      const s2 = sarmal.current?.querySelector('.sc')
+      const yetti = s2 && s2.scrollHeight - s2.clientHeight >= y - 2
+      if (yetti || ++n > 40) {
+        if (s2) s2.scrollTop = y
+        kap?.classList.remove('bekliyor')
+        window.clearInterval(z)
+      }
     }, 50)
-    return () => window.clearInterval(z)
+    return () => { window.clearInterval(z); kap?.classList.remove('bekliyor') }
   }, [yol])
 
   let ekran
@@ -166,12 +181,12 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
 
   return (
     <>
-      {/* key: aynı ekrana geri dönünce veri tazelensin */}
-      <div key={yol} style={{ display: 'contents' }}>{ekran}</div>
+      {/* key: aynı ekrana geri dönünce veri tazelensin. Sınıf sayfa hareketini seçiyor. */}
+      <div key={yol} ref={sarmal} className={`gecis yon-${yon}`}>{ekran}</div>
       {!altEkran && (
         <nav className="tabs">
           {SEKMELER.map(s => (
-            <button key={s.yol} className={sekme === s.yol ? 'on' : ''} aria-current={sekme === s.yol ? 'page' : undefined} onClick={() => git(s.yol)}>
+            <button key={s.yol} className={sekme === s.yol ? 'on' : ''} aria-current={sekme === s.yol ? 'page' : undefined} onClick={() => sekmeGit(s.yol)}>
               <Ikon ad={s.ikon} />
               {s.ad}
             </button>

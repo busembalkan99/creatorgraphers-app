@@ -21,7 +21,8 @@ const oku = y => fs.readFileSync(KOK + y, 'utf8');
   // aynı rengi, grenli zeminin görünen rengini (#0D0D0E) söylemeli
   const tema = html.match(/name="theme-color" content="(#[0-9A-Fa-f]{6})"/)?.[1];
   bekle('theme-color grenli zeminin görünen rengi', tema === '#0D0D0E', tema);
-  bekle('gövde zemini theme-color ile aynı', /body\{background:#0D0D0E/.test(css.replace(/\s+/g, '')));
+  bekle('görünen zemin değişkeni theme-color ile aynı', new RegExp(`--gorunen:${tema}`).test(css.replace(/\s+/g, '')));
+  bekle('gövde zemini görünen renkte', /body\{background:var\(--gorunen\)/.test(css.replace(/\s+/g, '')));
   bekle('manifest renkleri theme-color ile aynı', manifest.theme_color === tema && manifest.background_color === tema,
     `${manifest.theme_color} ${manifest.background_color}`);
   bekle('kabuk yüksekliği ölçülen ekrandan', /body\{height:100dvh;height:var\(--ekran,100dvh\)\}/.test(css.replace(/\s+/g, '')),
@@ -38,7 +39,15 @@ const oku = y => fs.readFileSync(KOK + y, 'utf8');
     const kural = (css.replace(/\s+/g, '').match(new RegExp(`\\.${sinif}\\{[^}]*\\}`)) ?? [''])[0];
     bekle(`.${sinif}: yatay kaydırma kapalı`, kural.includes('overflow-x:hidden'), kural);
   }
-  bekle('.sc: yalnız dikey kaydırma ve yakınlaştırma', /\.sc\{[^}]*touch-action:pan-ypinch-zoom/.test(css.replace(/\s+/g, '')));
+  // Sayfa yakınlaştırması kapalı (Buse, 2026-09-18); yakından bakmak yalnız büyüteçte
+  const duz = css.replace(/\s+/g, '');
+  bekle('.sc: yalnız dikey kaydırma', /\.sc\{[^}]*touch-action:pan-y;/.test(duz));
+  bekle('sayfa kökünde iki parmak yakınlaştırması kapalı', /html\{[^}]*touch-action:pan-xpan-y/.test(duz));
+  bekle('büyüteç dışında hiçbir yerde pinch-zoom yok', !duz.replace(/\/\*.*?\*\//g, '').includes('pinch-zoom'));
+  bekle('viewport yakınlaştırmayı kapatıyor', /maximum-scale=1/.test(html) && /user-scalable=no/.test(html));
+  bekle('Safari iki parmak jesti durduruluyor',
+    /addEventListener\('gesturestart', durdur, \{ passive: false \}\)/.test(html) && /function durdur\(e\) \{ e\.preventDefault\(\); \}/.test(html));
+  bekle('büyüteç jesti kendisi sayıyor', /\.buyutec\{[^}]*touch-action:none/.test(duz));
   bekle('eski kaydırma özelliği yok', !css.includes('-webkit-overflow-scrolling'));
   bekle('üst künyede güvenli alan payı', /\.tepe\{[^}]*env\(safe-area-inset-top\)/.test(css.replace(/\s+/g, '')));
   // Pay kapta olursa seçili sekmenin dolgusu alt kenara inmiyor
@@ -190,6 +199,71 @@ for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
   bekle(`${yol}: boşluğa doğru kaydırma yok`, r !== null && r <= 24, String(r));
 }
 
+// Hareket (Buse, 2026-09-18): ileri sağdan kayar, geri soldan belirir, sekmede hareket yok
+{
+  const gecis = () => p.evaluate(() => {
+    const g = document.querySelector('.gecis');
+    return { sinif: g?.className ?? null, anim: g ? g.getAnimations().map(a => a.animationName) : [] };
+  });
+  await p.goto(APP + '#/etkinlikler'); await p.reload(); await p.waitForTimeout(1500);
+  bekle('hareket: ilk açılışta kayma yok', (await gecis()).anim.length === 0, JSON.stringify(await gecis()));
+  await p.click('.tabs button:has-text("Profil")'); await p.waitForTimeout(50);
+  const sekme = await gecis();
+  bekle('hareket: sekme değişince kayma yok', sekme.sinif.includes('yon-sekme') && sekme.anim.length === 0, JSON.stringify(sekme));
+  await p.waitForTimeout(1200);
+  await p.setViewportSize({ width: 390, height: 460 });
+  await p.waitForTimeout(300);
+  // Profili dibine kadar kaydır, Üyeler'e git, geri gel: kaldığın yerde açılmalı ve
+  // hiçbir karede başa dönüp sonra aşağı zıplamamalı
+  const yer = await p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop); });
+  bekle('hareket: profil kaydırılabilir', yer > 80, String(yer));
+  await p.locator('button.satir', { hasText: 'Katılma istekleri, üye listesi' }).or(p.locator('button.satir', { hasText: 'İstekler, roller' })).first().click();
+  await p.waitForTimeout(40);
+  const ileri = await gecis();
+  bekle('hareket: alt ekran sağdan kayarak geliyor', ileri.sinif.includes('yon-ileri') && ileri.anim.includes('sagdan'), JSON.stringify(ileri));
+  await p.waitForTimeout(1500);
+  await p.evaluate(() => {
+    window.__ornek = [];
+    const f = () => {
+      const sc = document.querySelector('.sc');
+      const profilde = !!document.querySelector('.tabs button.on')?.textContent.includes('Profil') && !!sc?.textContent.includes('Yönetim');
+      const gorunur = !document.querySelector('.gecis.bekliyor');
+      if (profilde && gorunur) window.__ornek.push(Math.round(sc.scrollTop));
+      if (performance.now() - t0 < 900) requestAnimationFrame(f);
+    };
+    const t0 = performance.now();
+    requestAnimationFrame(f);
+  });
+  await p.goBack(); await p.waitForTimeout(30);
+  const geri = await gecis();
+  await p.waitForTimeout(1000);
+  const ornek = await p.evaluate(() => window.__ornek);
+  bekle('hareket: geri dönüş soldan beliriyor', geri.sinif.includes('yon-geri') && geri.anim.includes('soldan'), JSON.stringify(geri));
+  // Yön sınıfı geri düğmesinin sınıfıyla çakışıyordu (.geri): dönünce bütün ekran
+  // düğme gibi ortalanıp daralıyordu
+  const dizilim = await p.evaluate(() => getComputedStyle(document.querySelector('.gecis')).alignItems);
+  bekle('hareket: geri dönen ekran düğme stili almıyor', dizilim !== 'center', dizilim);
+  bekle('hareket: geri dönünce görünen her karede kaldığın yer', ornek.length > 5 && Math.min(...ornek) >= yer - 2,
+    `${yer} · ${ornek.slice(0, 12).join(',')} (${ornek.length})`);
+  await p.emulateMedia({ reducedMotion: 'reduce' });
+  await p.goto(APP + '#/profil'); await p.waitForTimeout(800);
+  await p.locator('button.satir', { hasText: 'Katılma istekleri, üye listesi' }).or(p.locator('button.satir', { hasText: 'İstekler, roller' })).first().click();
+  await p.waitForTimeout(40);
+  bekle('hareket: "hareketi azalt" açıkken kayma yok', (await gecis()).anim.length === 0, JSON.stringify(await gecis()));
+  // Basınca küçülme: :active olunca düğme %3 küçülüyor
+  await p.emulateMedia({ reducedMotion: 'no-preference' });
+  await p.waitForTimeout(600);
+  const btn = p.locator('.sc .geri').first();
+  const kutu = await btn.boundingBox();
+  // Basılı dururken ölç. Chromium dokunmatik öykünmede :active vermiyor, fare veriyor;
+  // telefonda :active için index.html'deki boş touchstart dinleyicisi var.
+  await p.mouse.move(kutu.x + kutu.width / 2, kutu.y + kutu.height / 2); await p.mouse.down(); await p.waitForTimeout(250);
+  const basili = await btn.evaluate(e => new DOMMatrix(getComputedStyle(e).transform).a);
+  await p.mouse.up();
+  bekle('hareket: basınca düğme küçülüyor', Math.abs(basili - 0.97) < 0.005, String(basili));
+  await p.setViewportSize({ width: 390, height: 844 });
+}
+
 // Yatay çevirince kırılma olmasın
 await p.setViewportSize({ width: 844, height: 390 });
 for (const yol of ['etkinlikler', 'siralama', 'profil']) {
@@ -304,6 +378,31 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   }));
   bekle('üyeler: düğmeler kapalıyken görünmüyor', r.acikAksiyon === 0, JSON.stringify(r));
   bekle('üyeler: rozet sütunu hizalı', r.rozetSag.length === 1, JSON.stringify(r.rozetSag));
+}
+
+// Künye: iOS Safari üst şeridi künyenin yazılı zemininden alıyor, grenin üstünde ve düz
+// görünen renkte olmalı. Sonuçtaki tema sekmeleri künyenin arkasına değil altına yapışmalı.
+{
+  await p.goto(APP + '#/siralama'); await p.reload(); await p.waitForTimeout(1500);
+  const r = await p.evaluate(() => {
+    const t = document.querySelector('.tepe'), st = getComputedStyle(t);
+    return { zemin: st.backgroundColor, z: Number(st.zIndex),
+      gren: Number(getComputedStyle(document.querySelector('.app'), '::after').zIndex),
+      tema: document.querySelector('meta[name=theme-color]').content };
+  });
+  bekle('künye zemini görünen renkte (#0D0D0E)', r.zemin === 'rgb(13, 13, 14)', r.zemin);
+  bekle('künye grenin üstünde', r.z > r.gren, `${r.z} / ${r.gren}`);
+
+  const { data: ev } = await admin.from('etkinlikler').select('id').order('bulusma_gunu', { ascending: false }).limit(1);
+  await p.goto(APP + '#/sonuc/' + ev[0].id); await p.waitForTimeout(1800);
+  const s2 = await p.evaluate(() => {
+    const sc = document.querySelector('.sc');
+    const d = document.createElement('div'); d.style.cssText = 'height:1500px;flex:0 0 auto'; sc.appendChild(d);
+    sc.scrollTop = 900;
+    const t = document.querySelector('.tepe').getBoundingClientRect(), k = document.querySelector('.sekmeler')?.getBoundingClientRect();
+    return k ? { tepeAlt: Math.round(t.bottom), sekmeUst: Math.round(k.top) } : null;
+  });
+  bekle('sonuç sekmeleri künyenin hemen altına yapışıyor', s2 && Math.abs(s2.sekmeUst - s2.tepeAlt) <= 1, JSON.stringify(s2));
 }
 
 // Oylamada kareye uzun basınca kaydet menüsü çıkmasın (Chromium bu özelliği okumuyor, kural denetleniyor)

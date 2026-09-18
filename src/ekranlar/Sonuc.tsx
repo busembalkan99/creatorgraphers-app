@@ -4,6 +4,7 @@ import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
+import { Buyutec } from '../bilesenler/Buyutec'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
@@ -233,6 +234,7 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
     ['ISO', kare.iso],
   ]
   const dolu = kunye.filter(([, v]) => v)
+  const [buyuk, setBuyuk] = useState(false)
   return (
     <div className="sc detay">
       <header className="tepe">
@@ -242,7 +244,9 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
         </div>
         <div className="rb" />
       </header>
-      {kare.url && <img src={kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`} />}
+      {kare.url && <img src={kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`}
+        onClick={() => setBuyuk(true)} />}
+      {buyuk && kare.url && <Buyutec acik={{ url: kare.url, baslik: kare.tema_ad, sag: kare.sahip_ad }} kapat={() => setBuyuk(false)} />}
       <div className="kim">
         <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>
         {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}

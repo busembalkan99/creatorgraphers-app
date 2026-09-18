@@ -2,7 +2,7 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
     <!-- Grenli zeminin telefonda GÖRÜNEN rengi (Buse'nin iPhone ekran görüntüsünden ölçüldü):
          #0A0A0B üstüne %4,5 gren #0D0D0E veriyor. Safari çubukları greni bilmiyor, çıplak
          #0A0A0B verilince üstte ve altta 3 tonluk bir dikiş görünüyordu. -->
@@ -44,6 +44,15 @@
         addEventListener('resize', ekran);
         addEventListener('orientationchange', function () { setTimeout(ekran, 200); });
         if (window.visualViewport) visualViewport.addEventListener('resize', ekran);
+        // iOS Safari, sayfada dokunma dinleyicisi yoksa :active stilini hiç uygulamıyor;
+        // basınca küçülme telefonda görünmezdi. Boş bir dinleyici yetiyor.
+        document.addEventListener('touchstart', function () {}, { passive: true });
+        // Sayfa yakınlaştırması kapalı. iOS Safari viewport'taki user-scalable=no'yu yok
+        // sayıyor, iki parmak jestini ancak bu olayı durdurarak engelliyoruz. Fotoğraf
+        // büyüteci jesti kendisi sayıyor (pointer olayları), bundan etkilenmiyor.
+        function durdur(e) { e.preventDefault(); }
+        document.addEventListener('gesturestart', durdur, { passive: false });
+        document.addEventListener('gesturechange', durdur, { passive: false });
       })();
     </script>
     <div id="root"></div>

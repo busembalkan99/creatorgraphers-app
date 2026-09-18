@@ -4,6 +4,7 @@ import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, kalanYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
+import { Buyutec, useBuyutecTetigi, type Acik } from '../bilesenler/Buyutec'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 
@@ -125,6 +126,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   // ekrandaki ara değere değil, sunucudaki değere döner.
   const onaylanan = useRef<Record<string, number | null>>({})
   const akis = useRef<HTMLDivElement>(null)
+  const [buyuk, setBuyuk] = useState<Acik | null>(null)
+  const tetik = useBuyutecTetigi()
 
   useEffect(() => {
     ;(async () => {
@@ -192,7 +195,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           <div className="sahne">
             <div className="tutucu">
               {k.url ? (
-                <img src={k.url} width={k.genislik} height={k.yukseklik} alt={`${tema.ad} ${i + 1}. kare`} draggable={false} />
+                <img src={k.url} width={k.genislik} height={k.yukseklik} alt={`${tema.ad} ${i + 1}. kare`} draggable={false}
+                  {...tetik(olcek => setBuyuk({ url: k.url!, baslik: tema.ad, sag: `${iki(i + 1)} / ${iki(kareler.length)}`, olcek }))} />
               ) : (
                 <div className="bos" style={{ width: 200, height: 140 }} />
               )}
@@ -229,6 +233,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           </>
         )}
       </section>
+      {buyuk && <Buyutec acik={buyuk} kapat={() => setBuyuk(null)} />}
     </div>
   )
 }

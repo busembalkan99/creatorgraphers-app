@@ -123,7 +123,7 @@ export function Asama() {
           {kopyalandi ? 'Kopyalandı' : 'Kopyala'}
         </button>
       </div>
-      <p className="veri">Mesajı gruba sen yapıştıracaksın. Uygulama bildirim göndermiyor.</p>
+      <p className="veri">Mesajı gruba sen yapıştıracaksın.</p>
 
       <Hata metin={hata} />
 

@@ -218,7 +218,7 @@ function IstekFormu({ eposta, tekrar, ilkAd, kullaniciId, gonderildi }: {
       <h2 className="t">{tekrar ? <>Tekrar<br />istek bırak</> : <>Kulüpte<br />henüz yoksun</>}</h2>
       <p className="lede">
         {tekrar
-          ? 'Önceki isteğin kabul edilmedi. Yönetici tekrar olduğunu görecek. Notuna sebebini yaz.'
+          ? 'Önceki isteğin kabul edilmedi. Notuna sebebini yaz.'
           : 'Bu hesap listede yok. İstek bırak, yönetici onaylasın.'}
       </p>
       <div className="hesap"><span className="lab">Google hesabın</span><b>{eposta}</b></div>

@@ -2,7 +2,7 @@
 <html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
     <!-- Grenli zeminin telefonda GÖRÜNEN rengi (Buse'nin iPhone ekran görüntüsünden ölçüldü):
          #0A0A0B üstüne %4,5 gren #0D0D0E veriyor. Safari çubukları greni bilmiyor, çıplak
          #0A0A0B verilince üstte ve altta 3 tonluk bir dikiş görünüyordu. -->
@@ -30,8 +30,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-CzforMMP.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-aZK_Q2Y4.css">
+    <script type="module" crossorigin src="/assets/index-2xpH533Z.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DgnPrU6S.css">
   </head>
   <body>
     <script>
@@ -46,6 +46,15 @@
         addEventListener('resize', ekran);
         addEventListener('orientationchange', function () { setTimeout(ekran, 200); });
         if (window.visualViewport) visualViewport.addEventListener('resize', ekran);
+        // iOS Safari, sayfada dokunma dinleyicisi yoksa :active stilini hiç uygulamıyor;
+        // basınca küçülme telefonda görünmezdi. Boş bir dinleyici yetiyor.
+        document.addEventListener('touchstart', function () {}, { passive: true });
+        // Sayfa yakınlaştırması kapalı. iOS Safari viewport'taki user-scalable=no'yu yok
+        // sayıyor, iki parmak jestini ancak bu olayı durdurarak engelliyoruz. Fotoğraf
+        // büyüteci jesti kendisi sayıyor (pointer olayları), bundan etkilenmiyor.
+        function durdur(e) { e.preventDefault(); }
+        document.addEventListener('gesturestart', durdur, { passive: false });
+        document.addEventListener('gesturechange', durdur, { passive: false });
       })();
     </script>
     <div id="root"></div>

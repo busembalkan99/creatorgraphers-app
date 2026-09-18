@@ -86,7 +86,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
         <button className="btn ik" onClick={() => git('kur')}>Etkinliği kur</button>
       )}
 
-      <div className="sec">Geçmiş etkinlikler<span>{gecmis.length} etkinlik</span></div>
+      <h2 className="sec">Geçmiş etkinlikler<span>{gecmis.length} etkinlik</span></h2>
       {gecmis.length === 0 && <p className="veri">İlk etkinlik bitince burada duracak.</p>}
       {gecmis.map((e, i) => {
         const tm = v.temalar.filter(t => t.etkinlik === e.id)

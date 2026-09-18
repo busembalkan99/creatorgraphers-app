@@ -188,7 +188,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
 
           {galeri.length > 0 && (
             <>
-              <div className="sec">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></div>
+              <h2 className="sec">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></h2>
               <div className="izgara">
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => setDetay(k)}>

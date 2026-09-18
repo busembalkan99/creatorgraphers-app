@@ -105,7 +105,7 @@ export function Siralama({ uye }: { uye: Uye }) {
       {!acik ? (
         <>
           {/* Karar 34: kilitli kalır, gizlenmez */}
-          <div className="sec">Sezon sıralaması</div>
+          <h2 className="sec">Sezon sıralaması</h2>
           <div className="empty" style={{ marginTop: 0 }}>
             <b>İlk sonuçlarla açılıyor</b>
             <span>İlk etkinliğin oylaması kapanınca sıralama burada başlıyor.</span>
@@ -121,7 +121,7 @@ export function Siralama({ uye }: { uye: Uye }) {
         </>
       ) : (
         <>
-          <div className="sec">Sezon sıralaması<span>İlk {sirali.length}</span></div>
+          <h2 className="sec">Sezon sıralaması<span>İlk {sirali.length}</span></h2>
           {sirali.length === 0 && (
             <div className="empty" style={{ marginTop: 0 }}>
               <b>Sıralama henüz yok</b>

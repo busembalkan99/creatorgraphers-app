@@ -73,7 +73,7 @@ export function Asama() {
   return (
     <div className="sc" data-asama={a === 'oylama' ? 'oylama' : 'yukleme'}>
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
-      <div className="sec">{ay} etkinliği<span>{gunYaz(e.bulusma_gunu, false)}</span></div>
+      <h2 className="sec">{ay} etkinliği<span>{gunYaz(e.bulusma_gunu, false)}</span></h2>
       <p className="veri" style={{ marginTop: 0 }}><b>{durum}</b></p>
 
       <div className="ozet" style={{ marginTop: 12 }}>
@@ -129,7 +129,7 @@ export function Asama() {
 
       {(a === 'baslamadi' || a === 'yukleme') && (
         <>
-          <div className="sec">Etkinliği iptal et</div>
+          <h2 className="sec">Etkinliği iptal et</h2>
           {soru === 'iptal' ? (
             <div className="kutu" style={{ marginTop: 0 }}>
               <div className="bas"><span>{ay} etkinliği iptal edilsin mi?</span></div>

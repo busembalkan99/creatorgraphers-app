@@ -196,6 +196,27 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
 }
 await p.setViewportSize({ width: 390, height: 844 });
 
+// Ekran okuyucu için yapı: her ekranda en az bir başlık, adsız düğme ve
+// etiketsiz alan olmasın, görseller alt taşısın
+for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1500);
+  const r = await p.evaluate(() => {
+    const ad = e => (e.getAttribute('aria-label') || e.textContent.trim() || '').trim();
+    return {
+      baslik: document.querySelectorAll('.sc h1, .sc h2, .sc h3').length,
+      adsiz: [...document.querySelectorAll('button')].filter(e => e.getBoundingClientRect().width && !ad(e)).length,
+      altsiz: [...document.querySelectorAll('img')].filter(e => !e.hasAttribute('alt')).length,
+      etiketsiz: [...document.querySelectorAll('input, select, textarea')].filter(e =>
+        !e.getAttribute('aria-label') && !(e.id && document.querySelector(`label[for="${e.id}"]`))).length,
+    };
+  });
+  bekle(`${yol}: ekranda başlık var`, r.baslik > 0, JSON.stringify(r));
+  bekle(`${yol}: adsız düğme yok`, r.adsiz === 0, JSON.stringify(r));
+  bekle(`${yol}: alt'sız görsel yok`, r.altsiz === 0, JSON.stringify(r));
+  bekle(`${yol}: etiketsiz form alanı yok`, r.etiketsiz === 0, JSON.stringify(r));
+}
+
 // Sıkı harf aralıklı kalın büyük harflerde kelime arası kayboluyor ("BARIŞAK").
 // Negatif harf aralığı olan büyük harf başlıklarda kelime arası payı olmalı.
 for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler']) {

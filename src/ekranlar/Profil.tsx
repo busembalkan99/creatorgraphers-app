@@ -89,7 +89,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         <p className="veri">Ortalaman <b>{puanYaz(k.ortalama)}</b>. Yalnız sen görüyorsun.</p>
       )}
 
-      <div className="sec">Katkı</div>
+      <h2 className="sec">Katkı</h2>
       {k.tam_set || Number(k.tema_sayisi) > 0 ? (
         <div className="badges">
           {k.tam_set && (
@@ -112,7 +112,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </div>
       )}
 
-      <div className="sec">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></div>
+      <h2 className="sec">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></h2>
       {v.tarif.length === 0 ? (
         <div className="empty" style={{ marginTop: 0 }}>
           <b>Çekim tarifi</b>
@@ -146,7 +146,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </>
       )}
 
-      <div className="sec">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></div>
+      <h2 className="sec">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></h2>
       {bos ? (
         <div className="empty" style={{ marginTop: 0 }}>
           <b>Henüz kare yok</b>
@@ -210,7 +210,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
   return (
     <>
-      <div className="sec">Ayarlar<span>{uye.eposta}</span></div>
+      <h2 className="sec">Ayarlar<span>{uye.eposta}</span></h2>
       <button className="izin" onClick={afis} aria-pressed={uye.afis_izni} style={{ marginTop: 0 }}>
         <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
         <span><b>Kulüp afişi</b><span>Kazanırsam karem kulüp afişinde kullanılabilir.</span></span>
@@ -218,7 +218,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
       {yonetici && (
         <>
-          <div className="sec">Yönetim</div>
+          <h2 className="sec">Yönetim</h2>
           {bekleyen !== null && bekleyen > 0 && (
             <button className="satir" onClick={() => git('uyeler')}>
               <div className="tx"><b>{bekleyen} katılma isteği</b><span>Onaylaman ya da reddetmen bekleniyor</span></div>

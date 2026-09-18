@@ -83,7 +83,7 @@ export function Oylama({ uye }: { uye: Uye }) {
         {zorunluKalan === 0 && kalanToplam > 0 && ' · bunların hiçbiri zorunlu değil'}
       </div>
 
-      <div className="sec">Temalar<span>{v.durum.length} tema</span></div>
+      <h2 className="sec">Temalar<span>{v.durum.length} tema</span></h2>
       {v.durum.map(t => {
         const kalan = t.toplam - t.puanladigim
         const oran = t.toplam ? (t.puanladigim / t.toplam) * 100 : 100

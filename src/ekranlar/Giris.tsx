@@ -153,7 +153,7 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
             <div className="bas"><Ikon ad="saat" /><span>Onay bekleniyor</span></div>
             <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
           </div>
-          <div className="sec">Gönderdiğin</div>
+          <h2 className="sec">Gönderdiğin</h2>
           <Ozet istek={d.istek} />
           <div className="bosluk" />
           <button className="link" onClick={baskaHesap}>Başka hesapla gir</button>
@@ -168,7 +168,7 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
             <div className="bas"><Ikon ad="info" /><span>Bu hesapla kulübe giremiyorsun</span></div>
             <p>Yönetici isteği onaylamadı. Yanlışlık varsa notuna yaz, tekrar iste.</p>
           </div>
-          <div className="sec">Gönderdiğin</div>
+          <h2 className="sec">Gönderdiğin</h2>
           <Ozet istek={d.istek} />
           <div className="bosluk" />
           <button className="btn" onClick={() => setD({ tip: 'istek', tekrar: true, ad: d.istek.ad })}>Tekrar istek bırak</button>
@@ -279,7 +279,7 @@ export function Hosgeldin({ ad, devam }: { ad: string; devam: () => void }) {
       <Kunye sol="Creatorgraphers" />
       <h2 className="t">Hoş geldin,<br />{ad.split(' ')[0]}</h2>
       <p className="lede">İsteğin onaylandı. Kulüp şöyle işliyor:</p>
-      <div className="sec">Bir etkinlik</div>
+      <h2 className="sec">Bir etkinlik</h2>
       <div className="adim"><span className="no">01</span><span><b>Buluşup çekiyoruz</b>
         <span>Her temaya bir kare yüklüyorsun. Bazı temalar buluşma günü çekiliyor.</span></span></div>
       <div className="adim"><span className="no">02</span><span><b>İsimsiz oyluyoruz</b>

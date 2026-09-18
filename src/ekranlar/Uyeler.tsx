@@ -92,7 +92,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Üyeler" />
       <Hata metin={hata} />
-      <div className="sec">Katılma istekleri<span>{bekleyen} bekliyor</span></div>
+      <h2 className="sec">Katılma istekleri<span>{bekleyen} bekliyor</span></h2>
       {istekler.length === 0 && <p className="veri">Bekleyen istek yok.</p>}
       {istekler.map(r => (
         <div className="istek" key={r.id}>
@@ -125,7 +125,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
         </div>
       ))}
 
-      <div className="sec">Üyeler<span>{icerideki} üye</span></div>
+      <h2 className="sec">Üyeler<span>{icerideki} üye</span></h2>
       {uyeler.map(u => {
         const disarda = !!u.cikarildi_at
         return (

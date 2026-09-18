@@ -50,7 +50,7 @@ export function Kapak() {
  * Kulüpten çıkarılan kişi (karar 99). Satırı duruyor, kareleri geçmişte kalıyor,
  * uygulamaya giremiyor. İstek bırakıp geri dönebiliyor; yönetici de listeden geri alabiliyor.
  */
-export function Cikarildin({ ad, istekBirak }: { ad: string; istekBirak: () => void }) {
+export function Cikarildin({ istekBirak }: { istekBirak: () => void }) {
   return (
     <div className="sc">
       <header className="tepe">
@@ -58,7 +58,9 @@ export function Cikarildin({ ad, istekBirak }: { ad: string; istekBirak: () => v
         <div className="rb" />
       </header>
       <h2 className="t orta">Artık<br />kulüpte değilsin</h2>
-      <p className="lede">{ad}, hesabın kapatıldı. Kareler ve sonuçlar yerinde duruyor.</p>
+      {/* "Hesabın kapatıldı" doğru değil: hesap duruyor, kişi kulüpten çıkarıldı.
+          İlk cümle de başlığı tekrar ediyordu. */}
+      <p className="lede">Karelerin yerinde duruyor.</p>
       <div className="bosluk" />
       <button className="btn" onClick={istekBirak}>İstek bırak</button>
       <button className="btn ik" onClick={() => sb.auth.signOut()}>Çıkış yap</button>
@@ -166,7 +168,7 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
           <h2 className="t">İsteğin<br />kabul<br />edilmedi</h2>
           <div className="kutu">
             <div className="bas"><Ikon ad="info" /><span>Bu hesapla kulübe giremiyorsun</span></div>
-            <p>Yönetici isteği onaylamadı. Yanlışlık varsa notuna yaz, tekrar iste.</p>
+            <p>Yanlışlık varsa notuna yaz, tekrar iste.</p>
           </div>
           <h2 className="sec">Gönderdiğin</h2>
           <Ozet istek={d.istek} />

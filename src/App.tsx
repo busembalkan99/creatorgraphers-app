@@ -69,7 +69,7 @@ function Icerik({ oturum }: { oturum: Session }) {
   if (uye === null) return <UyeDegil kullanici={kullanici} uyeOldu={uyeYukle} />
   // Karar 99: çıkarılan kişi kapalı ekranı görür, isterse oradan istek bırakır
   if (uye.cikarildi_at && !istekAcik) {
-    return <Cikarildin ad={uye.ad.split(' ')[0]} istekBirak={() => setIstekAcik(true)} />
+    return <Cikarildin istekBirak={() => setIstekAcik(true)} />
   }
   if (uye.cikarildi_at) return <UyeDegil kullanici={kullanici} uyeOldu={uyeYukle} cikarildi />
   if (!uye.hosgeldin_goruldu && uye.rol !== 'kurucu') {

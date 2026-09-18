@@ -83,7 +83,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .lede{font-size:13px;color:var(--dim);line-height:1.6;margin-top:10px;max-width:34ch}
 .lab{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
 .veri{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.6;margin-top:8px}
-.veri b{color:var(--ink)}
+.veri b{color:var(--ink);font-weight:800}
 
 /* seviye-1 bölüm başlığı (karar 79) */
 /* Sayfanin ilk blogu kendi 4px cizgisini cizmiyor: kunyenin cizgisi zaten orada
@@ -185,7 +185,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 
 .next{margin-top:14px;padding:13px 0;border-top:4px solid var(--ink);border-bottom:1px solid var(--rule);
   display:flex;align-items:baseline;gap:10px}
-.next .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim)}
+.next .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
 .next .v{margin-left:auto;font-size:17px;letter-spacing:-.02em;font-variation-settings:"wdth" 70,"wght" 900;font-variant-numeric:tabular-nums}
 .next .u{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
 
@@ -269,7 +269,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
    murekkebinin ortasi ayni yer degil, %50 vermek tiki 0,8px asagi birakiyor. */
 .box.on::after{content:'';position:absolute;left:50%;top:42%;width:5px;height:9px;border:solid var(--paper);
   border-width:0 2px 2px 0;transform:translate(-50%,-50%) rotate(45deg)}
-.izin b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;color:var(--ink)}
+.izin b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;color:var(--ink)}
 .izin b + span{display:block;font-size:11px;color:var(--soft);margin-top:4px;line-height:1.5}
 
 /* ---------- profil ve yönetim ---------- */
@@ -467,14 +467,14 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kursu img{width:100%;height:104px;object-fit:cover;display:block;background:#17171A}
 .kursu figcaption{margin-top:10px}
 .kursu .sat{display:flex;align-items:baseline;gap:8px}
-.kursu .no{font-size:11px;line-height:1;color:var(--soft);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.kursu .no{font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:var(--soft);flex:0 0 auto;font-variant-numeric:tabular-nums}
 .kursu .ad{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;min-width:0;overflow-wrap:anywhere}
 .kursu .ort{display:block;margin-top:5px;font-size:17px;color:var(--dim);font-variation-settings:"wdth" 72,"wght" 900;
   font-variant-numeric:tabular-nums}
 
 .satir-kare{border-top:1px solid var(--rule);min-height:56px;display:flex;align-items:center;gap:11px;padding:8px 0;
   width:100%;appearance:none;background:none;border-left:0;border-right:0;border-bottom:0;color:inherit;text-align:left;cursor:pointer}
-.satir-kare .no{font-size:11px;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;font-variant-numeric:tabular-nums}
+.satir-kare .no{font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;font-variant-numeric:tabular-nums}
 .satir-kare img{width:44px;height:44px;object-fit:cover;flex:0 0 auto;background:#17171A;display:block}
 .satir-kare .ad{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;min-width:0;overflow-wrap:anywhere}
 .satir-kare .ort{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
@@ -522,7 +522,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 /* Müdavim: ters çevrilmiş mürekkep şerit, çoğul ve tabansız (karar 55) */
 .mud{background:var(--ink);color:var(--paper);margin-top:14px;padding:11px var(--pad) 12px}
 .mud .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.6;display:flex}
-.mud .k span{margin-left:auto;letter-spacing:.14em}
+.mud .k span{margin-left:auto}
 .mud .big{font-size:26px;line-height:.9;letter-spacing:-.03em;text-transform:uppercase;margin-top:6px;
   font-variation-settings:"wdth" 70,"wght" 900}
 .mud button{appearance:none;border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:5px 0}
@@ -537,7 +537,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .row{border-top:1px solid var(--rule);min-height:48px;display:flex;align-items:center;gap:10px;
   padding:7px 0;cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;
   width:100%;text-align:left;color:inherit;font:inherit;appearance:none}
-.row .no{font-size:11px;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;
+.row .no{font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;
   font-variation-settings:"wdth" 68,"wght" 800;font-variant-numeric:tabular-nums}
 .row img{width:44px;height:44px;object-fit:cover;flex:0 0 auto;background:#17171A;display:block}
 .row .nm{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
@@ -599,9 +599,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .grid img{width:100%;height:92px;object-fit:cover;display:block;background:#17171A}
 .grid figcaption{margin-top:5px;height:12px;font-size:11px;font-weight:800;letter-spacing:.04em;
   color:var(--soft);display:flex;align-items:baseline;gap:5px;line-height:1;overflow:hidden}
-.grid figcaption b{font-size:11px;line-height:1;color:var(--ink);letter-spacing:.04em;
+.grid figcaption b{font-size:11px;font-weight:800;line-height:1;color:var(--ink);letter-spacing:.04em;
   font-variation-settings:"wdth" 72,"wght" 800;font-variant-numeric:tabular-nums}
 /* sıralamaya giren karenin izi: 4px ayraç dilinin küçültülmüş hâli. Sıra gösterilmiyor. */
 .grid figcaption i{width:2px;height:9px;background:var(--ink);display:block;flex:0 0 auto}
-.grid figure.sirali figcaption{color:var(--dim)}
+/* Sıralamaya giren karenin işareti mürekkep çubuk ve görünen puan. Künyeyi ayrıca
+   bir ton açmak ölçeğe yedinci stili ekliyordu ve 0,09'luk fark zaten iş görmüyordu. */
 .gridnot{margin-top:9px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.6}

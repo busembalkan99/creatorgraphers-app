@@ -136,6 +136,29 @@ for (const yol of ['kur']) {
   bekle(`${yol}: form alanları 16px altında değil`, kucuk.length === 0, JSON.stringify(kucuk));
 }
 
+// Tipografi ölçeği (karar 79): etiket seviyesinde altı stil. Sayımın dışında kalanlar:
+// ters çevrilmiş yüzeyler (orada renk zorunlu olarak döner), gövde metni (etiket değil).
+for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
+  await p.goto(APP + '#/' + yol);
+  await p.reload(); await p.waitForTimeout(1600);
+  const stiller = await p.evaluate(() => {
+    const ters = '.mud, .live, .odul .serit, .rozet.kurucu, .tabs button.on';
+    const kova = new Set();
+    for (const e of document.querySelectorAll('.sc *')) {
+      if (!e.getBoundingClientRect().width) continue;
+      if (![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) continue;
+      if (e.closest(ters)) continue;
+      const s = getComputedStyle(e);
+      const boy = Math.round(parseFloat(s.fontSize) * 10) / 10;
+      if (boy > 13) continue;
+      if (parseInt(s.fontWeight) < 700) continue;
+      kova.add(`${boy}/${s.fontWeight}/${s.color}/${Math.round((parseFloat(s.letterSpacing) || 0) * 2) / 2}`);
+    }
+    return [...kova];
+  });
+  bekle(`${yol}: etiket stili altıyı aşmıyor`, stiller.length <= 6, `${stiller.length}: ${stiller.join(' | ')}`);
+}
+
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));
 await b.close();
 rapor();

@@ -95,7 +95,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
           {k.tam_set && (
             <div className="badge">
               <b>Tam set</b>
-              <span>{benim ? 'Katıldığın' : 'Katıldığı'} her etkinlikte bütün temalara kare {benim ? 'verdin' : 'verdi'}.</span>
+              <span>Her etkinlikte bütün temalara kare {benim ? 'verdin' : 'verdi'}.</span>
             </div>
           )}
           {Number(k.tema_sayisi) > 0 && (

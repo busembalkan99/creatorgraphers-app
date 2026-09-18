@@ -58,7 +58,14 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   const [, setTik] = useState(0)
 
   useEffect(() => {
-    const yukle = () => etkinlikVerisi(uye.id).then(setV).catch(e => setHata(hataMetni(e)))
+    // Yalnız ilk yükleme hata ekranı açar. Arka plandaki yenilemenin hatası
+    // yutulur: zayıf bağlantıda tek kopuk dakika çalışan ekranı hata ekranına
+    // çevirip orada bırakıyordu. Başarılı yenileme önceki hatayı da temizler.
+    let ilk = true
+    const yukle = () => etkinlikVerisi(uye.id)
+      .then(d => { setV(d); setHata(null) })
+      .catch(e => { if (ilk) setHata(hataMetni(e)) })
+      .finally(() => { ilk = false })
     yukle()
     // Kalan süre ve aşama dakikada bir yeniden hesaplansın. Veri de tazelensin:
     // yönetici süreyi uzatırsa ya da oylamayı erken açarsa, uygulaması açık olan

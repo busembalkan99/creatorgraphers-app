@@ -298,6 +298,29 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   bekle('oylamada uzun basma menüsü kapalı', /\.akisimg\{[^}]*-webkit-touch-callout:none/.test(css));
 }
 
+// Arka plan yenilemesi başarısız olunca çalışan ekran hata ekranına dönmesin,
+// bağlantı gelince de kendini toparlasın (inceleme bulgusu F1, 2026-09-18)
+{
+  await p.goto(APP + '#/etkinlikler'); await p.reload(); await p.waitForTimeout(1800);
+  const icerik = () => p.evaluate(() => ({
+    hata: !!document.querySelector('.sc .hata'),
+    gecmis: (document.querySelector('.sc')?.innerText || '').includes('GEÇMİŞ ETKİNLİKLER'),
+  }));
+  bekle('yenileme testi: ekran yüklü', (await icerik()).gecmis, JSON.stringify(await icerik()));
+  await ctx.route('**/rest/v1/**', r => r.abort());
+  await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  // Supabase istemcisi ağ hatasında kendisi yeniden deniyor; hata ancak uygulamanın
+  // 12 saniyelik sınırında (sor) yüzeye çıkıyor. Ondan önce bakmak kusuru görmüyordu.
+  await p.waitForTimeout(14000);
+  const kopuk = await icerik();
+  bekle('arka plan yenilemesi kopunca ekran yerinde kalıyor', kopuk.gecmis && !kopuk.hata, JSON.stringify(kopuk));
+  await ctx.unroute('**/rest/v1/**');
+  await p.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await p.waitForTimeout(2000);
+  const geri = await icerik();
+  bekle('bağlantı gelince ekran sağlam', geri.gecmis && !geri.hata, JSON.stringify(geri));
+}
+
 // Yavaş bağlantıda ekran bomboş kalmasın: çerçeve yerinde dursun
 {
   await ctx.route('**/rest/v1/**', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue() });

@@ -60,8 +60,12 @@ input,textarea{-webkit-user-select:text;user-select:text}
 /* overscroll: kaydirma alanin sonuna gelince sayfa lastik gibi esnemesin ve
    asagi cekince yenileme tetiklenmesin. Tarayicidan acildiginda bile uygulama
    gibi dursun istiyoruz. */
-.sc{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 var(--pad) 18px;
-  scrollbar-width:none;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch}
+/* Yatay kayma kapalı: overflow-y:auto verilince tarayıcı yatayı da auto sayıyor ve iOS
+   içerik sığsa bile alanı sağa sola esnetiyordu (Buse'nin telefonu, 18 Eylül). Chromium bunu
+   taklit etmiyor; ölçümde taşma sıfırdı. touch-action tarayıcıya burada yalnız dikey
+   kaydırma ve iki parmakla yakınlaştırma olduğunu söylüyor. */
+.sc{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y pinch-zoom;
+  padding:0 var(--pad) 18px;scrollbar-width:none;display:flex;flex-direction:column}
 /* Ust kunye sabit. Dikey pay .sc'den buraya tasindi: yapiskan ogenin top:0'i kabin
    DOLGU kutusuna gore hizalaniyor, .sc'nin ust dolgusu kunyeyi o kadar asagi
    yapistirip ustunde icerigin gorundugu bir bant birakiyordu.
@@ -358,7 +362,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
    Oylama (kararlar 5, 37, 42, 48, 61). Kaynak: prototip v11.
    Kırpma yok: fotoğraf her zaman tam, üstüne hiçbir şey binmez.
    ========================================================== */
-.akis{flex:1;min-height:0;overflow-y:scroll;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior-y:contain}
+.akis{flex:1;min-height:0;overflow-y:scroll;overflow-x:hidden;scroll-snap-type:y mandatory;scrollbar-width:none;overscroll-behavior:contain}
 .akis::-webkit-scrollbar{display:none}
 .kare{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;
   padding:calc(12px + env(safe-area-inset-top)) var(--pad) calc(14px + env(safe-area-inset-bottom));touch-action:pan-y}

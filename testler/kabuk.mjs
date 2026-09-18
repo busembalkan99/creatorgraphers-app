@@ -26,6 +26,14 @@ const oku = y => fs.readFileSync(KOK + y, 'utf8');
   const vhler = css.split('\n').filter(l => /[^d]vh\b/.test(l) && !l.trim().startsWith('/*') && !l.includes('dvh'));
   bekle('kabuk ölçüsünde çıplak vh yok', vhler.length === 0, vhler.join(' | '));
   bekle('üst künye yapışkan', /\.tepe\{[^}]*position:sticky/.test(css.replace(/\s+/g, '')));
+  // iOS, yatayı auto kalan dikey kaydırma alanını içerik sığsa da sağa sola esnetiyor;
+  // Chromium bunu göstermediği için tarayıcıda değil kuralda denetleniyor
+  for (const sinif of ['sc', 'akis']) {
+    const kural = (css.replace(/\s+/g, '').match(new RegExp(`\\.${sinif}\\{[^}]*\\}`)) ?? [''])[0];
+    bekle(`.${sinif}: yatay kaydırma kapalı`, kural.includes('overflow-x:hidden'), kural);
+  }
+  bekle('.sc: yalnız dikey kaydırma ve yakınlaştırma', /\.sc\{[^}]*touch-action:pan-ypinch-zoom/.test(css.replace(/\s+/g, '')));
+  bekle('eski kaydırma özelliği yok', !css.includes('-webkit-overflow-scrolling'));
   bekle('üst künyede güvenli alan payı', /\.tepe\{[^}]*env\(safe-area-inset-top\)/.test(css.replace(/\s+/g, '')));
   // Pay kapta olursa seçili sekmenin dolgusu alt kenara inmiyor
   bekle('alt çubukta güvenli alan payı düğmenin içinde',

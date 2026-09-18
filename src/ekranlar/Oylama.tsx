@@ -79,7 +79,8 @@ export function Oylama({ uye }: { uye: Uye }) {
       <h2 className="t orta">{kalanToplam ? <>{kalanToplam} kare<br />kaldı</> : <>Oyların<br />tamam</>}</h2>
       <div className="kal">
         <b>{kalanYaz(v.e.oylama_biter)}</b> kaldı
-        {zorunluKalan === 0 && kalanToplam > 0 && ' · zorunlu temalarda işin bitti'}
+        {/* Başlık "3 kare kaldı" derken burada "işin bitti" yazıyordu, ikisi çelişiyordu */}
+        {zorunluKalan === 0 && kalanToplam > 0 && ' · bunların hiçbiri zorunlu değil'}
       </div>
 
       <div className="sec">Temalar<span>{v.durum.length} tema</span></div>

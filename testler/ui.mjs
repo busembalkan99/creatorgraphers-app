@@ -308,7 +308,9 @@ bekle('kalan kare sayısı kartta', icerir(await metin(A), '3 kare kaldı'), awa
 await A.click('.live .act'); await A.waitForTimeout(1500);
 bekle('oylama tema listesi', (await A.locator('.tema-satir').count()) === 2, String(await A.locator('.tema-satir').count()));
 bekle('son oy tarihi satırı', /\d+ (gün|saat|dakika) kaldı/.test(await metin(A)), (await metin(A)).slice(0, 120));
-bekle('zorunlusu olmayana not', icerir(await metin(A), 'zorunlu temalarda işin bitti'));
+bekle('zorunlusu olmayana not', icerir(await metin(A), 'bunların hiçbiri zorunlu değil'));
+// Başlık ile alt satır çelişmesin: "3 kare kaldı" derken "işin bitti" yazıyordu
+bekle('başlık ile alt satır çelişmiyor', !icerir(await metin(A), 'işin bitti'), (await metin(A)).slice(0, 160));
 bekle('oylama ekranında sekme çubuğu yok', (await A.locator('.tabs').count()) === 0);
 // hata cümleleri: sunucu kodları okunur cümleye çevriliyor
 {

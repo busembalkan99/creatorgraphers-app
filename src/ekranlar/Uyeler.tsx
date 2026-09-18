@@ -136,9 +136,13 @@ export function Uyeler({ ben }: { ben: Uye }) {
         const satirIci = (
           <>
             <div className="tx"><b>{u.ad}</b><span>{u.eposta}{u.id === ben.id ? ' · sen' : ''}</span></div>
-            <span className={`rozet ${disarda ? 'disarda' : u.rol}`}>
-              {disarda ? 'Çıkarıldı' : u.rol === 'kurucu' ? 'Kurucu' : u.rol === 'yonetici' ? 'Yönetici' : 'Üye'}
-            </span>
+            {/* Yalnız farklı olan rozet taşıyor (Buse, 2026-09-18): 20 kişinin 19'u
+                "Üye" yazınca rozet bir şey söylemiyordu */}
+            {(disarda || u.rol !== 'uye') && (
+              <span className={`rozet ${disarda ? 'disarda' : u.rol}`}>
+                {disarda ? 'Çıkarıldı' : u.rol === 'kurucu' ? 'Kurucu' : 'Yönetici'}
+              </span>
+            )}
           </>
         )
         return (

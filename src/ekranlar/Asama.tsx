@@ -108,7 +108,7 @@ export function Asama() {
       )}
 
       {/* Buluşma günü yöneticinin ilk işi yoklama: grup mesajının altında kalıyordu */}
-      <Yoklama e={e} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
+      <Yoklama e={e} surum={surum} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
       <Cikarilanlar e={e} surum={surum} />
 
       <div className="mesaj">
@@ -163,7 +163,7 @@ const bugunTr = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe
  * Yoklama (karar 103). Buluşmada, yükleme açılmadan alınır; alınınca yalnız gelenler kare
  * yükler. Alınmadıysa herkes yükler, yönetici sonradan gelmeyenlerin karelerini çıkarır.
  */
-function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
+function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: () => void }) {
   const [liste, setListe] = useState<{ uye: string; ad: string; geldi: boolean }[] | null>(null)
   const [secim, setSecim] = useState<Set<string> | null>(null)   // null: düzenlemiyor
   const [gelmeyen, setGelmeyen] = useState<{ kisi: number; kare: number } | null>(null)
@@ -185,7 +185,8 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
     const o = ((g.data ?? []) as { kisi: number; kare: number }[])[0]
     setGelmeyen(o ? { kisi: Number(o.kisi), kare: Number(o.kare) } : null)
   }
-  useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, e.yoklama_at]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Yoklama zamanı ilk kayıtta sabit kalıyor (0009): tazelemeyi kayıt sayacı tetikliyor
+  useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, surum]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (bugunTr() < e.bulusma_gunu) {
     return (

@@ -208,6 +208,17 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
     await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, B.id, D.id] });
     return ((await admin.from('diskalifiye').select('kare').eq('kare', k3.id)).data ?? []).length === 1;
   })());
+  // Saldırı 4 (zamanlama): yoklamayı tekrar tekrar kaydedip gelmeyen özetinden kimin
+  // ne zaman yüklediğini izlemek. İlk yoklamadan sonraki yüklemeler hiç sayılmamalı.
+  const ilkZaman = (await admin.from('etkinlikler').select('yoklama_at').eq('id', E3).single()).data.yoklama_at;
+  await new Promise(r => setTimeout(r, 1100));
+  const yol4 = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
+  await D.c.storage.from('kareler').upload(yol4, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  bekle('kontrol: gelen yoklamadan sonra yüklüyor', !(await D.c.from('kareler').insert({ tema: T3.id, dosya: yol4, genislik: 10, yukseklik: 10 })).error);
+  await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, B.id] });   // Deniz hariç
+  bekle('saldırı 4: yoklamadan sonraki yükleme gelmeyen özetinde sayılmıyor', !((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E3 })).data?.[0]?.kare > 0),
+    JSON.stringify((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E3 })).data));
+  bekle('saldırı 4: yoklama zamanı ilk kayıtta kalıyor', (await admin.from('etkinlikler').select('yoklama_at').eq('id', E3).single()).data.yoklama_at === ilkZaman);
   await admin.from('etkinlikler').delete().eq('id', E3);
 }
 

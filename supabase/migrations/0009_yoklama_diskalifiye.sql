@@ -68,7 +68,8 @@ begin
   insert into public.yoklama (etkinlik, uye)
     select p_etkinlik, u.id from public.uyeler u
     where u.id = any (coalesce(p_gelenler, '{}')) and u.cikarildi_at is null;
-  update public.etkinlikler set yoklama_at = now() where id = p_etkinlik;
+  -- İlk kaydın zamanı kalır: gelmeyenlerin kareleri bu andan önce yüklenenler (aşağıda)
+  update public.etkinlikler set yoklama_at = coalesce(yoklama_at, now()) where id = p_etkinlik;
   -- Toplu çıkarmanın geri alınışı: artık gelmiş sayılanın kareleri yarışmaya döner
   delete from public.diskalifiye d
    using public.kareler k, public.temalar t
@@ -156,6 +157,10 @@ language sql stable security definer set search_path = public as $$
   where t.etkinlik = p_etkinlik and e.yoklama_at is not null
     and not exists (select 1 from public.yoklama y where y.etkinlik = e.id and y.uye = k.sahip)
     and not gizli.cikarildi(k.id)
+    -- Yalnız ilk yoklamadan önce yüklenenler. Sonrasını gelmeyen zaten yükleyemiyor; sayılsaydı
+    -- yoklamayı tekrar tekrar kaydeden yönetici kimin ne zaman yüklediğini izler, oylamada
+    -- dosyaların yükleme saatiyle eşleştirirdi (dördüncü inceleme)
+    and k.yukleme_at < e.yoklama_at
 $$;
 
 create or replace function public.gelmeyen_ozeti(p_etkinlik uuid)

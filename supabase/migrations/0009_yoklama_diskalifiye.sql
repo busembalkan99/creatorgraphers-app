@@ -98,10 +98,11 @@ create table public.diskalifiye (
 );
 alter table public.diskalifiye enable row level security;
 revoke all on public.diskalifiye from anon;
--- Sahibi kendi karesinin nedenini okur, yöneticiler hepsini. Yazma yok.
+-- Yalnız sahibi kendi karesinin nedenini okur. Yazma yok. Yöneticinin doğrudan okuması
+-- yok: tabloyu okuyan yönetici toplu çıkarılanların kimliklerini alırdı (üçüncü
+-- inceleme); yönetici ekranları fonksiyonlardan geçiyor ve onlar isimsizliği koruyor.
 create policy diskalifiye_oku on public.diskalifiye for select
-  using (public.yonetici_mi()
-         or exists (select 1 from public.kareler k where k.id = kare and k.sahip = auth.uid()));
+  using (exists (select 1 from public.kareler k where k.id = kare and k.sahip = auth.uid()));
 
 create or replace function gizli.cikarildi(p_kare uuid) returns boolean
 language sql stable security definer set search_path = public as $$

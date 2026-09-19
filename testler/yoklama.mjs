@@ -198,6 +198,8 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
   await A.c.rpc('gelmeyenleri_cikar', { p_etkinlik: E3 });
   const liste3 = (await A.c.rpc('cikarilan_kareler', { p_etkinlik: E3 })).data ?? [];
   bekle('saldırı 2: yüklemede toplu çıkarılanın kimliği verilmiyor', !liste3.some(x => x.id === k3.id), JSON.stringify(liste3));
+  const dogrudan = (await A.c.from('diskalifiye').select('kare, toplu')).data ?? [];
+  bekle('saldırı 3: yönetici tabloyu doğrudan okuyup kimlik alamıyor', !dogrudan.some(x => x.kare === k3.id), JSON.stringify(dogrudan));
   bekle('saldırı 2: yüklemede kare kare geri alınamıyor', hata(await A.c.rpc('kare_geri_al', { p_kare: k3.id })).includes('toplu_geri'));
   await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, B.id, D.id] });
   bekle('yoklama düzeltilince toplu çıkarılan kendiliğinden dönüyor', ((await admin.from('diskalifiye').select('kare').eq('kare', k3.id)).data ?? []).length === 0);

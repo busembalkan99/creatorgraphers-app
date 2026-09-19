@@ -17,6 +17,7 @@ interface Veri {
   benimTemalarim: Set<string>
   uyeSayisi: number
   oyKalan: { kalan: number; toplam: number } | null   // oylama açıkken kaç kare kaldı
+  gelmedim: boolean   // karar 103: açık etkinlikte yoklama alındı ve adım yok
 }
 
 export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
@@ -42,8 +43,17 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
       }
     }
   }
+  let gelmedim = false
+  const suren = acikEtkinlik(etkinlikler)
+  if (suren?.yoklama_at) {
+    const y = await sor(sb.rpc('yoklamam', { p_etkinlik: suren.id }))
+    if (y.error) throw y.error
+    const ben = ((y.data ?? []) as { alindi: boolean; geldim: boolean }[])[0]
+    gelmedim = !!ben?.alindi && !ben.geldim
+  }
   return {
     etkinlikler,
+    gelmedim,
     temalar: (t.data ?? []) as Tema[],
     benimTemalarim: new Set((k.data ?? []).map(r => r.tema as string)),
     uyeSayisi: Number(u.data ?? 0),
@@ -89,7 +99,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
     <div className="sc">
       <Kunye sol="Creatorgraphers" sag={`${v.uyeSayisi} üye`} />
       {acik ? (
-        <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} oyKalan={v.oyKalan} />
+        <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} oyKalan={v.oyKalan} gelmedim={!!v.gelmedim} />
       ) : (
         <div className="next">
           <span className="k">Sıradaki etkinlik</span>
@@ -119,7 +129,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   )
 }
 
-function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: { kalan: number; toplam: number } | null }) {
+function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: { kalan: number; toplam: number } | null; gelmedim: boolean }) {
   const a = asama(e)
   const ay = ayAdi(e.bulusma_gunu)
   const tamam = temalar.filter(t => benim.has(t.id)).length
@@ -166,7 +176,11 @@ function CanliKart({ e, temalar, benim, oyKalan }: { e: Etkinlik; temalar: Tema[
       </div>
       {yukleme ? (
         <button className="act" onClick={() => git('yukle')}>
-          {ilkBos ? `${ilkBos.ad} için kare yükle` : 'Karelerine bak'}
+          {/* Bütün temalar aynı ekrandan yükleniyor: düğme tek temayı adlandırmıyor (Buse, 2026-09-19) */}
+          {gelmedim ? <>Durumuna bak<i>Yoklamada adın yok</i></>
+            : tamam === 0 ? (temalar.length > 1 ? 'Karelerini yükle' : 'Kareni yükle')
+              : ilkBos ? <>Yüklemeye devam et<i>{temalar.length - tamam} tema kaldı</i></>
+                : 'Karelerine bak'}
         </button>
       ) : (
         <button className="act" onClick={() => git('oyla')}>

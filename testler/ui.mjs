@@ -55,7 +55,7 @@ async function olc(p, ad) {
 
 // 1 · Kurucu
 const A = await kisi('kurucu@test.local');
-bekle('kapak: Google ile gir var', await bekleMetin(A, 'Google ile gir'));
+bekle('kapak: Google ile giriş yap var', await bekleMetin(A, 'Google ile giriş yap'));
 await olc(A, '01-kapak');
 await A.giris();
 bekle('kurucu yok: Kulübü kur ekranı', await bekleMetin(A, 'Kulübü'));
@@ -185,7 +185,7 @@ await olc(A, '15-asama');
 
 // 8 · Selin yükler
 await B.goto(APP + '#/etkinlikler'); await B.waitForTimeout(800);
-bekle('canlı kart yükleme açık', await bekleMetin(B, 'Sokak için kare yükle'));
+bekle('canlı kart yükleme açık, düğme bütün temalar için', await bekleMetin(B, 'Karelerini yükle'));
 bekle('canlı kart turuncu', (await B.locator('.live').getAttribute('data-asama')) === 'yukleme');
 await olc(B, '16-etkinlikler-canli');
 await B.click('.live .act');
@@ -896,7 +896,7 @@ await olc(B, '39-sonuc-uye');
 // 17 · Çıkış
 await B.goto(APP + '#/profil'); await B.waitForTimeout(600);
 await B.click('button:has-text("Çıkış yap")');
-bekle('çıkışta kapak', await bekleMetin(B, 'Google ile gir'));
+bekle('çıkışta kapak', await bekleMetin(B, 'Google ile giriş yap'));
 
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));
 await b.close();

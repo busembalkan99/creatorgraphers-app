@@ -234,6 +234,14 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
               <div className="deg">Kur</div>
             </button>
           )}
+          {/* Karar 103: buluşma günü geldiyse ve yoklama alınmadıysa hatırlat */}
+          {acik && !acik.yoklama_at
+            && new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }) >= acik.bulusma_gunu && (
+            <button className="satir" onClick={() => git('asama')}>
+              <div className="tx"><b>Yoklamayı al</b><span>Alınana kadar herkes kare yükleyebiliyor</span></div>
+              <div className="deg">Aç</div>
+            </button>
+          )}
           {acik && (
             <button className="satir" onClick={() => git('asama')}>
               <div className="tx">

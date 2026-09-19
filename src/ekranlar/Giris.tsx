@@ -40,7 +40,7 @@ export function Kapak() {
       <p className="lede">Birlikte çektiğimiz fotoğrafları birlikte değerlendiriyoruz.</p>
       <div className="bosluk" />
       <Hata metin={hata} />
-      <button className="btn" onClick={() => googleIleGir().catch(e => setHata(hataMetni(e)))}>Google ile gir</button>
+      <button className="btn" onClick={() => googleIleGir().catch(e => setHata(hataMetni(e)))}>Google ile giriş yap</button>
       {/* Kapakta tek cümle: "davetle çalışıyor" zaten "listede yoksan"ın içinde */}
       <div className="alt-bilgi">Listede yoksan istek bırak.</div>
       <a className="link" href={import.meta.env.BASE_URL + 'privacy/'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>Gizlilik</a>

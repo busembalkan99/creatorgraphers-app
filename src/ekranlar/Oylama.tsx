@@ -5,6 +5,7 @@ import { asama, kalanYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
 import { Buyutec, useBuyutecTetigi, type Acik } from '../bilesenler/Buyutec'
+import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 
@@ -128,6 +129,10 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   const akis = useRef<HTMLDivElement>(null)
   const [buyuk, setBuyuk] = useState<Acik | null>(null)
   const tetik = useBuyutecTetigi()
+  // Karar 103: yönetici kareyi isimsiz görürken yarışmadan çıkarabiliyor
+  const yonetici = uye.rol !== 'uye'
+  const [cikar, setCikar] = useState<string | null>(null)
+  const [cikti, setCikti] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -179,11 +184,14 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   return (
     <div className="akis" ref={akis} data-asama="oylama">
       {oyHatasi && <div className="oy-hata"><Hata metin={oyHatasi} /></div>}
+      {cikti && <div className="oy-hata"><p className="veri" role="status" style={{ marginTop: 0, paddingBottom: 10 }}>Kare yarışmadan çıkarıldı. Profil'de Yönetim'den geri alabilirsin.</p></div>}
       {kareler.map((k, i) => (
         <section className="kare" key={k.id} data-kare={k.id}>
           <div className="mast">
             <button className="geri" onClick={() => git('oyla')}><Ikon ad="geri" />Temalar</button>
-            <span className="r">{tema.ad}</span>
+            {yonetici && asama(e) === 'oylama'
+              ? <button className="cikar" onClick={() => setCikar(k.id)}>Yarışmadan çıkar</button>
+              : <span className="r">{tema.ad}</span>}
           </div>
           <div className="rb" />
           <div className="plaka">
@@ -234,6 +242,10 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
         )}
       </section>
       {buyuk && <Buyutec acik={buyuk} kapat={() => setBuyuk(null)} />}
+      {cikar && (
+        <CikarPenceresi kare={cikar} kapat={() => setCikar(null)}
+          bitti={() => { setKareler(ks => ks.filter(x => x.id !== cikar)); setCikar(null); setCikti(true) }} />
+      )}
     </div>
   )
 }

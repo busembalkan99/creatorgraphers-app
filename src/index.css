@@ -699,3 +699,30 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .buyutec .alt{bottom:0;justify-content:center;padding:14px var(--pad) calc(16px + env(safe-area-inset-bottom));
   background:linear-gradient(to top,rgba(5,5,6,.9),transparent)}
 .tutucu img,.detay>img{cursor:zoom-in}
+
+/* ==========================================================
+   Yoklama ve yarışmadan çıkarma (karar 103)
+   ========================================================== */
+/* Nedeni soran pencere: alttan açılan sade bir yaprak, arkası karartılmış */
+.pencere{position:fixed;inset:0;z-index:45;height:var(--ekran,100dvh);background:rgba(5,5,6,.72);
+  display:flex;align-items:flex-end;justify-content:center;animation:acil .18s cubic-bezier(.32,.72,0,1)}
+.pencere .kutu{width:100%;max-width:480px;margin:0;background:var(--paper);border:0;border-top:4px solid var(--ink);
+  padding:18px var(--pad) calc(18px + env(safe-area-inset-bottom))}
+/* Oylamada yöneticinin çıkarma düğmesi künyenin sağında, tema adının yerinde */
+.mast .cikar{appearance:none;border:0;background:none;color:var(--soft);font:inherit;letter-spacing:inherit;
+  text-transform:inherit;margin-left:auto;min-height:44px;padding:0;cursor:pointer}
+/* Yoklama listesi: onay kutulu satırlar, üye listesiyle aynı çizgi */
+.yoklama .izin{margin-top:0;width:100%;align-items:center}
+.yoklama .izin:first-child{margin-top:10px}
+/* Çıkarılan kare satırı */
+.cikan{display:flex;gap:11px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)}
+.cikan img{width:52px;height:52px;object-fit:cover;flex:0 0 auto;background:#17171A}
+.cikan .tx{flex:1;min-width:0}
+.cikan b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+.cikan .tx span{display:block;font-size:11px;color:var(--soft);margin-top:4px;line-height:1.5;overflow-wrap:anywhere}
+.cikan .btn{width:auto;margin:0;padding:0 14px;min-height:44px}
+/* Sahibine ve yöneticiye: çıkarılma işareti */
+.cikarildi-not{margin-top:12px;border-left:4px solid var(--ink);padding:2px 0 2px 11px}
+.cikarildi-not b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+.cikarildi-not span{display:block;font-size:11px;color:var(--dim);margin-top:5px;line-height:1.55;overflow-wrap:anywhere}
+.izgara figure.cikti img{opacity:.35}

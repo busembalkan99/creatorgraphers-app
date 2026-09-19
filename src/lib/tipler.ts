@@ -27,6 +27,7 @@ export interface Etkinlik {
   yukleme_biter: string
   oylama_biter: string
   iptal: boolean
+  yoklama_at?: string | null // karar 103: null ise yoklama alınmadı
 }
 
 export interface Tema {

@@ -5,6 +5,7 @@ import { asama, ayAdi, gunYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
 import { Buyutec } from '../bilesenler/Buyutec'
+import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
@@ -36,6 +37,9 @@ interface SonucKare {
   diyafram: string | null
   enstantane: string | null
   iso: string | null
+  // Karar 103: yarışmadan çıkarılan kare yalnız sahibine ve yöneticiye gelir
+  cikarildi: boolean
+  cikarma_nedeni: string | null
   url?: string | null
 }
 
@@ -80,9 +84,8 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
     donus.current = null
   }, [detay])
 
-  useEffect(() => {
-    sonucVerisi(etkinlikId).then(setV).catch(x => setHata(hataMetni(x)))
-  }, [etkinlikId, uye.id])
+  const yenile = () => sonucVerisi(etkinlikId).then(setV).catch(x => setHata(hataMetni(x)))
+  useEffect(() => { yenile() }, [etkinlikId, uye.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (hata) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" /><Hata metin={hata} /></div>
   if (!v) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" /><Yukleniyor /></div>
@@ -99,7 +102,10 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
   const temalar = [...new Map(v.kareler.map(k => [k.tema, { id: k.tema, ad: k.tema_ad, sira: k.tema_sira }])).values()]
     .sort((a, b) => a.sira - b.sira)
   const secili = temalar[Math.min(sekme, Math.max(0, temalar.length - 1))]
-  const temaKareler = secili ? v.kareler.filter(k => k.tema === secili.id) : []
+  // Çıkarılan kareler sayılara ve sıralamaya girmiyor, en altta ayrı duruyor
+  const yarisan = v.kareler.filter(k => !k.cikarildi)
+  const temaKareler = secili ? yarisan.filter(k => k.tema === secili.id) : []
+  const cikanlar = secili ? v.kareler.filter(k => k.cikarildi && k.tema === secili.id) : []
   // Puan almamış kare sunucuda sıralamaya girmiyor (karar 98). Temada hiç sıralı kare
   // yoksa o temayı kimse oylamamış demektir: ödül de sıralama da yok.
   const sirali = temaKareler.filter(k => k.sirali)
@@ -112,7 +118,10 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
   const galeri = temaKareler.filter(k => !k.sirali)
 
   // Detay seçili temadan açılıyor, o yüzden temanın oylanıp oylanmadığını taşıyabiliyor
-  if (detay) return <KareDetay kare={detay} temaOylanmadi={oylanmadi} kapat={() => setDetay(null)} />
+  if (detay) {
+    return <KareDetay kare={detay} temaOylanmadi={oylanmadi} yonetici={uye.rol !== 'uye'}
+      kapat={() => setDetay(null)} degisti={() => { setDetay(null); yenile() }} />
+  }
 
   return (
     <div className="sc">
@@ -122,7 +131,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
         <div className="meta">
           <span>{gunYaz(v.etkinlik.bulusma_gunu, false)}</span>
           <span>· {temalar.length} tema</span>
-          <span>· {v.kareler.length} kare</span>
+          <span>· {yarisan.length} kare</span>
           <span>· Sonuçlandı</span>
         </div>
       </div>
@@ -139,7 +148,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
             {temalar.map((t, i) => (
               <button key={t.id} className={i === sekme ? 'on' : ''} onClick={() => setSekme(i)} aria-pressed={i === sekme}>
                 {t.ad}
-                <i>{v.kareler.filter(k => k.tema === t.id).length} kare</i>
+                <i>{yarisan.filter(k => k.tema === t.id).length} kare</i>
               </button>
             ))}
           </div>
@@ -216,14 +225,29 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
               )}
             </>
           )}
+
+          {cikanlar.length > 0 && (
+            <>
+              <h2 className="sec">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></h2>
+              <div className="izgara">
+                {cikanlar.map(k => (
+                  <figure key={k.id} className="cikti" onClick={() => ac(k)}>
+                    {k.url && <img src={k.url} alt="" />}
+                    <figcaption>{k.sahip_ad}{k.benim ? ' · sen' : ''}</figcaption>
+                  </figure>
+                ))}
+              </div>
+              <p className="veri">{cikanlar.some(k => !k.benim) ? 'Bunları yalnız sahipleri ve yöneticiler görüyor.' : 'Bunu yalnız sen ve yöneticiler görüyorsunuz.'}</p>
+            </>
+          )}
         </>
       )}
     </div>
   )
 }
 
-function KareDetay({ kare, temaOylanmadi, kapat }:
-  { kare: SonucKare; temaOylanmadi: boolean; kapat: () => void }) {
+function KareDetay({ kare, temaOylanmadi, yonetici, kapat, degisti }:
+  { kare: SonucKare; temaOylanmadi: boolean; yonetici: boolean; kapat: () => void; degisti: () => void }) {
   const kunye: [string, string | null][] = [
     ['Çekildiği gün', kare.cekim_gunu ? gunYaz(kare.cekim_gunu, false) : null],
     ['Makine', kare.kamera],
@@ -235,6 +259,13 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
   ]
   const dolu = kunye.filter(([, v]) => v)
   const [buyuk, setBuyuk] = useState(false)
+  const [cikar, setCikar] = useState(false)
+  const [hata, setHata] = useState<string | null>(null)
+  async function geriAl() {
+    const { error } = await sb.rpc('kare_geri_al', { p_kare: kare.id })
+    if (error) return setHata(hataMetni(error))
+    degisti()
+  }
   return (
     <div className="sc detay">
       <header className="tepe">
@@ -251,7 +282,12 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
         <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>
         {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}
       </div>
-      {temaOylanmadi ? (
+      {kare.cikarildi ? (
+        <div className="cikarildi-not">
+          <b>Yarışmadan çıkarıldı</b>
+          {kare.cikarma_nedeni && <span>{kare.cikarma_nedeni}</span>}
+        </div>
+      ) : temaOylanmadi ? (
         // Temada hiç oy yok: "sıralamaya girmedi" demek gizli bir puan varmış gibi okunurdu
         <p className="veri">Bu temayı kimse oylamamış.</p>
       ) : !kare.sirali && !kare.benim ? (
@@ -268,6 +304,11 @@ function KareDetay({ kare, temaOylanmadi, kapat }:
           ))}
         </div>
       )}
+      <Hata metin={hata} />
+      {yonetici && (kare.cikarildi
+        ? <button className="btn ik" onClick={geriAl}>Yarışmaya geri al</button>
+        : <button className="btn ik" onClick={() => setCikar(true)}>Yarışmadan çıkar</button>)}
+      {cikar && <CikarPenceresi kare={kare.id} kapat={() => setCikar(false)} bitti={degisti} />}
       <button className="btn ik" onClick={kapat}>Sonuçlara dön</button>
     </div>
   )

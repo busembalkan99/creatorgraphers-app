@@ -4,6 +4,7 @@ import type { Etkinlik, Kare, Tema, Uye } from '../lib/tipler'
 import { asama, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
 import { bilgiOku, DosyaHatasi, kucult, tarihKontrol } from '../lib/kare'
 import { Ikon } from '../bilesenler/Ikon'
+import { geriGit } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 
@@ -34,6 +35,10 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
   const [D, setD] = useState<Record<string, TemaDurumu>>({})
   const [sec, setSec] = useState(0)
   const [hata, setHata] = useState<string | null>(null)
+  // Karar 103: yoklama alındıysa ve adın yoksa bu etkinliğe kare yüklenmiyor
+  const [gelmedi, setGelmedi] = useState(false)
+  // Yarışmadan çıkarılan kendi karelerin: kare kimliği → neden
+  const [cikan, setCikan] = useState<Record<string, string>>({})
   const dosyaGir = useRef<HTMLInputElement>(null)
 
   const guncelle = (id: string, p: Partial<TemaDurumu>) =>
@@ -56,6 +61,17 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         .in('tema', temaList.map(t => t.id))
       if (e3) throw e3
       const kareler = (kr ?? []) as Kare[]
+      const [yk, dk] = await sor(Promise.all([
+        sb.rpc('yoklamam', { p_etkinlik: acik.id }),
+        kareler.length ? sb.from('diskalifiye').select('kare, neden').in('kare', kareler.map(k => k.id)) : Promise.resolve({ data: [], error: null }),
+      ]))
+      if (yk.error) throw yk.error
+      if (dk.error) throw dk.error
+      const ben = (yk.data ?? [])[0] as { alindi: boolean; geldim: boolean } | undefined
+      const gelmedi_ = !!ben?.alindi && !ben.geldim
+      const cikan_ = Object.fromEntries(((dk.data ?? []) as { kare: string; neden: string }[]).map(x => [x.kare, x.neden]))
+      setGelmedi(gelmedi_)
+      setCikan(cikan_)
       const imzalar = kareler.length
         ? (await sb.storage.from('kareler').createSignedUrls(kareler.map(k => k.dosya), 3600)).data ?? []
         : []
@@ -66,9 +82,11 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       })
       setD(yeni)
       setE(acik)
-      // İlk boş temayı seçili aç
-      const ilkBos = temaList.findIndex(t => !yeni[t.id].kare)
-      setSec(ilkBos >= 0 ? ilkBos : 0)
+      // Önce söylenmesi gereken: yarışmadan çıkarılan karen. Yükleyemiyorsan boş tema
+      // açmanın anlamı yok. Yoksa ilk boş tema.
+      const cikanTema = temaList.findIndex(t => { const k = yeni[t.id].kare; return !!k && k.id in cikan_ })
+      const ilkBos = gelmedi_ ? -1 : temaList.findIndex(t => !yeni[t.id].kare)
+      setSec(cikanTema >= 0 ? cikanTema : ilkBos >= 0 ? ilkBos : 0)
     })().catch(x => setHata(hataMetni(x)))
   }, [uye.id])
 
@@ -89,6 +107,10 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
   const t = temalar[Math.min(sec, temalar.length - 1)]
   const d = D[t.id] ?? bosDurum()
   const tamam = temalar.filter(x => D[x.id]?.kare).length
+  const kilitMetni = 'Yoklamada adın yok, bu etkinliğe kare yükleyemezsin. Yanlışlık varsa yöneticiye yaz.'
+  const neden = d.kare ? cikan[d.kare.id] : undefined
+  // Yükledikten sonra çıkmaz sokak kalmasın: sıradaki boş tema ya da etkinliklere dönüş
+  const sonraki = temalar.find(x => x.id !== t.id && !D[x.id]?.kare)
 
   async function yukle(dosya: File) {
     if (!e) return
@@ -214,6 +236,24 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         {d.kare && <button className="btn ik" onClick={() => guncelle(t.id, { ret: null })}>Öncekiyle devam et</button>}
       </div>
     )
+  } else if (d.kare && neden !== undefined) {
+    govde = (
+      <>
+        <div className="dolu">
+          {d.kare.url ? <img src={d.kare.url} alt={`${t.ad} karen`} /> : <div className="yer" />}
+        </div>
+        <div className="cikarildi-not"><b>Yarışmadan çıkarıldı</b><span>{neden}</span></div>
+      </>
+    )
+  } else if (d.kare && gelmedi) {
+    govde = (
+      <>
+        <div className="dolu">
+          {d.kare.url ? <img src={d.kare.url} alt={`${t.ad} karen`} /> : <div className="yer" />}
+        </div>
+        <div className="kilit"><Ikon ad="kilit" /><span>{kilitMetni}</span></div>
+      </>
+    )
   } else if (d.kare) {
     govde = (
       <>
@@ -231,6 +271,8 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         )}
       </>
     )
+  } else if (gelmedi) {
+    govde = <div className="kilit"><Ikon ad="kilit" /><span>{kilitMetni}</span></div>
   } else if (acik) {
     govde = (
       <button className="bos" onClick={sec_}>
@@ -252,7 +294,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       <div className={`kontakt t${temalar.length}`}>
         {temalar.map((x, i) => {
           const dx = D[x.id] ?? bosDurum()
-          const etiket = dx.yukleniyor ? 'yükleniyor' : dx.kare ? 'yüklendi' : dx.ret ? 'yüklenmedi' : 'boş'
+          const etiket = dx.yukleniyor ? 'yükleniyor' : dx.kare ? (dx.kare.id in cikan ? 'çıkarıldı' : 'yüklendi') : dx.ret ? 'yüklenmedi' : 'boş'
           return (
             <button key={x.id} className={`k ${i === sec ? 'secili' : ''}`} onClick={() => setSec(i)} aria-pressed={i === sec}>
               <div className={`kk ${dx.kare && !dx.yukleniyor ? '' : 'b'}`}>
@@ -275,6 +317,17 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       <div className="sart">{sart}</div>
       {govde}
       <Hata metin={d.hata} />
+      {acik && !gelmedi && d.kare && !d.yukleniyor && !d.ret && !d.onay && (
+        sonraki ? (
+          <button className="btn" onClick={() => setSec(temalar.indexOf(sonraki))}>{sonraki.ad} temasına geç</button>
+        ) : (
+          <div className="kutu">
+            <div className="bas"><span>{temalar.length > 1 ? 'Kareler yüklendi' : 'Karen yüklendi'}</span></div>
+            <p>Yükleme kapanana kadar değiştirebilirsin.</p>
+            <button className="btn" onClick={() => geriGit('etkinlikler')}>Etkinliklere dön</button>
+          </div>
+        )
+      )}
 
       <button className="izin" onClick={afis} aria-pressed={uye.afis_izni}>
         <span className={`box ${uye.afis_izni ? 'on' : ''}`} />

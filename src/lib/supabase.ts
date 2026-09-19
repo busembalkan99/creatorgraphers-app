@@ -28,6 +28,13 @@ const HATALAR: Record<string, string> = {
   oylama_kapali: 'Oylama kapandı, puanlar artık değişmiyor.',
   baska_veren: 'Yalnız kendi puanını verebilirsin.',
   iptal_olmaz: 'Oylama açıldığı için etkinlik artık iptal edilemiyor.',
+  yoklamada_yok: 'Yoklamada adın yok, bu etkinliğe kare yükleyemezsin.',
+  cikarildi: 'Bu kare yarışmadan çıkarıldı.',
+  neden_gerekli: 'Nedenini yaz.',
+  bulusma_olmadi: 'Yoklama buluşma günü alınır.',
+  oylama_bitti: 'Oylama bitti, yoklama artık değişmiyor.',
+  kare_yok: 'Bu kare artık yok.',
+  etkinlik_yok: 'Etkinlik bulunamadı.',
 }
 
 /**

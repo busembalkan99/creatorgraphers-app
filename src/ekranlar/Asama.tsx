@@ -14,6 +14,8 @@ export function Asama() {
   const [hata, setHata] = useState<string | null>(null)
   const [soru, setSoru] = useState<'oylama' | 'iptal' | null>(null)
   const [kopyalandi, setKopyalandi] = useState(false)
+  // Yoklama bölümü kare çıkarınca çıkarılanlar listesi de tazelensin
+  const [surum, setSurum] = useState(0)
 
   async function yukle() {
     const { data, error } = await sor(sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }))
@@ -105,6 +107,10 @@ export function Asama() {
         </div>
       )}
 
+      {/* Buluşma günü yöneticinin ilk işi yoklama: grup mesajının altında kalıyordu */}
+      <Yoklama e={e} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
+      <Cikarilanlar e={e} surum={surum} />
+
       <div className="mesaj">
         <span className="lab">Gruba yazılacak</span>
         <p>{mesaj}</p>
@@ -148,5 +154,144 @@ export function Asama() {
         </>
       )}
     </div>
+  )
+}
+
+const bugunTr = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' })
+
+/**
+ * Yoklama (karar 103). Buluşmada, yükleme açılmadan alınır; alınınca yalnız gelenler kare
+ * yükler. Alınmadıysa herkes yükler, yönetici sonradan gelmeyenlerin karelerini çıkarır.
+ */
+function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
+  const [liste, setListe] = useState<{ uye: string; ad: string; geldi: boolean }[] | null>(null)
+  const [secim, setSecim] = useState<Set<string> | null>(null)   // null: düzenlemiyor
+  const [gelmeyen, setGelmeyen] = useState<{ kisi: number; kare: number } | null>(null)
+  const [hata, setHata] = useState<string | null>(null)
+  const [gidiyor, setGidiyor] = useState(false)
+
+  async function oku() {
+    const [l, g] = await sor(Promise.all([
+      sb.rpc('yoklama_listesi', { p_etkinlik: e.id }),
+      sb.rpc('gelmeyen_ozeti', { p_etkinlik: e.id }),
+    ]))
+    if (l.error) throw l.error
+    if (g.error) throw g.error
+    setListe((l.data ?? []) as { uye: string; ad: string; geldi: boolean }[])
+    const o = ((g.data ?? []) as { kisi: number; kare: number }[])[0]
+    setGelmeyen(o ? { kisi: Number(o.kisi), kare: Number(o.kare) } : null)
+  }
+  useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, e.yoklama_at]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (bugunTr() < e.bulusma_gunu) {
+    return (
+      <>
+        <h2 className="sec">Yoklama</h2>
+        <p className="veri" style={{ marginTop: 0 }}>Buluşma günü açılır.</p>
+      </>
+    )
+  }
+
+  const alindi = !!e.yoklama_at
+  const gelen = liste?.filter(x => x.geldi).length ?? 0
+
+  async function kaydet() {
+    if (!secim) return
+    setGidiyor(true)
+    setHata(null)
+    const { error } = await sb.rpc('yoklama_kaydet', { p_etkinlik: e.id, p_gelenler: [...secim] })
+    setGidiyor(false)
+    if (error) return setHata(hataMetni(error))
+    setSecim(null)
+    degisti()
+  }
+
+  async function gelmeyenleriCikar() {
+    setHata(null)
+    const { error } = await sb.rpc('gelmeyenleri_cikar', { p_etkinlik: e.id })
+    if (error) return setHata(hataMetni(error))
+    await oku().catch(x => setHata(hataMetni(x)))
+    degisti()
+  }
+
+  return (
+    <div className="yoklama">
+      <h2 className="sec">Yoklama{alindi && secim === null && <span>{gelen} / {liste?.length ?? 0} geldi</span>}</h2>
+      {secim !== null ? (
+        <>
+          {(liste ?? []).map(x => {
+            const on = secim.has(x.uye)
+            return (
+              <button key={x.uye} className="izin" aria-pressed={on} onClick={() => {
+                const y = new Set(secim)
+                if (on) y.delete(x.uye); else y.add(x.uye)
+                setSecim(y)
+              }}>
+                <span className={`box ${on ? 'on' : ''}`} />
+                <span><b>{x.ad}</b></span>
+              </button>
+            )
+          })}
+          {/* Alt alta: yarım genişlikte "Yoklamayı kaydet" iki satıra bölünüyordu */}
+          <button className="btn" disabled={gidiyor} onClick={kaydet}>Yoklamayı kaydet</button>
+          <button className="btn ik" onClick={() => setSecim(null)}>Vazgeç</button>
+        </>
+      ) : (
+        <>
+          <p className="veri" style={{ marginTop: 0 }}>
+            {alindi ? 'Gelmeyenler kare yükleyemiyor.' : 'Alınmadı. Alınana kadar herkes kare yükleyebiliyor.'}
+          </p>
+          <button className="btn ik" disabled={!liste}
+            onClick={() => setSecim(new Set((liste ?? []).filter(x => x.geldi).map(x => x.uye)))}>
+            {alindi ? 'Yoklamayı düzelt' : 'Yoklamayı al'}
+          </button>
+        </>
+      )}
+      {secim === null && gelmeyen && gelmeyen.kare > 0 && (
+        <div className="kutu">
+          <div className="bas"><span>Gelmeyen {gelmeyen.kisi} kişi {gelmeyen.kare} kare yüklemiş</span></div>
+          <p>Yoklamadan önce yüklenmişler. Çıkarırsan sahipleri nedenini görür, geri alabilirsin.</p>
+          <button className="btn" onClick={gelmeyenleriCikar}>Karelerini çıkar</button>
+        </div>
+      )}
+      <Hata metin={hata} />
+    </div>
+  )
+}
+
+/** Yarışmadan çıkarılan kareler. Sahip yazmıyor: oylama sürerken yönetici de isim görmüyor. */
+function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
+  const [liste, setListe] = useState<{ id: string; tema_ad: string; dosya: string; neden: string; url: string | null }[]>([])
+  const [hata, setHata] = useState<string | null>(null)
+
+  async function oku() {
+    const { data, error } = await sor(sb.rpc('cikarilan_kareler', { p_etkinlik: e.id }))
+    if (error) throw error
+    const l = (data ?? []) as { id: string; tema_ad: string; dosya: string; neden: string }[]
+    const imza = l.length ? (await sb.storage.from('kareler').createSignedUrls(l.map(x => x.dosya), 3600)).data ?? [] : []
+    setListe(l.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null })))
+  }
+  useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, surum]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function geriAl(id: string) {
+    setHata(null)
+    const { error } = await sb.rpc('kare_geri_al', { p_kare: id })
+    if (error) return setHata(hataMetni(error))
+    await oku().catch(x => setHata(hataMetni(x)))
+  }
+
+  if (!liste.length && !hata) return null
+  return (
+    <>
+      <h2 className="sec">Yarışmadan çıkarılanlar<span>{liste.length} kare</span></h2>
+      {liste.map(x => (
+        <div className="cikan" key={x.id}>
+          {x.url ? <img src={x.url} alt="" /> : <div className="yer" style={{ width: 52, height: 52 }} />}
+          <div className="tx"><b>{x.tema_ad}</b><span>{x.neden}</span></div>
+          <button className="btn ik" onClick={() => geriAl(x.id)}>Geri al</button>
+        </div>
+      ))}
+      <Hata metin={hata} />
+    </>
   )
 }

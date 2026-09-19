@@ -300,6 +300,9 @@ begin
     end if;
   end if;
   new.sahip := auth.uid();
+  -- Yükleme saatini sunucu koyar: galeri sırası (karar 68) ve gelmeyen sayımı ona bakıyor,
+  -- üye geçmiş bir saat yazarak ikisini de oynatabilirdi
+  new.yukleme_at := case when tg_op = 'INSERT' then now() else old.yukleme_at end;
   return new;
 end $$;
 

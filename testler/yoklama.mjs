@@ -219,6 +219,12 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
   bekle('saldırı 4: yoklamadan sonraki yükleme gelmeyen özetinde sayılmıyor', !((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E3 })).data?.[0]?.kare > 0),
     JSON.stringify((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E3 })).data));
   bekle('saldırı 4: yoklama zamanı ilk kayıtta kalıyor', (await admin.from('etkinlikler').select('yoklama_at').eq('id', E3).single()).data.yoklama_at === ilkZaman);
+  const yol5 = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
+  await A.c.storage.from('kareler').upload(yol5, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const k5 = await A.c.from('kareler').insert({ tema: T3.id, dosya: yol5, genislik: 10, yukseklik: 10, yukleme_at: '2020-01-01T00:00:00Z' }).select('id, yukleme_at').single();
+  bekle('yükleme saatini üye yazamıyor', !k5.error && new Date(k5.data.yukleme_at).getFullYear() >= 2026, JSON.stringify(k5.data ?? k5.error));
+  await A.c.from('kareler').update({ yukleme_at: '2020-01-01T00:00:00Z' }).eq('id', k5.data.id);
+  bekle('yükleme saati güncellemeyle de değişmiyor', new Date((await admin.from('kareler').select('yukleme_at').eq('id', k5.data.id).single()).data.yukleme_at).getFullYear() >= 2026);
   await admin.from('etkinlikler').delete().eq('id', E3);
 }
 

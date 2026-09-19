@@ -519,7 +519,7 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
 
 // Yavaş bağlantıda ekran bomboş kalmasın: çerçeve yerinde dursun
 {
-  await ctx.route('**/rest/v1/**', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue() });
+  await ctx.route('**/rest/v1/**', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue().catch(() => {}) });
   await p.goto(APP + '#/siralama');
   await p.reload(); await p.waitForTimeout(900);
   const r = await p.evaluate(() => ({
@@ -529,6 +529,63 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   bekle('yavaş bağlantıda yükleme göstergesi var', r.yukleniyor, JSON.stringify(r));
   bekle('yavaş bağlantıda ekran boş değil', r.metin.length > 2, JSON.stringify(r));
   await ctx.unroute('**/rest/v1/**');
+}
+
+// ---------------------------------------------------------------- yeni sürüm (Buse, 2026-09-20)
+// Yayında yeni sürüm varsa bir sonraki ekran geçişinde sessizce yenileniyor, öncesinde değil
+{
+  // Önceki "yavaş bağlantı" testi yönlendirmeyi açık bırakıyor
+  await ctx.unrouteAll({ behavior: 'ignoreErrors' });
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.goto(APP + '#/etkinlikler'); await p.reload(); await p.waitForTimeout(1200);
+  const isaretle = () => p.evaluate(() => { window.__isaret = 1; });
+  const isaretVar = () => p.evaluate(() => window.__isaret === 1);
+  const ac = '/assets/index-ESKI.js';
+  // aynı sürüm: geçişte yenilenmiyor
+  await isaretle();
+  await p.evaluate(a => window.__surum(`<script type="module" src="${a}"></script>`, a), ac);
+  await p.click('.tabs button:has-text("Sıralama")'); await p.waitForTimeout(800);
+  bekle('sürüm: aynıysa geçişte yenilenmiyor', await isaretVar());
+  // bozuk cevap: yenilenmiyor
+  await p.evaluate(a => window.__surum('<html>bakım</html>', a), ac);
+  await p.click('.tabs button:has-text("Profil")'); await p.waitForTimeout(800);
+  bekle('sürüm: sayfa okunamazsa yenilenmiyor', await isaretVar());
+  // yeni sürüm: fark edilince hemen değil, bir sonraki geçişte
+  await p.evaluate(a => window.__surum('<script type="module" src="/assets/index-YENI.js"></script>', a), ac);
+  await p.waitForTimeout(800);
+  bekle('sürüm: yeni sürüm fark edilince ekran olduğu gibi kalıyor', await isaretVar());
+  await p.click('.tabs button:has-text("Etkinlikler")'); await p.waitForTimeout(1500);
+  bekle('sürüm: bir sonraki geçişte yenileniyor', !(await isaretVar()));
+  bekle('sürüm: yenilenince gidilen ekranda açılıyor', p.url().endsWith('#/etkinlikler') && (await p.locator('.tabs button.on').textContent()).includes('Etkinlikler'), p.url());
+}
+
+// Yayın derlemesinde gerçek yol: betik adı sayfadan okunuyor, yayındaki index.html ile karşılaştırılıyor
+{
+  const { execSync, spawn } = await import('node:child_process');
+  const env = Object.fromEntries(execSync('npx supabase status -o env', { cwd: KOK, encoding: 'utf8' }).split('\n')
+    .filter(l => l.includes('=')).map(l => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1).replace(/^"|"$/g, '')]; }));
+  // Yerel veritabanına bağlı bir yayın derlemesi: canlıya hiç dokunmuyor
+  execSync('npx vite build --outDir /tmp/cg-yayin --emptyOutDir', { cwd: KOK, stdio: 'ignore',
+    env: { ...process.env, VITE_SUPABASE_URL: env.API_URL, VITE_SUPABASE_PUBLISHABLE_KEY: env.ANON_KEY } });
+  const sunucu = spawn('npx', ['vite', 'preview', '--outDir', '/tmp/cg-yayin', '--port', '5199', '--strictPort'], { cwd: KOK, stdio: 'ignore' });
+  await new Promise(r => setTimeout(r, 2500));
+  const q = await ctx.newPage();
+  const html = fs.readFileSync('/tmp/cg-yayin/index.html', 'utf8');
+  let yayindaki = html;
+  await q.route(/index\.html\?s=/, r => r.fulfill({ status: 200, contentType: 'text/html', body: yayindaki }));
+  await q.goto('http://localhost:5199/#/etkinlikler'); await q.waitForTimeout(1500);
+  const gorunur = () => q.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await q.evaluate(() => { window.__isaret = 1; });
+  await gorunur(); await q.waitForTimeout(500);
+  await q.evaluate(() => { location.hash = '#/siralama'; }); await q.waitForTimeout(1200);
+  bekle('yayın: aynı sürümde geçiş yenilemiyor', await q.evaluate(() => window.__isaret === 1));
+  yayindaki = html.replace(/\/assets\/index-[^"]+\.js/, '/assets/index-YENI123.js');
+  await gorunur(); await q.waitForTimeout(500);
+  bekle('yayın: görünür olunca yenilemiyor (yükleme yarıda kalmasın)', await q.evaluate(() => window.__isaret === 1));
+  await q.evaluate(() => { location.hash = '#/profil'; }); await q.waitForTimeout(1500);
+  bekle('yayın: yeni sürümü gördükten sonraki geçişte yenileniyor', await q.evaluate(() => window.__isaret !== 1) && q.url().endsWith('#/profil'), q.url());
+  await q.close();
+  sunucu.kill();
 }
 
 bekle('konsol hatası yok', hatalar.length === 0, hatalar.join(' | '));

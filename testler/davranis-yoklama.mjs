@@ -198,12 +198,24 @@ await A.getByRole('button', { name: 'Vazgeç' }).click();
 await A.waitForTimeout(200);
 bekle('6: vazgeçince pencere kapanıyor, kare yerinde', (await A.locator('.pencere').count()) === 0 && (await A.locator('.kare').count()) === 1);
 const hedefKare = await A.locator('.kare').first().getAttribute('data-kare');
+// Hata yolu: kare bu arada başka yerden çıkarılmış olsun, pencere hatayı gösterip açık kalmalı
+await A.evaluate(() => { window.__eskiRpc = window.__sb.rpc.bind(window.__sb); window.__sb.rpc = (f, a) => f === 'kare_cikar' ? window.__eskiRpc(f, { ...a, p_kare: '00000000-0000-0000-0000-000000000000' }) : window.__eskiRpc(f, a); });
+await A.locator('.kare .mast .cikar').first().click();
+await A.locator('#cikar-neden').fill('Deneme');
+await A.locator('.pencere .btn:not(.ik)').click();
+await A.waitForTimeout(800);
+bekle('6: hata pencerede görünüyor, pencere açık kalıyor', (await A.locator('.pencere').count()) === 1 && (await A.locator('.pencere').innerText()).includes('Bu kare artık yok'), await A.locator('.pencere').innerText().catch(() => ''));
+await A.evaluate(() => { window.__sb.rpc = window.__eskiRpc; });
+await A.locator('.pencere').click({ position: { x: 20, y: 20 } });
+await A.waitForTimeout(200);
+bekle('6: pencerenin dışına dokununca kapanıyor', (await A.locator('.pencere').count()) === 0);
 await A.locator('.kare .mast .cikar').first().click();
 await A.locator('#cikar-neden').fill('Başka gün çekilmiş');
 await A.locator('.pencere .btn:not(.ik)').click();
 await A.waitForTimeout(1200);
 bekle('6: kare veritabanında çıkarıldı', ((await admin.from('diskalifiye').select('neden').eq('kare', hedefKare)).data ?? [])[0]?.neden === 'Başka gün çekilmiş');
 bekle('6: kare akıştan düştü ve bildirim göründü', (await A.locator('.kare').count()) === 0 && await var_(A, 'Kare yarışmadan çıkarıldı'));
+bekle('6: bildirim geri alma yerini söylüyor', await var_(A, "Profil'de Yönetim'den geri alabilirsin"));
 await A.screenshot({ path: `${SS}/57-oylama-cikti.png` });
 await git(B, 'oyla/' + SOKAK.id);
 bekle('6: üyenin akışından da düştü', (await B.locator(`[data-kare="${hedefKare}"]`).count()) === 0);
@@ -225,6 +237,7 @@ await kA.c.from('oylar').insert({ kare: hedefKare, veren: kA.id, puan: 8 });
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
 await git(D, 'sonuc/' + E);
 bekle('7: sahibi kendi çıkarılan karesini ayrı bölümde görüyor', await var_(D, 'Yarışmadan çıkarılan') && (await D.locator('.izgara figure.cikti').count()) === 1);
+bekle('7: sahibe kimin gördüğü yazıyor', await var_(D, 'Bunu yalnız sen ve yöneticiler görüyorsunuz'));
 bekle('7: sayılar çıkarılanı saymıyor', (await D.locator('.bas .meta').innerText()).includes('2 kare'), await D.locator('.bas .meta').innerText());
 await D.locator('.izgara figure.cikti').click();
 await D.waitForTimeout(400);
@@ -234,6 +247,7 @@ await git(B, 'sonuc/' + E);
 bekle('7: başka üye çıkarılanı hiç görmüyor', !(await var_(B, 'Yarışmadan çıkarılan')) && !(await var_(B, 'Deniz')));
 await git(A, 'sonuc/' + E);
 bekle('7: yönetici çıkarılanı görüyor', (await A.locator('.izgara figure.cikti').count()) === 1);
+bekle('7: yöneticiye kimin gördüğü yazıyor', await var_(A, 'Bunları yalnız sahipleri ve yöneticiler görüyor'));
 bekle('7: kazanan Selin', (await A.locator('.odul').textContent()).includes('Selin'), await A.locator('.odul').textContent().catch(() => ''));
 await A.locator('.kazanan img').first().click();
 await A.waitForTimeout(400);
@@ -268,6 +282,23 @@ bekle('7: geri alınca detay kapanıyor, kare yarışmaya dönüyor', (await A.l
   await B.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {});
   await B.waitForTimeout(500);
   bekle('8: tek temada kapanış "Karen yüklendi"', await var_(B, 'Karen yüklendi') && !(await var_(B, 'temasına geç')));
+}
+
+// ---------------------------------------------------------------- 9. yoklamanın zaman sınırları
+{
+  await admin.from('etkinlikler').delete().neq('id', E);
+  const yarin = new Date(Date.parse(bugun) + 86400000).toISOString().slice(0, 10);
+  const E9 = (await admin.from('etkinlikler').insert({ bulusma_gunu: yarin, yukleme_baslar: saat(20), yukleme_biter: saat(40), oylama_biter: saat(60), kuran: kA.id }).select('id').single()).data.id;
+  await admin.from('temalar').insert({ etkinlik: E9, ad: 'Yarın', sira: 1, bulusmada: true });
+  await git(A, 'asama');
+  bekle('9: buluşmadan önce yoklama açılmıyor', await var_(A, 'Buluşma günü açılır') && (await A.getByRole('button', { name: 'Yoklamayı al' }).count()) === 0);
+  await git(A, 'profil');
+  bekle('9: buluşmadan önce hatırlatma yok', !(await var_(A, 'Yoklamayı al')));
+  await admin.from('etkinlikler').update({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(-1), oylama_biter: saat(20) }).eq('id', E9);
+  await git(A, 'asama');
+  bekle('9: yoklama alınmadan oylama başladıysa bunu söylüyor', await var_(A, 'Yoklama alınmadı. Oylama başladığı için artık alınmıyor') && (await A.getByRole('button', { name: 'Yoklamayı al' }).count()) === 0);
+  await git(A, 'profil');
+  bekle('9: oylamada hatırlatma yok', !(await var_(A, 'Yoklamayı al')));
 }
 } catch (x) {
   bekle('akış yarıda kalmadı', false, String(x).split('\n')[0].slice(0, 300));

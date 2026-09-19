@@ -164,11 +164,16 @@ language sql stable security definer set search_path = public as $$
   order by t.sira, d.zaman
 $$;
 
--- Yönetici çıkarılan karenin dosyasını hangi aşamada olursa görebilsin
+-- Yönetici çıkarılan karenin dosyasını hangi aşamada olursa görebilsin. Kontrol
+-- security definer: kural kullanıcının yetkisiyle çalışıyor ve yönetici kareler
+-- tablosunda yalnız kendi satırlarını görüyor, doğrudan sorgu hep boş dönüyordu.
+create or replace function public.cikarilan_dosya_mi(p_ad text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.kareler k join public.diskalifiye d on d.kare = k.id
+                 where k.dosya = p_ad)
+$$;
 create policy kare_dosya_oku_cikarilan on storage.objects for select to authenticated
-  using (bucket_id = 'kareler' and public.yonetici_mi()
-         and exists (select 1 from public.kareler k join public.diskalifiye d on d.kare = k.id
-                     where k.dosya = name));
+  using (bucket_id = 'kareler' and public.yonetici_mi() and public.cikarilan_dosya_mi(name));
 
 -- ---------------------------------------------------------------------------
 -- Yükleme kuralı: yoklama ve diskalifiye
@@ -193,8 +198,9 @@ begin
     raise exception 'yukleme_kapali' using errcode = 'P0001';
   end if;
   -- Çıkarılan kare sahibince değişmez ve silinmez: yoksa silip yenisini koymak
-  -- diskalifiyeyi boşa çıkarırdı.
-  if tg_op in ('UPDATE', 'DELETE') and gizli.cikarildi(old.id) then
+  -- diskalifiyeyi boşa çıkarırdı. Yöneticinin silmesi serbest: etkinlik iptali ve
+  -- tema silme kareleri onun oturumuyla siliyor.
+  if gizli.cikarildi(old.id) and (tg_op = 'UPDATE' or (tg_op = 'DELETE' and not public.yonetici_mi())) then
     raise exception 'cikarildi' using errcode = 'P0001';
   end if;
   if tg_op = 'DELETE' then

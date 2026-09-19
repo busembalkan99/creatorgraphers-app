@@ -152,4 +152,22 @@ bekle('çıkarılan kare sezon sıralamasında sayılmıyor', !sir.some(x => x.u
 const mud = (await B.c.rpc('mudavim')).data ?? [];
 bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x.uye === A.id || x.uye === D.id), JSON.stringify(mud.map(x => x.ad)));
 
+// Yükleme açıkken: yönetici çıkarılan karenin küçük resmini görüyor, etkinliği yine iptal edebiliyor
+{
+  const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const T2 = (await admin.from('temalar').insert({ etkinlik: E2, ad: 'Işık', sira: 1, bulusmada: true }).select('id').single()).data;
+  const yol2 = `${E2}/${T2.id}/${crypto.randomUUID()}.jpg`;
+  await D.c.storage.from('kareler').upload(yol2, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const k2 = (await D.c.from('kareler').insert({ tema: T2.id, dosya: yol2, genislik: 10, yukseklik: 10, cekim_gunu: bugun }).select('id').single()).data;
+  bekle('yönetici yüklemede çıkarmadan önce başkasının dosyasını göremiyor', !!(await A.c.storage.from('kareler').createSignedUrl(yol2, 60)).error);
+  await A.c.rpc('kare_cikar', { p_kare: k2.id, p_neden: 'Deneme' });
+  const imza = await A.c.storage.from('kareler').createSignedUrl(yol2, 60);
+  bekle('yönetici yüklemede çıkarılan karenin resmini görüyor', !imza.error, JSON.stringify(imza.error));
+  bekle('başka üye çıkarılan karenin dosyasını göremiyor', !!(await B.c.storage.from('kareler').createSignedUrl(yol2, 60)).error);
+  const ip = await A.c.rpc('etkinlik_iptal', { p_etkinlik: E2 });
+  bekle('çıkarılan kare varken etkinlik iptal edilebiliyor', !ip.error, hata(ip));
+  bekle('iptalde kareler silindi', ((await admin.from('kareler').select('id').eq('id', k2.id)).data ?? []).length === 0);
+  await admin.from('etkinlikler').delete().eq('id', E2);
+}
+
 rapor();

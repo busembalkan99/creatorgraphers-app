@@ -12,6 +12,12 @@
 --
 -- Diskalifiye ayrı tabloda: karenin sütunu olsaydı sahibi kendi satırını güncelleyip
 -- kaydı silebilirdi. Bu tabloya doğrudan yazma izni kimsede yok, yalnız fonksiyonlar yazar.
+--
+-- İsimsizlik (karar 9) oylama bitene kadar yönetici için de geçerli. Yoklama ve gelmeyenleri
+-- toplu çıkarma yalnız oylama açılana kadar: oylamada yoklamayı "X hariç herkes" diye
+-- yeniden yazıp toplu çıkaran yönetici, akıştan düşen karelerden X'in karelerini
+-- öğrenirdi (güvenlik incelemesi, 2026-09-19). Aynı nedenle toplu çıkarılan karenin
+-- resmi sonuç açılana kadar yöneticiye gösterilmiyor ve oylama sürerken geri alınmıyor.
 
 -- ---------------------------------------------------------------------------
 -- Yoklama
@@ -42,8 +48,8 @@ language sql stable security definer set search_path = public as $$
   order by u.ad collate "tr-TR-x-icu"
 $$;
 
--- Yoklamayı kaydeder, önceki işaretlerin yerine geçer. Buluşma gününden oylama bitene
--- kadar açık: yükleme ve oylama sürerken düzeltilebilsin.
+-- Yoklamayı kaydeder, önceki işaretlerin yerine geçer. Buluşma gününden oylama açılana
+-- kadar: yükleme sürerken düzeltilebilir, oylamada değişmez (yukarıdaki not).
 create or replace function public.yoklama_kaydet(p_etkinlik uuid, p_gelenler uuid[])
 returns void language plpgsql security definer set search_path = public as $$
 declare e public.etkinlikler;
@@ -52,7 +58,9 @@ begin
   select * into e from public.etkinlikler where id = p_etkinlik for update;
   if e.id is null or e.iptal then raise exception 'etkinlik_yok' using errcode = 'P0001'; end if;
   if gizli.bugun() < e.bulusma_gunu then raise exception 'bulusma_olmadi' using errcode = 'P0001'; end if;
-  if public.asama(e) = 'sonuc' then raise exception 'oylama_bitti' using errcode = 'P0001'; end if;
+  if public.asama(e) not in ('baslamadi', 'yukleme') then
+    raise exception 'oylama_basladi' using errcode = 'P0001';
+  end if;
   delete from public.yoklama where etkinlik = p_etkinlik;
   insert into public.yoklama (etkinlik, uye)
     select p_etkinlik, u.id from public.uyeler u
@@ -77,7 +85,8 @@ create table public.diskalifiye (
   kare    uuid primary key references public.kareler(id) on delete cascade,
   neden   text not null check (char_length(btrim(neden)) between 1 and 140),
   eden    uuid references auth.users(id) on delete set null,
-  zaman   timestamptz not null default now()
+  zaman   timestamptz not null default now(),
+  toplu   boolean not null default false   -- gelmeyenleri çıkarma ile mi
 );
 alter table public.diskalifiye enable row level security;
 revoke all on public.diskalifiye from anon;
@@ -115,6 +124,14 @@ create or replace function public.kare_geri_al(p_kare uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
+  -- Toplu çıkarılan kare oylamada akışa geri dönerse kimin olduğu belli olurdu
+  if exists (select 1 from public.diskalifiye d
+               join public.kareler k on k.id = d.kare
+               join public.temalar t on t.id = k.tema
+               join public.etkinlikler e on e.id = t.etkinlik
+              where d.kare = p_kare and d.toplu and public.asama(e) = 'oylama') then
+    raise exception 'oylama_basladi' using errcode = 'P0001';
+  end if;
   delete from public.diskalifiye where kare = p_kare;
 end $$;
 
@@ -137,7 +154,8 @@ returns table (kisi bigint, kare bigint)
 language sql stable security definer set search_path = public as $$
   select count(distinct g.sahip), count(*)
   from gizli.gelmeyen_kareleri(p_etkinlik) g
-  where public.yonetici_mi()
+  join public.etkinlikler e on e.id = p_etkinlik
+  where public.yonetici_mi() and public.asama(e) = 'yukleme'
 $$;
 
 create or replace function public.gelmeyenleri_cikar(p_etkinlik uuid)
@@ -145,21 +163,32 @@ returns bigint language plpgsql security definer set search_path = public as $$
 declare n bigint;
 begin
   if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
-  insert into public.diskalifiye (kare, neden, eden)
-    select g.kare, 'Buluşmaya katılmadın.', auth.uid() from gizli.gelmeyen_kareleri(p_etkinlik) g
+  if (select public.asama(e) from public.etkinlikler e where e.id = p_etkinlik) is distinct from 'yukleme' then
+    raise exception 'oylama_basladi' using errcode = 'P0001';
+  end if;
+  insert into public.diskalifiye (kare, neden, eden, toplu)
+    select g.kare, 'Buluşmaya katılmadın.', auth.uid(), true from gizli.gelmeyen_kareleri(p_etkinlik) g
   on conflict (kare) do nothing;
   get diagnostics n = row_count;
   return n;
 end $$;
 
--- Yöneticinin geri alabilmesi için çıkarılanlar. Sahip yok: oylama sürerken de açılıyor.
+-- Yöneticinin geri alabilmesi için çıkarılanlar. Sahip yok. Toplu çıkarılanın resmi
+-- sonuç açılana kadar yok: gelmeyeni bilen yönetici resimden kareyi ona bağlardı.
 create or replace function public.cikarilan_kareler(p_etkinlik uuid)
-returns table (id uuid, tema_ad text, dosya text, genislik int, yukseklik int, neden text, zaman timestamptz)
+returns table (id uuid, tema_ad text, dosya text, genislik int, yukseklik int, neden text, zaman timestamptz,
+               toplu boolean, geri_alinir boolean)
 language sql stable security definer set search_path = public as $$
-  select k.id, t.ad, k.dosya, k.genislik, k.yukseklik, d.neden, d.zaman
+  select k.id, t.ad,
+         case when not d.toplu or public.asama(e) = 'sonuc' then k.dosya end,
+         case when not d.toplu or public.asama(e) = 'sonuc' then k.genislik end,
+         case when not d.toplu or public.asama(e) = 'sonuc' then k.yukseklik end,
+         d.neden, d.zaman, d.toplu,
+         not (d.toplu and public.asama(e) = 'oylama')
   from public.diskalifiye d
   join public.kareler k on k.id = d.kare
   join public.temalar t on t.id = k.tema
+  join public.etkinlikler e on e.id = t.etkinlik
   where t.etkinlik = p_etkinlik and public.yonetici_mi()
   order by t.sira, d.zaman
 $$;
@@ -169,11 +198,34 @@ $$;
 -- tablosunda yalnız kendi satırlarını görüyor, doğrudan sorgu hep boş dönüyordu.
 create or replace function public.cikarilan_dosya_mi(p_ad text) returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.kareler k join public.diskalifiye d on d.kare = k.id
-                 where k.dosya = p_ad)
+  select exists (select 1 from public.kareler k
+                   join public.diskalifiye d on d.kare = k.id
+                   join public.temalar t on t.id = k.tema
+                   join public.etkinlikler e on e.id = t.etkinlik
+                 where k.dosya = p_ad and (not d.toplu or public.asama(e) = 'sonuc'))
 $$;
 create policy kare_dosya_oku_cikarilan on storage.objects for select to authenticated
   using (bucket_id = 'kareler' and public.yonetici_mi() and public.cikarilan_dosya_mi(name));
+
+-- Oylamada herkes etkinliğin bütün dosyalarını okuyabiliyordu (0002). Toplu çıkarılan
+-- karenin dosyası sonuç açılana kadar bundan çıkıyor: klasör listelenip akışta olmayan
+-- dosya açılırsa gelmeyenin karesi olduğu anlaşılırdı. Sahibi kendi dosyasını 0001'deki
+-- kuralla okumaya devam ediyor.
+create or replace function public.toplu_cikarilan_mi(p_ad text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.kareler k
+                   join public.diskalifiye d on d.kare = k.id
+                   join public.temalar t on t.id = k.tema
+                   join public.etkinlikler e on e.id = t.etkinlik
+                 where k.dosya = p_ad and d.toplu and public.asama(e) <> 'sonuc')
+$$;
+drop policy kare_dosya_oku_oylama on storage.objects;
+create policy kare_dosya_oku_oylama on storage.objects for select to authenticated
+  using (
+    bucket_id = 'kareler' and public.uye_mi()
+    and public.etkinlik_asamasi(((storage.foldername(name))[1])::uuid) in ('oylama', 'sonuc')
+    and not public.toplu_cikarilan_mi(name)
+  );
 
 -- ---------------------------------------------------------------------------
 -- Yükleme kuralı: yoklama ve diskalifiye

@@ -143,6 +143,7 @@ bekle('4: gelmeyenin karesi çıkarıldı (veritabanı)', ((await admin.from('di
 bekle('4: özet kutusu kalkıyor', !(await var_(A, 'Gelmeyen 1 kişi')));
 bekle('4: çıkarılanlar listesinde nedeniyle', await var_(A, 'Yarışmadan çıkarılanlar') && await var_(A, 'Buluşmaya katılmadın.'));
 bekle('4: çıkarılanlar listesi sahibin adını vermiyor', !(await A.locator('.cikan').innerText()).includes('Deniz'));
+bekle('4: toplu çıkarılanın resmi yöneticiye gösterilmiyor', (await A.locator('.cikan img').count()) === 0);
 bekle('4: aşama sayacı çıkarılanı saymıyor', (await A.locator('.ozet').innerText()).includes('1 kare'), await A.locator('.ozet').innerText());
 await A.screenshot({ path: `${SS}/54-cikarilanlar.png`, fullPage: true });
 await A.getByRole('button', { name: 'Geri al' }).click();
@@ -163,6 +164,10 @@ await D.screenshot({ path: `${SS}/55-sahip-cikarildi.png`, fullPage: true });
 
 // ---------------------------------------------------------------- 6. oylamada yönetici isimsiz çıkarır
 await admin.from('etkinlikler').update({ yukleme_biter: saat(-0.2) }).eq('id', E);
+await git(A, 'asama');
+bekle('6: oylamada yoklama kilitli', await var_(A, 'Oylama başladı, yoklama artık değişmiyor') && (await A.getByRole('button', { name: 'Yoklamayı düzelt' }).count()) === 0);
+bekle('6: toplu çıkarılan oylamada geri alınamıyor, nedeni yazıyor', (await A.getByRole('button', { name: 'Geri al' }).count()) === 0 && await var_(A, 'Oylama bitince geri alınır'));
+await A.screenshot({ path: `${SS}/55b-asama-oylamada.png`, fullPage: true });
 await git(A, 'oyla/' + SOKAK.id);
 const oncekiSayi = await A.locator('.kare').count();
 bekle('6: yöneticide çıkarma düğmesi künyede', (await A.locator('.kare .mast .cikar').count()) === oncekiSayi && oncekiSayi > 0, String(oncekiSayi));

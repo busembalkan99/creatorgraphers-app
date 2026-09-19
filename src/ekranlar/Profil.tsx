@@ -235,7 +235,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
             </button>
           )}
           {/* Karar 103: buluşma günü geldiyse ve yoklama alınmadıysa hatırlat */}
-          {acik && !acik.yoklama_at
+          {acik && !acik.yoklama_at && ['baslamadi', 'yukleme'].includes(asama(acik))
             && new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }) >= acik.bulusma_gunu && (
             <button className="satir" onClick={() => git('asama')}>
               <div className="tx"><b>Yoklamayı al</b><span>Alınana kadar herkes kare yükleyebiliyor</span></div>

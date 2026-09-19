@@ -194,6 +194,9 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
 
   const alindi = !!e.yoklama_at
   const gelen = liste?.filter(x => x.geldi).length ?? 0
+  // Oylama açılınca yoklama değişmez: yeniden yazıp toplu çıkarmak kareleri sahiplerine
+  // bağlatırdı (isimsizlik, karar 9)
+  const kilitli = !['baslamadi', 'yukleme'].includes(asama(e))
 
   async function kaydet() {
     if (!secim) return
@@ -236,6 +239,10 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
           <button className="btn" disabled={gidiyor} onClick={kaydet}>Yoklamayı kaydet</button>
           <button className="btn ik" onClick={() => setSecim(null)}>Vazgeç</button>
         </>
+      ) : kilitli ? (
+        <p className="veri" style={{ marginTop: 0 }}>
+          {alindi ? 'Oylama başladı, yoklama artık değişmiyor.' : 'Yoklama alınmadı. Oylama başladığı için artık alınmıyor.'}
+        </p>
       ) : (
         <>
           <p className="veri" style={{ marginTop: 0 }}>
@@ -247,7 +254,7 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
           </button>
         </>
       )}
-      {secim === null && gelmeyen && gelmeyen.kare > 0 && (
+      {secim === null && !kilitli && gelmeyen && gelmeyen.kare > 0 && (
         <div className="kutu">
           <div className="bas"><span>Gelmeyen {gelmeyen.kisi} kişi {gelmeyen.kare} kare yüklemiş</span></div>
           <p>Yoklamadan önce yüklenmişler. Çıkarırsan sahipleri nedenini görür, geri alabilirsin.</p>
@@ -261,15 +268,18 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
 
 /** Yarışmadan çıkarılan kareler. Sahip yazmıyor: oylama sürerken yönetici de isim görmüyor. */
 function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
-  const [liste, setListe] = useState<{ id: string; tema_ad: string; dosya: string; neden: string; url: string | null }[]>([])
+  const [liste, setListe] = useState<{ id: string; tema_ad: string; dosya: string | null; neden: string; geri_alinir: boolean; url: string | null }[]>([])
   const [hata, setHata] = useState<string | null>(null)
 
   async function oku() {
     const { data, error } = await sor(sb.rpc('cikarilan_kareler', { p_etkinlik: e.id }))
     if (error) throw error
-    const l = (data ?? []) as { id: string; tema_ad: string; dosya: string; neden: string }[]
-    const imza = l.length ? (await sb.storage.from('kareler').createSignedUrls(l.map(x => x.dosya), 3600)).data ?? [] : []
-    setListe(l.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null })))
+    const l = (data ?? []) as { id: string; tema_ad: string; dosya: string | null; neden: string; geri_alinir: boolean }[]
+    // Toplu çıkarılanın resmi sonuç açılana kadar gelmiyor (dosya boş)
+    const resimli = l.filter(x => x.dosya)
+    const imza = resimli.length ? (await sb.storage.from('kareler').createSignedUrls(resimli.map(x => x.dosya!), 3600)).data ?? [] : []
+    const url = Object.fromEntries(resimli.map((x, i) => [x.id, imza[i]?.signedUrl ?? null]))
+    setListe(l.map(x => ({ ...x, url: url[x.id] ?? null })))
   }
   useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, surum]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -288,7 +298,9 @@ function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
         <div className="cikan" key={x.id}>
           {x.url ? <img src={x.url} alt="" /> : <div className="yer" style={{ width: 52, height: 52 }} />}
           <div className="tx"><b>{x.tema_ad}</b><span>{x.neden}</span></div>
-          <button className="btn ik" onClick={() => geriAl(x.id)}>Geri al</button>
+          {x.geri_alinir
+            ? <button className="btn ik" onClick={() => geriAl(x.id)}>Geri al</button>
+            : <span className="bekle">Oylama bitince geri alınır</span>}
         </div>
       ))}
       <Hata metin={hata} />

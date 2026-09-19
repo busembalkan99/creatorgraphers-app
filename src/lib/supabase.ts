@@ -32,7 +32,7 @@ const HATALAR: Record<string, string> = {
   cikarildi: 'Bu kare yarışmadan çıkarıldı.',
   neden_gerekli: 'Nedenini yaz.',
   bulusma_olmadi: 'Yoklama buluşma günü alınır.',
-  oylama_bitti: 'Oylama bitti, yoklama artık değişmiyor.',
+  oylama_basladi: 'Oylama başladı, bu artık değişmiyor.',
   kare_yok: 'Bu kare artık yok.',
   etkinlik_yok: 'Etkinlik bulunamadı.',
 }

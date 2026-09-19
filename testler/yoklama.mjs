@@ -98,6 +98,17 @@ await admin.from('etkinlikler').update({ yukleme_biter: saat(-0.5) }).eq('id', E
 const gorur = async K => ((await K.c.rpc('oylama_kareleri', { p_etkinlik: E })).data ?? []).map(x => x.id);
 bekle('oylamada çıkarılan kare yok', !(await gorur(B)).includes(kD.data.id) && (await gorur(B)).includes(kA.data.id));
 bekle('çıkarılan kareye puan verilemiyor', hata(await B.c.from('oylar').insert({ kare: kD.data.id, veren: B.id, puan: 9 })).includes('cikarildi'));
+// İsimsizlik: oylamada yoklamayı yeniden yazıp toplu çıkarmak kareleri sahibine bağlatırdı
+const yolKD = (await admin.from('kareler').select('dosya').eq('id', kD.data.id).single()).data.dosya;
+bekle('saldırı: oylamada yoklama değişmiyor', hata(await A.c.rpc('yoklama_kaydet', { p_etkinlik: E, p_gelenler: [A.id] })).includes('oylama_basladi'));
+bekle('saldırı: oylamada toplu çıkarılamıyor', hata(await A.c.rpc('gelmeyenleri_cikar', { p_etkinlik: E })).includes('oylama_basladi'));
+bekle('saldırı: oylamada gelmeyen özeti boş', !((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E })).data?.[0]?.kare > 0));
+const cikO = ((await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []).find(x => x.id === kD.data.id);
+bekle('toplu çıkarılanın resmi oylamada yöneticiye gelmiyor', cikO && cikO.dosya === null && cikO.genislik === null && cikO.geri_alinir === false, JSON.stringify(cikO));
+bekle('yönetici toplu çıkarılanın dosyasını oylamada imzalayamıyor', !!(await A.c.storage.from('kareler').createSignedUrl(yolKD, 60)).error);
+bekle('toplu çıkarılan oylamada geri alınamıyor (akışa dönerse sahibi belli olur)',
+  hata(await A.c.rpc('kare_geri_al', { p_kare: kD.data.id })).includes('oylama_basladi')
+  && ((await admin.from('diskalifiye').select('kare').eq('kare', kD.data.id)).data ?? []).length === 1);
 bekle('karesi çıkarılan o temayı oylamak zorunda değil',
   (await D.c.rpc('oylama_durumu', { p_etkinlik: E })).data?.find(x => x.tema === SOKAK.id)?.zorunlu === false);
 
@@ -138,7 +149,10 @@ const kendi = (await sonuc(D)).find(x => x.id === kD.data.id);
 bekle('sahibi sonuçta karesini nedeniyle görüyor', kendi?.cikarildi === true && kendi?.cikarma_nedeni === 'Buluşmaya katılmadın.' && kendi?.ortalama == null, JSON.stringify(kendi));
 const sA = await sonuc(A);
 bekle('yönetici sonuçta çıkarılanları görüyor, en sonda', sA.filter(x => x.cikarildi).length === 2 && sA.at(-1)?.cikarildi && sA.filter(x => x.tema === SOKAK.id).at(-1)?.cikarildi, JSON.stringify(sA.map(x => [x.tema_ad, x.cikarildi])));
-bekle('yoklama sonuçtan sonra değişmiyor', hata(await A.c.rpc('yoklama_kaydet', { p_etkinlik: E, p_gelenler: [A.id] })).includes('oylama_bitti'));
+bekle('yoklama sonuçtan sonra değişmiyor', hata(await A.c.rpc('yoklama_kaydet', { p_etkinlik: E, p_gelenler: [A.id] })).includes('oylama_basladi'));
+const cikS = ((await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []).find(x => x.id === kD.data.id);
+bekle('sonuçta toplu çıkarılanın resmi yöneticiye açılıyor', !!cikS?.dosya && cikS?.geri_alinir === true, JSON.stringify(cikS));
+bekle('sonuçta toplu çıkarılanın dosyası yöneticiye imzalanıyor', !(await A.c.storage.from('kareler').createSignedUrl(yolKD, 60)).error);
 
 // Sonuç açıldıktan sonra da çıkarılır; sıralama ve profil yeniden hesaplanır
 const profilA = async () => ((await B.c.rpc('profil_kareleri', { p_uye: A.id })).data ?? []).map(x => x.id);

@@ -123,6 +123,12 @@ bekle('3: yükleyince sıradaki temaya geçiş öneriliyor', await var_(B, 'Doku
 await B.getByRole('button', { name: 'Doku temasına geç' }).click();
 await B.waitForTimeout(200);
 bekle('3: geçiş gerçekten Doku temasını seçiyor', (await B.locator('.kontakt .k.secili .ad').textContent()) === 'Doku' && (await B.locator('button.bos').count()) === 1);
+// Yarıda bırakıp ana ekrana dönünce kart kaldığı yeri söylüyor
+await git(B, 'etkinlikler');
+bekle('3: yarım kalınca kart devam etmeyi ve kalanı söylüyor', await var_(B, 'Yüklemeye devam et') && await var_(B, '1 tema kaldı'), (await metin(B)).slice(0, 200));
+await B.locator('.live .act').click();
+await B.waitForTimeout(1300);
+bekle('3: dönünce ilk boş tema açılıyor', (await B.locator('.kontakt .k.secili .ad').textContent()) === 'Doku');
 await sec();
 await B.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {});
 await B.waitForTimeout(500);
@@ -203,8 +209,18 @@ await git(B, 'oyla/' + SOKAK.id);
 bekle('6: üyenin akışından da düştü', (await B.locator(`[data-kare="${hedefKare}"]`).count()) === 0);
 
 // ---------------------------------------------------------------- 7. sonuç
-// Selin'in Sokak karesi geri alınsın ki sıralama olsun, Ayşe puan versin
-await kA.c.rpc('kare_geri_al', { p_kare: hedefKare });
+// Yönetici oylamada çıkardığını Aşama'dan geri alıyor (bildirim oraya yönlendiriyor)
+await git(A, 'asama');
+bekle('6: çıkarılanlar listesinde tek tek çıkarılan, resmi ve nedeniyle', (await A.locator('.cikan').count()) === 1
+  && (await A.locator('.cikan img').count()) === 1 && (await A.locator('.cikan').innerText()).includes('Başka gün çekilmiş'));
+await A.getByRole('button', { name: 'Geri al' }).click();
+await A.waitForTimeout(1300);
+bekle('6: geri al düğmesi kareyi yarışmaya döndürüyor', ((await admin.from('diskalifiye').select('kare').eq('kare', hedefKare)).data ?? []).length === 0
+  && (await A.locator('.cikan').count()) === 0);
+// Kare Selin'in; kendi karesi kendi akışında olmaz, başka üyeye bak
+await git(D, 'oyla/' + SOKAK.id);
+bekle('6: geri alınan kare üyenin akışına dönüyor', (await D.locator(`[data-kare="${hedefKare}"]`).count()) === 1);
+// Ayşe puan versin ki sonuçta sıralama olsun
 await kA.c.from('oylar').insert({ kare: hedefKare, veren: kA.id, puan: 8 });
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
 await git(D, 'sonuc/' + E);
@@ -232,7 +248,27 @@ await A.waitForTimeout(400);
 const geriAlVar = await A.getByRole('button', { name: 'Yarışmaya geri al' }).count();
 bekle('7: yönetici detaydan geri alabiliyor', geriAlVar === 1);
 await A.screenshot({ path: `${SS}/58-sonuc-cikarilan.png`, fullPage: true });
+await A.getByRole('button', { name: 'Yarışmaya geri al' }).click();
+await A.waitForTimeout(1500);
+bekle('7: geri alınca detay kapanıyor, kare yarışmaya dönüyor', (await A.locator('.detay').count()) === 0
+  && (await A.locator('.izgara figure.cikti').count()) === 1
+  && ((await admin.from('diskalifiye').select('kare')).data ?? []).length === 1);
 
+
+// ---------------------------------------------------------------- 8. tek temalı etkinlik: tekil dil
+{
+  const E1 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-0.5), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: kA.id }).select('id').single()).data.id;
+  await admin.from('temalar').insert({ etkinlik: E1, ad: 'Pencere', sira: 1, bulusmada: false });
+  await git(B, 'etkinlikler');
+  bekle('8: tek temada kart "Kareni yükle" diyor', await var_(B, 'Kareni yükle') && !(await var_(B, 'Karelerini yükle')));
+  await B.locator('.live .act').click();
+  await B.waitForTimeout(1300);
+  const [fc] = await Promise.all([B.waitForEvent('filechooser'), B.locator('button.bos').click()]);
+  await fc.setFiles('/tmp/cgapp/dogru.jpg');
+  await B.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {});
+  await B.waitForTimeout(500);
+  bekle('8: tek temada kapanış "Karen yüklendi"', await var_(B, 'Karen yüklendi') && !(await var_(B, 'temasına geç')));
+}
 } catch (x) {
   bekle('akış yarıda kalmadı', false, String(x).split('\n')[0].slice(0, 300));
 }

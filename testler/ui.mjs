@@ -339,6 +339,19 @@ bekle('oylama ekranında sekme çubuğu yok', (await A.locator('.tabs').count())
   }));
   bekle('hata cümleleri okunur', c.kendi.includes('Kendi karene') && c.kapali.includes('Oylama kapandı') && c.baska.includes('kendi puanını') && c.bilinmeyen.includes('ters gitti'), JSON.stringify(c));
 }
+// Karar 103'ün hata kodları: her biri kendi cümlesine düşmeli (eşleşme alt dize ile, sırayla)
+{
+  const c = await A.evaluate(() => Object.fromEntries(
+    ['yoklamada_yok', 'cikarildi', 'neden_gerekli', 'bulusma_olmadi', 'toplu_geri', 'oylama_basladi', 'kare_yok', 'etkinlik_yok']
+      .map(k => [k, window.__hataMetni({ message: k })])));
+  const beklenen = {
+    yoklamada_yok: 'Yoklamada adın yok', cikarildi: 'yarışmadan çıkarıldı', neden_gerekli: 'Nedenini yaz',
+    bulusma_olmadi: 'buluşma günü alınır', toplu_geri: 'yoklama düzeltilince', oylama_basladi: 'Oylama başladı',
+    kare_yok: 'Bu kare artık yok', etkinlik_yok: 'Etkinlik bulunamadı',
+  };
+  const yanlis = Object.entries(beklenen).filter(([k, v]) => !c[k].includes(v));
+  bekle('karar 103 hata cümleleri okunur', yanlis.length === 0, JSON.stringify(yanlis.map(([k]) => [k, c[k]])));
+}
 // olmayan tema adresi
 await A.goto(APP + '#/oyla/00000000-0000-0000-0000-000000000000'); await A.waitForTimeout(1500);
 bekle('olmayan tema adresinde kilit ekranı', icerir(await metin(A), 'Oylama açık değil'), (await metin(A)).slice(0, 100));

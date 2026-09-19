@@ -16,8 +16,11 @@
 -- İsimsizlik (karar 9) oylama bitene kadar yönetici için de geçerli. Yoklama ve gelmeyenleri
 -- toplu çıkarma yalnız oylama açılana kadar: oylamada yoklamayı "X hariç herkes" diye
 -- yeniden yazıp toplu çıkaran yönetici, akıştan düşen karelerden X'in karelerini
--- öğrenirdi (güvenlik incelemesi, 2026-09-19). Aynı nedenle toplu çıkarılan karenin
--- resmi sonuç açılana kadar yöneticiye gösterilmiyor ve oylama sürerken geri alınmıyor.
+-- öğrenirdi (güvenlik incelemesi, 2026-09-19). Aynı nedenle toplu çıkarılan kare sonuç
+-- açılana kadar yöneticiye hiç verilmiyor, kimliği de: yüklemede kimlikleri not edip
+-- geri alan yönetici oylamada onları resimlerle eşleştirirdi (ikinci inceleme). Toplu
+-- çıkarmanın geri alınışı kare kare değil, yoklamayı düzeltmek: gelmiş işaretlenenin
+-- kareleri kendiliğinden döner.
 
 -- ---------------------------------------------------------------------------
 -- Yoklama
@@ -66,6 +69,11 @@ begin
     select p_etkinlik, u.id from public.uyeler u
     where u.id = any (coalesce(p_gelenler, '{}')) and u.cikarildi_at is null;
   update public.etkinlikler set yoklama_at = now() where id = p_etkinlik;
+  -- Toplu çıkarmanın geri alınışı: artık gelmiş sayılanın kareleri yarışmaya döner
+  delete from public.diskalifiye d
+   using public.kareler k, public.temalar t
+   where d.kare = k.id and k.tema = t.id and t.etkinlik = p_etkinlik and d.toplu
+     and exists (select 1 from public.yoklama y where y.etkinlik = p_etkinlik and y.uye = k.sahip);
 end $$;
 
 -- Üyenin kendi durumu: yükleme ekranı buluşma temasını buna göre kilitler
@@ -124,13 +132,13 @@ create or replace function public.kare_geri_al(p_kare uuid)
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
-  -- Toplu çıkarılan kare oylamada akışa geri dönerse kimin olduğu belli olurdu
+  -- Toplu çıkarılan kare sonuçtan önce kare kare geri alınmaz: yoklama düzeltilir
   if exists (select 1 from public.diskalifiye d
                join public.kareler k on k.id = d.kare
                join public.temalar t on t.id = k.tema
                join public.etkinlikler e on e.id = t.etkinlik
-              where d.kare = p_kare and d.toplu and public.asama(e) = 'oylama') then
-    raise exception 'oylama_basladi' using errcode = 'P0001';
+              where d.kare = p_kare and d.toplu and public.asama(e) <> 'sonuc') then
+    raise exception 'toplu_geri' using errcode = 'P0001';
   end if;
   delete from public.diskalifiye where kare = p_kare;
 end $$;
@@ -173,24 +181,27 @@ begin
   return n;
 end $$;
 
--- Yöneticinin geri alabilmesi için çıkarılanlar. Sahip yok. Toplu çıkarılanın resmi
--- sonuç açılana kadar yok: gelmeyeni bilen yönetici resimden kareyi ona bağlardı.
+-- Yöneticinin geri alabilmesi için çıkarılanlar. Sahip yok. Toplu çıkarılanlar sonuç
+-- açılana kadar listede yok (yukarıdaki not), yalnız sayıları toplu_ozeti'nde.
 create or replace function public.cikarilan_kareler(p_etkinlik uuid)
-returns table (id uuid, tema_ad text, dosya text, genislik int, yukseklik int, neden text, zaman timestamptz,
-               toplu boolean, geri_alinir boolean)
+returns table (id uuid, tema_ad text, dosya text, genislik int, yukseklik int, neden text, zaman timestamptz)
 language sql stable security definer set search_path = public as $$
-  select k.id, t.ad,
-         case when not d.toplu or public.asama(e) = 'sonuc' then k.dosya end,
-         case when not d.toplu or public.asama(e) = 'sonuc' then k.genislik end,
-         case when not d.toplu or public.asama(e) = 'sonuc' then k.yukseklik end,
-         d.neden, d.zaman, d.toplu,
-         not (d.toplu and public.asama(e) = 'oylama')
+  select k.id, t.ad, k.dosya, k.genislik, k.yukseklik, d.neden, d.zaman
   from public.diskalifiye d
   join public.kareler k on k.id = d.kare
   join public.temalar t on t.id = k.tema
   join public.etkinlikler e on e.id = t.etkinlik
   where t.etkinlik = p_etkinlik and public.yonetici_mi()
+    and (not d.toplu or public.asama(e) = 'sonuc')
   order by t.sira, d.zaman
+$$;
+
+create or replace function public.toplu_ozeti(p_etkinlik uuid)
+returns bigint language sql stable security definer set search_path = public as $$
+  select count(*) from public.diskalifiye d
+  join public.kareler k on k.id = d.kare
+  join public.temalar t on t.id = k.tema
+  where t.etkinlik = p_etkinlik and d.toplu and public.yonetici_mi()
 $$;
 
 -- Yönetici çıkarılan karenin dosyasını hangi aşamada olursa görebilsin. Kontrol

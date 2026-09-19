@@ -104,10 +104,12 @@ bekle('saldırı: oylamada yoklama değişmiyor', hata(await A.c.rpc('yoklama_ka
 bekle('saldırı: oylamada toplu çıkarılamıyor', hata(await A.c.rpc('gelmeyenleri_cikar', { p_etkinlik: E })).includes('oylama_basladi'));
 bekle('saldırı: oylamada gelmeyen özeti boş', !((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E })).data?.[0]?.kare > 0));
 const cikO = ((await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []).find(x => x.id === kD.data.id);
-bekle('toplu çıkarılanın resmi oylamada yöneticiye gelmiyor', cikO && cikO.dosya === null && cikO.genislik === null && cikO.geri_alinir === false, JSON.stringify(cikO));
+bekle('toplu çıkarılan oylamada listede yok, kimliği de', cikO === undefined, JSON.stringify(cikO));
+bekle('toplu çıkarılanların yalnız sayısı var', (await A.c.rpc('toplu_ozeti', { p_etkinlik: E })).data == 1);
+bekle('üye toplu sayısını göremiyor', (await B.c.rpc('toplu_ozeti', { p_etkinlik: E })).data == 0);
 bekle('yönetici toplu çıkarılanın dosyasını oylamada imzalayamıyor', !!(await A.c.storage.from('kareler').createSignedUrl(yolKD, 60)).error);
 bekle('toplu çıkarılan oylamada geri alınamıyor (akışa dönerse sahibi belli olur)',
-  hata(await A.c.rpc('kare_geri_al', { p_kare: kD.data.id })).includes('oylama_basladi')
+  hata(await A.c.rpc('kare_geri_al', { p_kare: kD.data.id })).includes('toplu_geri')
   && ((await admin.from('diskalifiye').select('kare').eq('kare', kD.data.id)).data ?? []).length === 1);
 bekle('karesi çıkarılan o temayı oylamak zorunda değil',
   (await D.c.rpc('oylama_durumu', { p_etkinlik: E })).data?.find(x => x.tema === SOKAK.id)?.zorunlu === false);
@@ -123,7 +125,7 @@ bekle('oy silinmiyor, yalnız sayılmıyor', ((await admin.from('oylar').select(
 bekle('B artık Portre\'yi oylamak zorunda değil',
   (await B.c.rpc('oylama_durumu', { p_etkinlik: E })).data?.find(x => x.tema === PORTRE.id)?.zorunlu === false);
 const cik = (await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? [];
-bekle('yönetici çıkarılanları nedeniyle görüyor', cik.length === 2 && cik.some(x => x.neden === 'Tarih değiştirilmiş.'), JSON.stringify(cik));
+bekle('yönetici tek tek çıkardığını nedeniyle görüyor', cik.length === 1 && cik[0].neden === 'Tarih değiştirilmiş.', JSON.stringify(cik));
 bekle('çıkarılanlar listesi sahibi söylemiyor', cik.every(x => !('sahip' in x) && !('sahip_ad' in x)));
 bekle('üye çıkarılanlar listesini göremiyor', ((await B.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []).length === 0);
 
@@ -151,7 +153,7 @@ const sA = await sonuc(A);
 bekle('yönetici sonuçta çıkarılanları görüyor, en sonda', sA.filter(x => x.cikarildi).length === 2 && sA.at(-1)?.cikarildi && sA.filter(x => x.tema === SOKAK.id).at(-1)?.cikarildi, JSON.stringify(sA.map(x => [x.tema_ad, x.cikarildi])));
 bekle('yoklama sonuçtan sonra değişmiyor', hata(await A.c.rpc('yoklama_kaydet', { p_etkinlik: E, p_gelenler: [A.id] })).includes('oylama_basladi'));
 const cikS = ((await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []).find(x => x.id === kD.data.id);
-bekle('sonuçta toplu çıkarılanın resmi yöneticiye açılıyor', !!cikS?.dosya && cikS?.geri_alinir === true, JSON.stringify(cikS));
+bekle('sonuçta toplu çıkarılan listede, resmiyle', !!cikS?.dosya, JSON.stringify(cikS));
 bekle('sonuçta toplu çıkarılanın dosyası yöneticiye imzalanıyor', !(await A.c.storage.from('kareler').createSignedUrl(yolKD, 60)).error);
 
 // Sonuç açıldıktan sonra da çıkarılır; sıralama ve profil yeniden hesaplanır
@@ -182,6 +184,29 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
   bekle('çıkarılan kare varken etkinlik iptal edilebiliyor', !ip.error, hata(ip));
   bekle('iptalde kareler silindi', ((await admin.from('kareler').select('id').eq('id', k2.id)).data ?? []).length === 0);
   await admin.from('etkinlikler').delete().eq('id', E2);
+}
+
+// İkinci saldırı (güvenlik incelemesi): yüklemede "X hariç" yoklama + toplu çıkarma ile
+// X'in kare kimliklerini not edip geri almak, oylamada kimlikleri resimlerle eşleştirmek
+{
+  const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const T3 = (await admin.from('temalar').insert({ etkinlik: E3, ad: 'Gölge', sira: 1, bulusmada: false }).select('id').single()).data;
+  const yol3 = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
+  await B.c.storage.from('kareler').upload(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const k3 = (await B.c.from('kareler').insert({ tema: T3.id, dosya: yol3, genislik: 10, yukseklik: 10 }).select('id').single()).data;
+  await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, D.id] });   // Selin hariç
+  await A.c.rpc('gelmeyenleri_cikar', { p_etkinlik: E3 });
+  const liste3 = (await A.c.rpc('cikarilan_kareler', { p_etkinlik: E3 })).data ?? [];
+  bekle('saldırı 2: yüklemede toplu çıkarılanın kimliği verilmiyor', !liste3.some(x => x.id === k3.id), JSON.stringify(liste3));
+  bekle('saldırı 2: yüklemede kare kare geri alınamıyor', hata(await A.c.rpc('kare_geri_al', { p_kare: k3.id })).includes('toplu_geri'));
+  await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, B.id, D.id] });
+  bekle('yoklama düzeltilince toplu çıkarılan kendiliğinden dönüyor', ((await admin.from('diskalifiye').select('kare').eq('kare', k3.id)).data ?? []).length === 0);
+  bekle('tek tek çıkarılan yoklamayla dönmüyor', await (async () => {
+    await A.c.rpc('kare_cikar', { p_kare: k3.id, p_neden: 'Deneme' });
+    await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, B.id, D.id] });
+    return ((await admin.from('diskalifiye').select('kare').eq('kare', k3.id)).data ?? []).length === 1;
+  })());
+  await admin.from('etkinlikler').delete().eq('id', E3);
 }
 
 rapor();

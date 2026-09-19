@@ -167,16 +167,20 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
   const [liste, setListe] = useState<{ uye: string; ad: string; geldi: boolean }[] | null>(null)
   const [secim, setSecim] = useState<Set<string> | null>(null)   // null: düzenlemiyor
   const [gelmeyen, setGelmeyen] = useState<{ kisi: number; kare: number } | null>(null)
+  const [toplu, setToplu] = useState(0)   // gelmeyen diye çıkarılan kare sayısı
   const [hata, setHata] = useState<string | null>(null)
   const [gidiyor, setGidiyor] = useState(false)
 
   async function oku() {
-    const [l, g] = await sor(Promise.all([
+    const [l, g, t] = await sor(Promise.all([
       sb.rpc('yoklama_listesi', { p_etkinlik: e.id }),
       sb.rpc('gelmeyen_ozeti', { p_etkinlik: e.id }),
+      sb.rpc('toplu_ozeti', { p_etkinlik: e.id }),
     ]))
     if (l.error) throw l.error
     if (g.error) throw g.error
+    if (t.error) throw t.error
+    setToplu(Number(t.data ?? 0))
     setListe((l.data ?? []) as { uye: string; ad: string; geldi: boolean }[])
     const o = ((g.data ?? []) as { kisi: number; kare: number }[])[0]
     setGelmeyen(o ? { kisi: Number(o.kisi), kare: Number(o.kare) } : null)
@@ -261,6 +265,13 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
           <button className="btn" onClick={gelmeyenleriCikar}>Karelerini çıkar</button>
         </div>
       )}
+      {/* Toplu çıkarılanlar kare kare listelenmiyor, geri alınışı yoklamayı düzeltmek:
+          kimlikleri yöneticiye verilse oylamada resimlerle eşleşirdi (karar 103) */}
+      {secim === null && toplu > 0 && (
+        <p className="veri">
+          Gelmeyenlerin {toplu} karesi yarışmadan çıkarıldı.{!kilitli && ' Yanlışlık varsa yoklamayı düzelt, geri gelir.'}
+        </p>
+      )}
       <Hata metin={hata} />
     </div>
   )
@@ -268,18 +279,15 @@ function Yoklama({ e, degisti }: { e: Etkinlik; degisti: () => void }) {
 
 /** Yarışmadan çıkarılan kareler. Sahip yazmıyor: oylama sürerken yönetici de isim görmüyor. */
 function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
-  const [liste, setListe] = useState<{ id: string; tema_ad: string; dosya: string | null; neden: string; geri_alinir: boolean; url: string | null }[]>([])
+  const [liste, setListe] = useState<{ id: string; tema_ad: string; dosya: string; neden: string; url: string | null }[]>([])
   const [hata, setHata] = useState<string | null>(null)
 
   async function oku() {
     const { data, error } = await sor(sb.rpc('cikarilan_kareler', { p_etkinlik: e.id }))
     if (error) throw error
-    const l = (data ?? []) as { id: string; tema_ad: string; dosya: string | null; neden: string; geri_alinir: boolean }[]
-    // Toplu çıkarılanın resmi sonuç açılana kadar gelmiyor (dosya boş)
-    const resimli = l.filter(x => x.dosya)
-    const imza = resimli.length ? (await sb.storage.from('kareler').createSignedUrls(resimli.map(x => x.dosya!), 3600)).data ?? [] : []
-    const url = Object.fromEntries(resimli.map((x, i) => [x.id, imza[i]?.signedUrl ?? null]))
-    setListe(l.map(x => ({ ...x, url: url[x.id] ?? null })))
+    const l = (data ?? []) as { id: string; tema_ad: string; dosya: string; neden: string }[]
+    const imza = l.length ? (await sb.storage.from('kareler').createSignedUrls(l.map(x => x.dosya), 3600)).data ?? [] : []
+    setListe(l.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null })))
   }
   useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, surum]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -298,9 +306,7 @@ function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
         <div className="cikan" key={x.id}>
           {x.url ? <img src={x.url} alt="" /> : <div className="yer" style={{ width: 52, height: 52 }} />}
           <div className="tx"><b>{x.tema_ad}</b><span>{x.neden}</span></div>
-          {x.geri_alinir
-            ? <button className="btn ik" onClick={() => geriAl(x.id)}>Geri al</button>
-            : <span className="bekle">Oylama bitince geri alınır</span>}
+          <button className="btn ik" onClick={() => geriAl(x.id)}>Geri al</button>
         </div>
       ))}
       <Hata metin={hata} />

@@ -42,6 +42,7 @@ const kur = await s.evaluate(async () => {
     sacmaDiyafram: m.bilgiKur({ FocalLength: 50, FNumber: 900, ExposureTime: 1 / 125 }),
     sacmaOdak: m.bilgiKur({ FocalLength: 4500, FNumber: 2.8, ExposureTime: 1 / 200 }),
     sacmaPoz: m.bilgiKur({ FocalLength: 35, FNumber: 4, ExposureTime: 7200 }),
+    altSinir: m.bilgiKur({ FocalLength: 0, FNumber: 0.2, ExposureTime: 1 / 200000 }),
   };
 });
 bekle('sağlam dosya: makine bilgisi olduğu gibi', kur.saglam.kamera === 'Canon EOS 6D' && kur.saglam.objektif === 'EF40mm f/2.8 STM' && kur.saglam.odak === '40mm' && kur.saglam.diyafram === 'f/2.8' && kur.saglam.enstantane === '1/60' && kur.saglam.iso === '6400', kur.saglam);
@@ -53,6 +54,7 @@ bekle('uzun pozlama bozuk sayılmaz', kur.uzunPoz.enstantane === '30s' && kur.uz
 bekle('tek başına anlamsız diyafram boş, diğerleri durur', kur.sacmaDiyafram.diyafram === null && kur.sacmaDiyafram.odak === '50mm' && kur.sacmaDiyafram.enstantane === '1/125', kur.sacmaDiyafram);
 bekle('tek başına anlamsız odak boş, diğerleri durur', kur.sacmaOdak.odak === null && kur.sacmaOdak.diyafram === 'f/2.8' && kur.sacmaOdak.enstantane === '1/200', kur.sacmaOdak);
 bekle('iki saatlik pozlama boş, diğerleri durur', kur.sacmaPoz.enstantane === null && kur.sacmaPoz.odak === '35mm' && kur.sacmaPoz.diyafram === 'f/4', kur.sacmaPoz);
+bekle('alt sınırın altındaki değerler boş (üçü farklı, bozuk kuralı devrede değil)', kur.altSinir.odak === null && kur.altSinir.diyafram === null && kur.altSinir.enstantane === null, kur.altSinir);
 
 await b.close();
 for (const x of sonuclar) console.log(x.ok ? 'GEÇTİ ' : 'KALDI ', x.ad, x.ayrinti ? '→ ' + x.ayrinti : '');

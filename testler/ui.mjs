@@ -235,7 +235,10 @@ await dosya('tarihsiz');
 bekle('tarihsiz reddi', icerir(await metin(B), 'Bu dosyada çekim tarihi yok'));
 await olc(B, '19-ret-tarihsiz');
 bekle('ret sonrası kayıt yok', ((await admin.from('kareler').select('id')).data ?? []).length === 0);
+// Okuyucu bir kez inince yenileme hakkı geri gelir (Yukleme.tsx: sessionStorage.removeItem)
+await B.evaluate(() => sessionStorage.setItem('okuyucu-yenilendi', '1'));
 await dosya('gps');
+bekle('başarılı okumadan sonra yenileme hakkı geri geliyor', (await B.evaluate(() => sessionStorage.getItem('okuyucu-yenilendi'))) === null);
 bekle('doğru gün kabul', (await B.locator('.k.secili .d').innerText()) === 'yüklendi');
 bekle('sayaç 1 / 2', icerir(await metin(B), '1 / 2 tema tamam'));
 const k1 = (await admin.from('kareler').select('*')).data?.[0];

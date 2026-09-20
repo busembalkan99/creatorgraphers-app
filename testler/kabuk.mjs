@@ -541,6 +541,12 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   const isaretle = () => p.evaluate(() => { window.__isaret = 1; });
   const isaretVar = () => p.evaluate(() => window.__isaret === 1);
   const ac = '/assets/index-ESKI.js';
+  // Açık sayfanın betik adı okunamıyorsa karşılaştırma yapılmaz (surum.ts: `!!acik`)
+  await isaretle();
+  await p.evaluate(() => window.__surum('<script type="module" src="/assets/index-YENI.js"></script>', null));
+  await p.click('.tabs button:has-text("Sıralama")'); await p.waitForTimeout(800);
+  bekle('sürüm: açık betiğin adı okunamazsa yenilenmiyor', await isaretVar());
+  await p.click('.tabs button:has-text("Etkinlikler")'); await p.waitForTimeout(800);
   // aynı sürüm: geçişte yenilenmiyor
   await isaretle();
   await p.evaluate(a => window.__surum(`<script type="module" src="${a}"></script>`, a), ac);

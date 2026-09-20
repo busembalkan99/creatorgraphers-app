@@ -559,6 +559,17 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   bekle('sürüm: yenilenince gidilen ekranda açılıyor', p.url().endsWith('#/etkinlikler') && (await p.locator('.tabs button.on').textContent()).includes('Etkinlikler'), p.url());
 }
 
+// Yeni sürüm bir kez görüldükten sonra bozuk bir cevap bunu silmiyor (surum.ts: `if (yeni) return`)
+{
+  await p.waitForTimeout(800);
+  const ac = '/assets/index-ESKI.js';
+  await p.evaluate(() => { window.__isaret = 1; });
+  await p.evaluate(a => window.__surum('<script type="module" src="/assets/index-YENI2.js"></script>', a), ac);
+  await p.evaluate(a => window.__surum('<html>bakım</html>', a), ac);
+  await p.click('.tabs button:has-text("Sıralama")'); await p.waitForTimeout(1500);
+  bekle('sürüm: görülen yeni sürüm bozuk cevapla unutulmuyor', !(await p.evaluate(() => window.__isaret === 1)));
+}
+
 // Yayın derlemesinde gerçek yol: betik adı sayfadan okunuyor, yayındaki index.html ile karşılaştırılıyor
 {
   const { execSync, spawn } = await import('node:child_process');
@@ -579,6 +590,14 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   await gorunur(); await q.waitForTimeout(500);
   await q.evaluate(() => { location.hash = '#/siralama'; }); await q.waitForTimeout(1200);
   bekle('yayın: aynı sürümde geçiş yenilemiyor', await q.evaluate(() => window.__isaret === 1));
+  // Yayındaki sayfa hiç alınamazsa (bağlantı yok) geçişte yenilenmiyor, bir dahaki kontrole kalıyor
+  await q.unroute(/index\.html\?s=/);
+  await q.route(/index\.html\?s=/, r => r.abort());
+  await gorunur(); await q.waitForTimeout(500);
+  await q.evaluate(() => { location.hash = '#/etkinlikler'; }); await q.waitForTimeout(1200);
+  bekle('yayın: sayfa alınamazsa yenilenmiyor', await q.evaluate(() => window.__isaret === 1));
+  await q.unroute(/index\.html\?s=/);
+  await q.route(/index\.html\?s=/, r => r.fulfill({ status: 200, contentType: 'text/html', body: yayindaki }));
   yayindaki = html.replace(/\/assets\/index-[^"]+\.js/, '/assets/index-YENI123.js');
   await gorunur(); await q.waitForTimeout(500);
   bekle('yayın: görünür olunca yenilemiyor (yükleme yarıda kalmasın)', await q.evaluate(() => window.__isaret === 1));

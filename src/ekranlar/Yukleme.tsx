@@ -13,6 +13,9 @@ import { acikEtkinlik } from './Etkinlikler'
  * Prototip: prototype/creatorgraphers/2026-09-17_v22-kare-yukleme.html
  */
 
+// Okuyucu inmediği için sayfa bu oturumda bir kez yenilendi mi
+const YENILENDI = 'okuyucu-yenilendi'
+
 interface Ret {
   neden: 'yok' | 'gun'
   cekimGunu: string | null
@@ -119,6 +122,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
     guncelle(tema.id, { yukleniyor: true, ret: null, onay: false, hata: null })
     try {
       const bilgi = await bilgiOku(dosya)
+      sessionStorage.removeItem(YENILENDI)
       const k = tarihKontrol(tema.bulusmada, e.bulusma_gunu, bilgi.cekim_gunu)
       if (!k.ok) {
         // Değiştirme reddedilirse önceki kare yerinde kalır (karar 93)
@@ -147,7 +151,11 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
     } catch (x) {
       // Okuyucu inmediyse ve bağlantı varsa yayında yeni sürüm var demek: eski dosya silinmiş.
       // Sayfa yenilenir, kişi aynı ekrana yeni sürümle döner ve kareyi yeniden seçer.
-      if (x instanceof OkuyucuHatasi && navigator.onLine) return window.location.reload()
+      // Oturumda bir kez: yenilemek çare olmadıysa (dosya engelli, ağ yarım) her seçimde yenilenmesin.
+      if (x instanceof OkuyucuHatasi && navigator.onLine && !sessionStorage.getItem(YENILENDI)) {
+        sessionStorage.setItem(YENILENDI, '1')
+        return window.location.reload()
+      }
       const m = x instanceof DosyaHatasi ? x.message
         : x instanceof OkuyucuHatasi ? 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.'
         : hataMetni(x)

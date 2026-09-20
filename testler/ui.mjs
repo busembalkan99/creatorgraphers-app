@@ -200,10 +200,27 @@ await B.click('button.bos');
 await giris.setInputFiles('/tmp/cgapp/gps.jpg');
 await B.waitForFunction(() => !window.__eskiSayfa, null, { timeout: 8000 }).catch(() => {});
 bekle('okuyucu inmezse sayfa yenilenir', !(await B.evaluate(() => window.__eskiSayfa)));
-await B.unroute('**/exifr*');
 bekle('yenilenince yine yükleme ekranı', await bekleMetin(B, 'Buluşmada çekilir'));
 bekle('okuyucu inmeyince "tarih yok" denmez', !icerir(await metin(B), 'Bu dosyada çekim tarihi yok'));
 bekle('okuyucu inmeyince kayıt yok', ((await admin.from('kareler').select('id')).data ?? []).length === 0);
+// Yenilemek çare olmadıysa ikinci seçimde yeniden yenilenmez, sebebi söylenir (oturumda bir kez)
+await B.evaluate(() => { window.__eskiSayfa = true; });
+await B.click('button.bos');
+await giris.setInputFiles('/tmp/cgapp/gps.jpg');
+await B.waitForTimeout(1500);
+bekle('okuyucu yine inmezse ikinci kez yenilenmiyor', await B.evaluate(() => window.__eskiSayfa === true));
+bekle('okuyucu yine inmezse sebebi söyleniyor', icerir(await metin(B), 'Bağlantı kurulamadı'));
+// Bağlantı yokken hiç yenilenmez
+await B.evaluate(() => sessionStorage.removeItem('okuyucu-yenilendi'));
+await B.context().setOffline(true);
+await giris.setInputFiles('/tmp/cgapp/gps.jpg');
+await B.waitForTimeout(1500);
+bekle('bağlantı yokken sayfa yenilenmiyor', await B.evaluate(() => window.__eskiSayfa === true));
+bekle('bağlantı yokken sebebi söyleniyor', icerir(await metin(B), 'Bağlantı kurulamadı'));
+bekle('bağlantı yokken "tarih yok" denmiyor', !icerir(await metin(B), 'Bu dosyada çekim tarihi yok'));
+await B.context().setOffline(false);
+await B.unroute('**/exifr*');
+await B.reload(); await bekleMetin(B, 'Buluşmada çekilir');
 await B.click('button.bos');
 await dosya('yanlis');
 bekle('yanlış gün reddi', icerir(await metin(B), 'buluşma günü çekilmemiş'));

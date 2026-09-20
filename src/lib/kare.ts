@@ -40,7 +40,7 @@ function tarihCoz(v: unknown): { gun: string; zaman: string } | null {
 }
 
 // Denetim karakterleri de atılır: Lightroom iOS boş bıraktığı alana tek bir "\x06" yazabiliyor
-const metin = (v: unknown) => (typeof v === 'string' ? v.replace(/[\x00-\x1f\x7f]/g, '').trim() || null : null)
+const metin = (v: unknown) => (typeof v === 'string' ? v.replace(/\p{Cc}/gu, '').trim() || null : null)
 
 const aralikta = (v: unknown, alt: number, ust: number): v is number => typeof v === 'number' && v >= alt && v <= ust
 

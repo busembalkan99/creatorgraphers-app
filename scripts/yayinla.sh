@@ -22,8 +22,13 @@ else
 fi
 trap 'git worktree remove --force "$YER" >/dev/null 2>&1 || true' EXIT
 
+# Önceki yayınların betikleri kalır: uygulaması açık olan kişi eski adla istiyor. Silinince
+# okuyucu (full.esm-*.js) inmiyor, yükleme "çekim tarihi yok" diye reddediliyordu (2026-09-20).
+ESKI="$(mktemp -d)"
+cp "$YER"/assets/*.js "$YER"/assets/*.css "$ESKI/" 2>/dev/null || true
 find "$YER" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 cp -R dist/. "$YER/"
+cp -n "$ESKI"/* "$YER/assets/" 2>/dev/null || true
 git -C "$YER" add -A
 if git -C "$YER" diff --cached --quiet; then
   echo "Değişiklik yok, yayın aynı."

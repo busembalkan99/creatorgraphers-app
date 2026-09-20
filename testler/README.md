@@ -12,6 +12,7 @@ node testler/ui.mjs                           # ekranlar, iki kişi baştan sona
 node testler/kabuk.mjs                        # telefon kabuğu (siralama.mjs'den sonra)
 node testler/ekranlar.mjs                     # ekranların veri hâlleri (siralama.mjs'den sonra)
 node testler/zaman.mjs                        # Türkçe saat ve yıl ekleri (veritabanı istemez)
+node testler/kare.mjs                         # kare bilgisinin okunması: okuyucu inmezse, bozuk makine bilgisi (veritabanı istemez)
 node testler/yoklama.mjs                      # yoklama ve yarışmadan çıkarma, sunucu kuralları
 node testler/davranis-yoklama.mjs             # aynı özelliğin davranış testi, üç kişiyle ekranda
 ```

@@ -39,19 +39,55 @@ function tarihCoz(v: unknown): { gun: string; zaman: string } | null {
   return { gun: `${m[1]}-${m[2]}-${m[3]}`, zaman: `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}` }
 }
 
-const metin = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim().replace(/\0/g, '') : null)
+// Denetim karakterleri de atılır: Lightroom iOS boş bıraktığı alana tek bir "\x06" yazabiliyor
+const metin = (v: unknown) => (typeof v === 'string' ? v.replace(/[\x00-\x1f\x7f]/g, '').trim() || null : null)
 
-function enstantaneYaz(v: unknown) {
-  if (typeof v !== 'number' || v <= 0) return null
+const aralikta = (v: unknown, alt: number, ust: number): v is number => typeof v === 'number' && v >= alt && v <= ust
+
+function enstantaneYaz(v: number) {
   return v >= 1 ? `${+v.toFixed(1)}s` : `1/${Math.round(1 / v)}`
 }
 
-export async function bilgiOku(dosya: File): Promise<KareBilgi> {
+/** Okuyucu dosyası indirilemedi (bağlantı yok ya da yayında yeni sürüm var, eski dosya silinmiş). */
+export class OkuyucuHatasi extends Error {}
+
+interface Okuyucu { parse(dosya: File, secenek: object): Promise<unknown> }
+
+// Okuyucu büyük; yalnız kare seçilince indirilsin, açılışı yavaşlatmasın.
+const okuyucuGetir = async (): Promise<Okuyucu> => (await import('exifr')).default
+
+export function bilgiKur(h: Ham): KareBilgi {
+  const t = tarihCoz(h.DateTimeOriginal) ?? tarihCoz(h.CreateDate)
+  const marka = metin(h.Make), model = metin(h.Model)
+  const kamera = model ? (marka && !model.toLowerCase().startsWith(marka.toLowerCase().split(' ')[0]) ? `${marka} ${model}` : model) : marka
+  // Üç ayrı büyüklük aynı sayı olamaz: dosyayı yazan program makine bilgisini bozmuş, hiçbiri gösterilmez.
+  const bozuk = typeof h.FNumber === 'number' && h.FNumber === h.ExposureTime && h.FNumber === h.FocalLength
+  return {
+    cekim_gunu: t?.gun ?? null,
+    cekim_zamani: t?.zaman ?? null,
+    kamera,
+    objektif: metin(h.LensModel),
+    odak: !bozuk && aralikta(h.FocalLength, 1, 3000) ? `${Math.round(h.FocalLength)}mm` : null,
+    diyafram: !bozuk && aralikta(h.FNumber, 0.5, 128) ? `f/${+h.FNumber.toFixed(1)}` : null,
+    enstantane: !bozuk && aralikta(h.ExposureTime, 1 / 100000, 3600) ? enstantaneYaz(h.ExposureTime) : null,
+    iso: typeof h.ISO === 'number' ? String(h.ISO) : null,
+  }
+}
+
+/**
+ * Okuyucunun yüklenememesi ile dosyada bilgi olmaması ayrı şeyler. İlki OkuyucuHatasi atar;
+ * eskiden ikisi de boş bilgi dönüyor, kişi "Bu dosyada çekim tarihi yok" görüyordu.
+ */
+export async function bilgiOku(dosya: File, getir: () => Promise<Okuyucu> = okuyucuGetir): Promise<KareBilgi> {
+  let okuyucu: Okuyucu
+  try {
+    okuyucu = await getir()
+  } catch {
+    throw new OkuyucuHatasi('Okuyucu yüklenemedi')
+  }
   let h: Ham = {}
   try {
-    // Okuyucu büyük; yalnız kare seçilince indirilsin, açılışı yavaşlatmasın.
-    const exifr = (await import('exifr')).default
-    h = ((await exifr.parse(dosya, {
+    h = ((await okuyucu.parse(dosya, {
       reviveValues: false,
       translateValues: false,
       pick: ['DateTimeOriginal', 'CreateDate', 'Make', 'Model', 'LensModel', 'FocalLength', 'FNumber', 'ExposureTime', 'ISO'],
@@ -59,19 +95,7 @@ export async function bilgiOku(dosya: File): Promise<KareBilgi> {
   } catch {
     h = {}
   }
-  const t = tarihCoz(h.DateTimeOriginal) ?? tarihCoz(h.CreateDate)
-  const marka = metin(h.Make), model = metin(h.Model)
-  const kamera = model ? (marka && !model.toLowerCase().startsWith(marka.toLowerCase().split(' ')[0]) ? `${marka} ${model}` : model) : marka
-  return {
-    cekim_gunu: t?.gun ?? null,
-    cekim_zamani: t?.zaman ?? null,
-    kamera,
-    objektif: metin(h.LensModel),
-    odak: typeof h.FocalLength === 'number' ? `${Math.round(h.FocalLength)}mm` : null,
-    diyafram: typeof h.FNumber === 'number' ? `f/${+h.FNumber.toFixed(1)}` : null,
-    enstantane: enstantaneYaz(h.ExposureTime),
-    iso: typeof h.ISO === 'number' ? String(h.ISO) : null,
-  }
+  return bilgiKur(h)
 }
 
 export type TarihSonucu = { ok: true } | { ok: false; neden: 'yok' | 'gun' }

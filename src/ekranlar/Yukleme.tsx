@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Kare, Tema, Uye } from '../lib/tipler'
 import { asama, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
-import { bilgiOku, DosyaHatasi, kucult, tarihKontrol } from '../lib/kare'
+import { bilgiOku, DosyaHatasi, kucult, OkuyucuHatasi, tarihKontrol } from '../lib/kare'
 import { Ikon } from '../bilesenler/Ikon'
 import { geriGit } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
@@ -145,7 +145,12 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         kare: { ...(kayit.data as Kare), url: URL.createObjectURL(hazir.blob) },
       })
     } catch (x) {
-      const m = x instanceof DosyaHatasi ? x.message : hataMetni(x)
+      // Okuyucu inmediyse ve bağlantı varsa yayında yeni sürüm var demek: eski dosya silinmiş.
+      // Sayfa yenilenir, kişi aynı ekrana yeni sürümle döner ve kareyi yeniden seçer.
+      if (x instanceof OkuyucuHatasi && navigator.onLine) return window.location.reload()
+      const m = x instanceof DosyaHatasi ? x.message
+        : x instanceof OkuyucuHatasi ? 'Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.'
+        : hataMetni(x)
       guncelle(tema.id, { yukleniyor: false, hata: m })
     }
   }

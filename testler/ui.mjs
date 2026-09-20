@@ -193,6 +193,17 @@ bekle('yükleme ekranı', await bekleMetin(B, 'Buluşmada çekilir'));
 const giris = B.locator('input[type=file]');
 const dosya = async ad => { await giris.setInputFiles(`/tmp/cgapp/${ad}.jpg`); await B.waitForTimeout(300); await B.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {}); await B.waitForTimeout(300); };
 await olc(B, '17-yukleme-bos');
+// Okuyucu dosyası inmezse (yayında yeni sürüm var, eskisi silinmiş) "tarih yok" denmez, sayfa yenilenir
+await B.route('**/exifr*', r => r.abort());
+await B.evaluate(() => { window.__eskiSayfa = true; });
+await B.click('button.bos');
+await giris.setInputFiles('/tmp/cgapp/gps.jpg');
+await B.waitForFunction(() => !window.__eskiSayfa, null, { timeout: 8000 }).catch(() => {});
+bekle('okuyucu inmezse sayfa yenilenir', !(await B.evaluate(() => window.__eskiSayfa)));
+await B.unroute('**/exifr*');
+bekle('yenilenince yine yükleme ekranı', await bekleMetin(B, 'Buluşmada çekilir'));
+bekle('okuyucu inmeyince "tarih yok" denmez', !icerir(await metin(B), 'Bu dosyada çekim tarihi yok'));
+bekle('okuyucu inmeyince kayıt yok', ((await admin.from('kareler').select('id')).data ?? []).length === 0);
 await B.click('button.bos');
 await dosya('yanlis');
 bekle('yanlış gün reddi', icerir(await metin(B), 'buluşma günü çekilmemiş'));

@@ -4,7 +4,8 @@
 -- görünmüyordu, yönetici kimi dürtmesi gerektiğini bilmiyordu.
 --
 -- İsimsizlik (karar 9) bozulmuyor: fonksiyon kare ile sahibi arasında bağ kurmuyor,
--- kişi başına yalnız üç durumdan biri dönüyor. Sayı dönmüyor; dönseydi kişinin
+-- kişi başına yalnız dört durumdan biri dönüyor (bitti, devam, baslamadi, yok).
+-- Sayı dönmüyor; dönseydi kişinin
 -- oylayacağı kare sayısı (toplam eksi kendi kareleri) üzerinden kaç kare yüklediği
 -- çıkarılabilirdi.
 --

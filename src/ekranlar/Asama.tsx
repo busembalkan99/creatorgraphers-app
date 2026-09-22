@@ -282,7 +282,9 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
 /** Kim oyunu verdi, kim vermedi (karar 105). Kaç puan verdiği yazmıyor: sayı, kişinin
     oylayacağı kare sayısı üzerinden kaç kare yüklediğini ele verirdi (isimsizlik, karar 9). */
 function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
-  const [liste, setListe] = useState<{ uye: string; ad: string; durum: string }[]>([])
+  // null: daha okunmadı. Boş dizi ile karıştırılmamalı, yoksa liste gelene kadar
+  // ekranda "okunamadı" yazıyor.
+  const [liste, setListe] = useState<{ uye: string; ad: string; durum: string }[] | null>(null)
   const [hata, setHata] = useState<string | null>(null)
 
   useEffect(() => {
@@ -295,17 +297,19 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
 
   // Oylayacak karesi olmayan (etkinlikteki kareler hep kendisinin) oy veren sayılmıyor:
   // tek puan vermeden sayıya girerdi.
-  const veren = liste.filter(x => x.durum === 'bitti' || x.durum === 'devam').length
-  const sayilan = liste.filter(x => x.durum !== 'yok').length
+  const veren = (liste ?? []).filter(x => x.durum === 'bitti' || x.durum === 'devam').length
+  const sayilan = (liste ?? []).filter(x => x.durum !== 'yok').length
 
   return (
     <>
-      <h2 className="sec">Oy veren{liste.length > 0 && <span>{veren} / {sayilan} kişi</span>}</h2>
-      {liste.length === 0 ? (
-        <p className="veri" style={{ marginTop: 0 }}>Liste okunamadı.</p>
+      <h2 className="sec">Oy veren{sayilan > 0 && <span>{veren} / {sayilan} kişi</span>}</h2>
+      {liste === null ? (
+        <p className="veri" style={{ marginTop: 0 }}>Okunuyor.</p>
+      ) : liste.length === 0 ? (
+        <p className="veri" style={{ marginTop: 0 }}>Kulüpte üye yok.</p>
       ) : (
         <div className="ozet" style={{ marginTop: 12 }}>
-          {liste.map(x => (
+          {(liste ?? []).map(x => (
             <div key={x.uye}>
               <span className="v">{x.ad}</span>
               <span className="v" style={{ marginLeft: 'auto', color: 'var(--soft)' }}>

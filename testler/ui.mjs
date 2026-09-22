@@ -575,7 +575,14 @@ bekle('biten temada Bitti yazıyor', await yaz(A, '.tema-satir .alt > span') ===
 bekle('biten temada eylem adı değiştir oluyor', icerir(await yaz(A, '.tema-satir .git'), 'değiştir'), await yaz(A, '.tema-satir .git'));
 await olc(A, '33-oylama-tamam');
 // Oyunu bitiren yöneticinin aşama ekranındaki hâli (karar 105)
-await A.goto(APP + '#/asama'); await A.waitForTimeout(1500);
+// Liste sunucudan gelene kadar "okunamadı" yazıyordu: boş liste ile okunmamış liste aynı sayılmıştı.
+// Yerel sunucu çok hızlı cevap verdiği için istek kasten geciktiriliyor.
+await A.route('**/rest/v1/rpc/oylama_ilerlemesi*', async r => { await new Promise(x => setTimeout(x, 2500)); await r.continue(); });
+await A.goto(APP + '#/asama'); await A.waitForTimeout(1200);
+bekle('liste gelmeden okunamadı denmiyor', !icerir(await metin(A), 'okunamadı'), (await metin(A)).slice(0, 240));
+bekle('liste gelene kadar okunuyor yazıyor', icerir(await metin(A), 'Okunuyor'), (await metin(A)).slice(0, 240));
+await A.waitForTimeout(2500);
+await A.unroute('**/rest/v1/rpc/oylama_ilerlemesi*');
 {
   const bas = await A.locator('.sec', { hasText: 'Oy veren' }).innerText();
   const liste = await A.locator('.ozet').last().innerText();

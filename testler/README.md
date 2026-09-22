@@ -15,6 +15,7 @@ node testler/zaman.mjs                        # Türkçe saat ve yıl ekleri (ve
 node testler/kare.mjs                         # kare bilgisinin okunması: okuyucu inmezse, bozuk makine bilgisi (veritabanı istemez)
 node testler/yoklama.mjs                      # yoklama ve yarışmadan çıkarma, sunucu kuralları
 node testler/davranis-yoklama.mjs             # aynı özelliğin davranış testi, üç kişiyle ekranda
+node testler/oy-ilerleme.mjs                  # yöneticinin gördüğü oylama ilerlemesi, sunucu kuralları
 ```
 
 `ui.mjs` ve `exifjpeg.mjs` Playwright'ı `~/.local/playwright-mcp` altından alıyor.

@@ -492,6 +492,7 @@ bekle('puan veritabanına yazıldı', oy1.length === 1 && oy1[0].puan === 7, JSO
 await olc(A, '29-oylama-puanli');
 // Karar 105: kare ekranı tam dolduruyor, kaydırma çubuğu gizli; sonraki kareye geçileceği anlaşılmıyordu
 bekle('puan verilince kaydırma ipucu çıkıyor', await A.locator('.kaydir-ipucu').first().isVisible());
+bekle('ipucu yalnız puan verilen karede', (await A.locator('.kaydir-ipucu').count()) === 1, String(await A.locator('.kaydir-ipucu').count()));
 bekle('ipucu sonraki kareyi söylüyor', icerir(await yaz(A, '.kaydir-ipucu'), 'yukarı kaydır'), await yaz(A, '.kaydir-ipucu'));
 bekle('ipucu henüz öğrenilmedi', (await A.evaluate(() => localStorage.getItem('cg-oy-kaydirma'))) === null);
 await A.locator('.akis').evaluate(el => el.scrollBy({ top: el.clientHeight }));
@@ -502,6 +503,9 @@ bekle('ipucu öğrenildi diye kaydedildi', (await A.evaluate(() => localStorage.
 // yarıda kalmışken kart "devam et" diyor
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('yarıda kalınca kartta devam et', icerir(await metin(A), 'Oylamaya devam et'), (await metin(A)).slice(0, 140));
+// Yarım kalmış oylama Aşama'da "devam ediyor" görünüyor (üç durumun ortancası)
+await A.goto(APP + '#/asama'); await A.waitForTimeout(1600);
+bekle('yarıda kalan üye devam ediyor görünüyor', (await A.locator('.ozet').last().innerText()).includes('Devam ediyor'), await A.locator('.ozet').last().innerText());
 await A.goto(APP + '#/oyla'); await A.waitForTimeout(1000);
 bekle('yarıda kalan temada eylem adı devam et oluyor',
   icerir((await A.locator('.tema-satir .git').first().textContent()) ?? '', 'devam et'),

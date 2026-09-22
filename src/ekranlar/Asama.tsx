@@ -109,7 +109,7 @@ export function Asama() {
 
       {/* Buluşma günü yöneticinin ilk işi yoklama: grup mesajının altında kalıyordu */}
       <Yoklama e={e} surum={surum} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
-      <Cikarilanlar e={e} surum={surum} />
+      <Cikarilanlar e={e} surum={surum} degisti={() => setSurum(n => n + 1)} />
       {(a === 'oylama' || a === 'sonuc') && <OyIlerlemesi e={e} surum={surum} />}
 
       <div className="mesaj">
@@ -330,7 +330,7 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
 }
 
 /** Yarışmadan çıkarılan kareler. Sahip yazmıyor: oylama sürerken yönetici de isim görmüyor. */
-function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
+function Cikarilanlar({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: () => void }) {
   const [liste, setListe] = useState<{ id: string; tema_ad: string; dosya: string; neden: string; url: string | null }[]>([])
   const [hata, setHata] = useState<string | null>(null)
 
@@ -347,6 +347,8 @@ function Cikarilanlar({ e, surum }: { e: Etkinlik; surum: number }) {
     setHata(null)
     const { error } = await sb.rpc('kare_geri_al', { p_kare: id })
     if (error) return setHata(hataMetni(error))
+    // Kare yarışmaya dönünce oylama ilerlemesi de değişiyor; o bölüm sayaçla tazeleniyor
+    degisti()
     await oku().catch(x => setHata(hataMetni(x)))
   }
 

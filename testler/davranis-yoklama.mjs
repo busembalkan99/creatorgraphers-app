@@ -229,6 +229,7 @@ bekle('6: çıkarılanlar listesinde tek tek çıkarılan, resmi ve nedeniyle', 
   && (await A.locator('.cikan img').count()) === 1 && (await A.locator('.cikan').innerText()).includes('Başka gün çekilmiş'));
 await A.getByRole('button', { name: 'Geri al' }).click();
 await A.waitForTimeout(1300);
+await A.waitForTimeout(900);   // liste sayaçla tazeleniyor, eski satırlara bakmayalım
 bekle('6: geri alınca perde kalkmıyor', await var_(A, 'Kimin bitirdiği sonuçlara kadar kapalı'), (await metin(A)).slice(0, 300));
 bekle('6: geri al düğmesi kareyi yarışmaya döndürüyor', ((await admin.from('diskalifiye').select('kare').eq('kare', hedefKare)).data ?? []).length === 0
   && (await A.locator('.cikan').count()) === 0);

@@ -91,6 +91,8 @@ export function Profil({ uye, uyeDegisti, hedef }:
       {benim && k.ortalama != null && (
         <p className="veri">Ortalaman <b>{puanYaz(k.ortalama)}</b>. Yalnız sen görüyorsun.</p>
       )}
+      {/* Karar 106: tahmin skoru sonuçlanmış etkinliklerden birikiyor, yalnız kişiye */}
+      {benim && <TahminSkoru />}
 
       <h2 className="sec">Katkı</h2>
       {k.tam_set || Number(k.tema_sayisi) > 0 ? (
@@ -283,4 +285,14 @@ function asamaCumlesi(e: Etkinlik) {
   if (a === 'baslamadi') return `Yükleme açılışı: ${saatYaz(e.yukleme_baslar)}`
   if (a === 'yukleme') return `Yükleme açık · ${kalanYaz(e.yukleme_biter)} kaldı`
   return `Oylama açık · ${kalanYaz(e.oylama_biter)} kaldı`
+}
+
+/** Tahmin oyununun birikmiş skoru. Sunucu yalnız sonuçlanmış etkinlikleri sayıyor (0014). */
+function TahminSkoru() {
+  const [t, setT] = useState<{ bilen: number; toplam: number } | null>(null)
+  useEffect(() => {
+    sb.rpc('tahmin_profilim').then(({ data }) => setT(((data ?? []) as { bilen: number; toplam: number }[])[0] ?? null))
+  }, [])
+  if (!t || !t.toplam) return null
+  return <p className="veri">Tahmin oyununda <b>{t.bilen} / {t.toplam}</b> kareyi bildin. Yalnız sen görüyorsun.</p>
 }

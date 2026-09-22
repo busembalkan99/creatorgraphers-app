@@ -761,3 +761,65 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .pk-okno{display:flex;align-items:baseline;gap:10px;margin-top:12px;flex:0 0 auto}
 .pk-okno b{font-size:17px;letter-spacing:-.02em;font-variation-settings:"wdth" 70,"wght" 900;text-transform:uppercase}
 .pk-okno .pk-sayac{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--soft)}
+
+/* ==========================================================
+   Tahmin oyunu (kararlar 76, 106). Kaynak: prototip v18.
+   Oylama penceresinde geçiyor: aşama rengi yeşil, ilerleme çubuğu ışıyor (karar 60).
+   Fotoğraf kırpılmıyor. Doğru tahminde mürekkep blok ve tik, yanlışta hiçbir işaret yok.
+   ========================================================== */
+/* Oylama listesindeki ve sonuç ekranındaki giriş: düğme olduğu belli olsun (karar 105'in dersi) */
+.tahmin-kart{appearance:none;width:100%;text-align:left;cursor:pointer;color:inherit;background:none;border:0;
+  box-shadow:inset 0 0 0 1px var(--rule);border-radius:2px;margin-top:16px;padding:13px 14px;flex:0 0 auto;
+  display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
+.tahmin-kart .lab{grid-column:1 / -1}
+.tahmin-kart b{font-size:15px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
+  font-variation-settings:"wdth" 74,"wght" 900}
+.tahmin-kart .git{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink);min-height:24px}
+.tahmin-kart .git .ic{width:13px;height:13px}
+
+.tahmin-teklif{margin-top:18px;border-top:4px solid var(--ink);padding-top:11px;flex:0 0 auto}
+.tahmin-teklif p{font-size:13px;color:var(--dim);line-height:1.6;margin-top:8px;max-width:36ch}
+.kutu .bas .ic{width:14px;height:14px;margin-top:1px}
+
+.tahmin{padding-bottom:0}
+.tahmin-ilerleme{display:flex;gap:5px;margin-top:14px;flex:0 0 auto}
+.tahmin-ilerleme i{flex:1;height:4px;background:var(--rule);display:block}
+.tahmin-ilerleme i.dolu{background:var(--oyla)}
+.tahmin-ilerleme i.su{background:var(--oyla);box-shadow:0 0 7px rgba(12,110,74,.8),0 0 20px rgba(12,110,74,.4)}
+.tahmin-bas{display:flex;align-items:baseline;gap:10px;margin-top:12px;flex:0 0 auto}
+.tahmin-bas b{font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+.tahmin-bas span{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--soft);font-variant-numeric:tabular-nums}
+.tahmin-foto{flex:1 1 auto;min-height:160px;margin-top:12px;display:flex;align-items:center;justify-content:center;background:#0A0A0B}
+.tahmin-foto img{max-width:100%;max-height:min(46dvh,420px);width:auto;height:auto;object-fit:contain;display:block}
+.tahmin-foto .bos{width:100%;height:200px;background:#141416}
+.adaylar{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;flex:0 0 auto}
+.aday{appearance:none;border:0;cursor:pointer;min-height:52px;padding:8px 12px;border-radius:2px;text-align:left;
+  background:none;color:var(--ink);box-shadow:inset 0 0 0 1px var(--rule);
+  font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;line-height:1.25;overflow-wrap:anywhere;
+  font-variation-settings:"wdth" 76,"wght" 900}
+.aday.on{background:var(--ink);color:var(--paper);box-shadow:none}
+.tahmin-alt{position:sticky;bottom:0;z-index:4;margin:auto calc(var(--pad) * -1) 0;
+  padding:12px var(--pad) calc(12px + env(safe-area-inset-bottom));background:var(--gorunen);border-top:1px solid var(--rule);
+  display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.tahmin-alt .secim{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.tahmin-alt .secim b{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;overflow-wrap:anywhere}
+.tahmin-alt .btn{width:auto;padding:0 22px;flex:0 0 auto}
+
+.tahmin-skor{margin-top:18px;display:flex;align-items:baseline;gap:12px;flex:0 0 auto}
+.tahmin-skor b{font-size:64px;line-height:.8;letter-spacing:-.05em;font-variation-settings:"wdth" 68,"wght" 900;
+  font-variant-numeric:tabular-nums}
+.tahmin-skor span{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.tahmin-satir{display:flex;gap:11px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)}
+.tahmin-satir img,.tahmin-satir .yer{width:52px;height:52px;object-fit:cover;flex:0 0 auto;background:#17171A}
+.tahmin-satir .tx{flex:1;min-width:0}
+.tahmin-satir b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
+.tahmin-satir .tx span{display:block;font-size:11px;color:var(--soft);margin-top:4px;line-height:1.5;overflow-wrap:anywhere}
+.tahmin-satir .tik{width:28px;height:28px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  background:var(--ink);color:var(--paper)}
+.tahmin-satir .tik .ic{width:16px;height:16px}
+
+/* Oylama akışında puan kilitliyken kaydırıcının yerine (karar 76) */
+.kilit-not{flex:0 0 auto;display:flex;align-items:center;gap:8px;min-height:52px;margin-top:10px;
+  font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.5}
+.kilit-not .ic{width:14px;height:14px;flex:0 0 auto}

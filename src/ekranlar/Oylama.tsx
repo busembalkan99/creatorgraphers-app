@@ -8,6 +8,7 @@ import { Buyutec, useBuyutecTetigi, type Acik } from '../bilesenler/Buyutec'
 import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
+import type { TahminDurumu } from './Tahmin'
 
 /**
  * Oylama (kararlar 5, 6, 7, 9, 20, 24, 37, 42, 48, 94).
@@ -59,6 +60,11 @@ export function Oylama({ uye }: { uye: Uye }) {
   useEffect(() => {
     veriYukle().then(x => setV({ e: x.e, durum: x.durum })).catch(x => setHata(hataMetni(x)))
   }, [uye.id])
+  const [tahmin, setTahmin] = useState<TahminDurumu | null>(null)
+  useEffect(() => {
+    if (!v?.e) return
+    sb.rpc('tahmin_durumu', { p_etkinlik: v.e.id }).then(({ data }) => setTahmin(((data ?? []) as TahminDurumu[])[0] ?? null))
+  }, [v?.e?.id])
 
   if (hata) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Oylama" /><Hata metin={hata} /></div>
   if (!v) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Oylama" /><Yukleniyor /></div>
@@ -73,6 +79,7 @@ export function Oylama({ uye }: { uye: Uye }) {
   }
 
   const kalanToplam = v.durum.reduce((a, t) => a + (t.toplam - t.puanladigim), 0)
+  const oyunVar = tahmin && (tahmin.durum === 'acik' || tahmin.basladi)
   const zorunluKalan = v.durum.filter(t => t.zorunlu).reduce((a, t) => a + (t.toplam - t.puanladigim), 0)
 
   return (
@@ -85,6 +92,14 @@ export function Oylama({ uye }: { uye: Uye }) {
         {zorunluKalan === 0 && kalanToplam > 0 && ' · bunların hiçbiri zorunlu değil'}
       </div>
 
+      {/* Karar 76: oylamasını bitirene isteğe bağlı oyun. Oylama bitince açık kalan asıl iş bu. */}
+      {kalanToplam === 0 && oyunVar && (
+        <button className="tahmin-kart" onClick={() => git(`tahmin/${v.e!.id}`)}>
+          <span className="lab">Kim çekti · isteğe bağlı</span>
+          <b>{tahmin.gonderildi ? 'Tahminlerin gönderildi' : tahmin.basladi ? 'Tahmin oyunu sürüyor' : 'Tahmin oyunu'}</b>
+          <span className="git">{tahmin.gonderildi ? 'Bak' : tahmin.basladi ? 'Devam et' : 'Oyna'}<Ikon ad="sag" /></span>
+        </button>
+      )}
       <h2 className="sec">Temalar<span>{v.durum.length} tema</span></h2>
       {v.durum.map(t => {
         const kalan = t.toplam - t.puanladigim
@@ -143,6 +158,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   const yonetici = uye.rol !== 'uye'
   const [cikar, setCikar] = useState<string | null>(null)
   const [cikti, setCikti] = useState(false)
+  // Karar 76: tahmin oyununu başlatan için bu etkinlikte puanlar kilitli
+  const [kilitli, setKilitli] = useState(false)
   // Karar 105: kare ekranı tam dolduruyor, altındakinden hiçbir şey görünmüyor ve kaydırma
   // çubuğu gizli. Puan verilince ipucu beliriyor, bir kere kaydıran bir daha görmüyor.
   const [ipucu, setIpucu] = useState(() => {
@@ -165,6 +182,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
       const imza = benim.length
         ? (await sb.storage.from('kareler').createSignedUrls(benim.map(k => k.dosya), 3600)).data ?? []
         : []
+      const td = ((await sb.rpc('tahmin_durumu', { p_etkinlik: ev.id })).data ?? []) as { basladi: boolean }[]
+      setKilitli(!!td[0]?.basladi)
       setTema(t)
       onaylanan.current = Object.fromEntries(benim.map(k => [k.id, k.puan]))
       setKareler(benim.map((k, i) => ({ ...k, url: imza[i]?.signedUrl ?? null })))
@@ -234,7 +253,11 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
             </div>
           </div>
           <div className="ince" />
-          <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
+          {kilitli ? (
+            <p className="kilit-not"><Ikon ad="kilit" />Puanın {k.puan != null ? iki(k.puan) : 'yok'}. Tahmin oyununu başlattığın için kilitli.</p>
+          ) : (
+            <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
+          )}
           {ipucu && k.puan != null && (
             <p className="kaydir-ipucu" role="status">
               <Ikon ad="yukari" />

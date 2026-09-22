@@ -8,6 +8,7 @@ import { Buyutec } from '../bilesenler/Buyutec'
 import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { paylasilacakKare } from './Paylas'
+import { TahminBaglantisi, TaninmaSatiri } from './Tahmin'
 
 /**
  * Sonuçlar (kararlar 7, 10, 18, 19, 24, 38, 43, 52, 68, 77, 98).
@@ -143,6 +144,7 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
       {paylasilacakKare(v.kareler) && (
         <button className="btn ik" onClick={() => git(`paylas/${etkinlikId}`)}>Kartını paylaş</button>
       )}
+      <TahminBaglantisi etkinlikId={v.etkinlik.id} />
 
       {temalar.length === 0 ? (
         <div className="bos-tema">
@@ -312,6 +314,8 @@ function KareDetay({ kare, temaOylanmadi, yonetici, kapat, degisti }:
           ))}
         </div>
       )}
+      {/* Karar 76, 106: sonuçtan sonra herkese, alt sınırı geçtiyse */}
+      {!kare.cikarildi && <TaninmaSatiri kare={kare.id} benim={!!kare.benim} />}
       <Hata metin={hata} />
       {yonetici && (kare.cikarildi
         ? <button className="btn ik" onClick={geriAl}>Yarışmaya geri al</button>

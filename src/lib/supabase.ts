@@ -13,6 +13,14 @@ export const sb = createClient(ayarEksik ? 'http://localhost:54321' : url!, ayar
 
 /** Sunucudaki fonksiyonların fırlattığı kısa kodları okunur cümleye çevirir. */
 const HATALAR: Record<string, string> = {
+  tahmin_kilidi: 'Tahmin oyununu başlattığın için bu etkinlikteki puanların kilitli.',
+  tahmin_oylama_kapali: 'Tahmin oyunu yalnız oylama sürerken oynanıyor.',
+  tahmin_oylar_eksik: 'Oyun, oylayabildiğin bütün karelere puan verince açılıyor.',
+  tahmin_yok: 'Bu etkinlikte sana sorulacak kare çıkmadı.',
+  tahmin_soru_yok: 'Bu soru artık yok.',
+  tahmin_cevaplandi: 'Bu soruyu zaten cevapladın.',
+  tahmin_aday_degil: 'Bu isim adaylar arasında yok.',
+  tahmin_uye_degil: 'Bunu yapmaya yetkin yok.',
   yetki_yok: 'Bunu yapmaya yetkin yok.',
   istek_yok: 'Bu istek artık beklemiyor.',
   kurucu_var: 'Kulübün kurucusu zaten var.',

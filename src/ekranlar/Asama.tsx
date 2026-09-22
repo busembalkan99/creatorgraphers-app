@@ -295,10 +295,8 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
     })().catch(x => setHata(hataMetni(x)))
   }, [e.id, surum])
 
-  // Oylayacak karesi olmayan (etkinlikteki kareler hep kendisinin) oy veren sayılmıyor:
-  // tek puan vermeden sayıya girerdi.
   const veren = (liste ?? []).filter(x => x.durum === 'bitti' || x.durum === 'devam').length
-  const sayilan = (liste ?? []).filter(x => x.durum !== 'yok').length
+  const sayilan = (liste ?? []).length
 
   return (
     <>
@@ -313,9 +311,7 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
             <div key={x.uye}>
               <span className="v">{x.ad}</span>
               <span className="v" style={{ marginLeft: 'auto', color: 'var(--soft)' }}>
-                {x.durum === 'bitti' ? 'Bitirdi'
-                  : x.durum === 'devam' ? 'Devam ediyor'
-                    : x.durum === 'yok' ? 'Oylayacağı kare yok' : 'Başlamadı'}
+                {x.durum === 'bitti' ? 'Bitirdi' : x.durum === 'devam' ? 'Devam ediyor' : 'Başlamadı'}
               </span>
             </div>
           ))}

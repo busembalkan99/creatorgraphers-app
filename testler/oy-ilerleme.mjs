@@ -61,20 +61,36 @@ bekle('kendi karesi hariç hepsini puanlayan bitirdi', d2['Selin Arı'] === 'bit
 // Sayı dönmüyor: kişinin kaç kare yüklediği listeden çıkarılamıyor (isimsizlik, karar 9)
 const satir = ((await A.c.rpc('oylama_ilerlemesi', { p_etkinlik: E })).data ?? [])[0] ?? {};
 bekle('satırda yalnız üye, ad ve durum var', Object.keys(satir).sort().join() === 'ad,durum,uye', JSON.stringify(satir));
-bekle('durum dört değerden biri', ['bitti', 'devam', 'baslamadi', 'yok'].includes(satir.durum), String(satir.durum));
+bekle('durum üç değerden biri', ['bitti', 'devam', 'baslamadi'].includes(satir.durum), String(satir.durum));
 
-// Yarışmadan çıkarılan kare beklentiden de düşüyor
+// SALDIRI: oylamada kare çıkarmak ölçüyü oynatmamalı. Oynatsaydı yönetici X dışındaki
+// bütün kareleri çıkarıp durumu değişen kişiyi X'in sahibi diye okurdu (güvenlik incelemesi).
+const oncesi = JSON.stringify(await durumlar(A));
 bekle('yönetici Deniz\'in karesini çıkarıyor', !(await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'etkinlik dışı' })).error);
-const d3 = await durumlar(A);
-bekle('çıkarılan kare sayılmıyor: tek oy veren bitirdi', d3['Ayşe Kaya'] === 'baslamadi' && d3['Selin Arı'] === 'bitti', JSON.stringify(d3));
+bekle('saldırı 1: oylamada kare çıkınca kimsenin durumu değişmiyor', JSON.stringify(await durumlar(A)) === oncesi, oncesi + ' -> ' + JSON.stringify(await durumlar(A)));
 bekle('Ayşe kalan tek kareyi puanlıyor', !(await A.c.from('oylar').insert({ kare: kB.data.id, veren: A.id, puan: 6 })).error);
-bekle('tek kalan kareyi puanlayan bitirdi', (await durumlar(A))['Ayşe Kaya'] === 'bitti');
+bekle('çıkarılan kare ölçüde kaldığı için bitmiş sayılmıyor', (await durumlar(A))['Ayşe Kaya'] === 'devam', JSON.stringify(await durumlar(A)));
+
+// SALDIRI: X dışındaki her kareyi çıkarıp tek tek sahiplik okumak
+const araci = JSON.stringify(await durumlar(A));
+await A.c.rpc('kare_cikar', { p_kare: kA.data.id, p_neden: 'deneme' });
+await A.c.rpc('kare_cikar', { p_kare: kB.data.id, p_neden: 'deneme' });
+bekle('saldırı 2: tek kare kalana kadar çıkarmak da bir şey söylemiyor', JSON.stringify(await durumlar(A)) === araci, araci + ' -> ' + JSON.stringify(await durumlar(A)));
+await A.c.rpc('kare_geri_al', { p_kare: kA.data.id });
+await A.c.rpc('kare_geri_al', { p_kare: kB.data.id });
+bekle('saldırı 3: geri almak da bir şey söylemiyor', JSON.stringify(await durumlar(A)) === araci, JSON.stringify(await durumlar(A)));
 await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
+bekle('hepsi geri gelince Ayşe yine devam ediyor', (await durumlar(A))['Ayşe Kaya'] === 'devam', JSON.stringify(await durumlar(A)));
 
 // Sonuç açıldıktan sonra da görünüyor
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
 bekle('sonuçta yönetici hâlâ görüyor', Object.keys(await durumlar(A)).length === 3);
 bekle('sonuçta üye hâlâ göremiyor', Object.keys(await durumlar(B)).length === 0);
+
+// Sonuçta ölçü o anki yarışan karelere dönüyor: sahiplik zaten açık
+await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'sonuç sonrası' });
+bekle('sonuçta çıkarılan kare ölçüden düşüyor', (await durumlar(A))['Ayşe Kaya'] === 'bitti', JSON.stringify(await durumlar(A)));
+await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
 
 // Kulüpten çıkarılan üye listede yok
 await admin.from('uyeler').update({ cikarildi_at: new Date().toISOString() }).eq('id', D.id);
@@ -91,8 +107,11 @@ bekle('kulüpten çıkarılan listede görünmüyor', !('Deniz Akın' in d4) && 
   bekle('tek kare yüklendi (kontrol)', !tek.error, hata(tek));
   await admin.from('etkinlikler').update({ yukleme_biter: saat(-0.5) }).eq('id', E2);
   const d = Object.fromEntries(((await A.c.rpc('oylama_ilerlemesi', { p_etkinlik: E2 })).data ?? []).map(x => [x.ad, x.durum]));
-  bekle('tek kareyi yükleyenin oylayacağı kare yok', d['Selin Arı'] === 'yok', JSON.stringify(d));
-  bekle('ötekiler başlamadı', d['Ayşe Kaya'] === 'baslamadi', JSON.stringify(d));
+  // Oylayacak karesi olmayan ayrı bir durumla gösterilmiyor: "oylayacağın kare yok" demek
+  // bütün karelerin o kişiye ait olduğunu söylerdi (isimsizlik, karar 9).
+  bekle('bütün kareler kendisinin olan da başlamadı görünüyor', d['Selin Arı'] === 'baslamadi', JSON.stringify(d));
+  bekle('ötekiler de başlamadı', d['Ayşe Kaya'] === 'baslamadi', JSON.stringify(d));
+  bekle('durumlar ayırt edilemiyor', new Set(Object.values(d)).size === 1, JSON.stringify(d));
 }
 
 rapor();

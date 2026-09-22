@@ -326,10 +326,10 @@ bekle('oylamada iptal bölümü yok', !icerir(await metin(A), 'İptali başlat')
   await A.locator('.sec', { hasText: 'Oy veren' }).locator('span').waitFor({ timeout: 8000 }).catch(() => {});
   const bas = await A.locator('.sec', { hasText: 'Oy veren' }).innerText();
   const liste = await A.locator('.ozet').last().innerText();
-  // Bu anda yarışan iki karenin ikisi de Selin'in: oylayacak karesi yok, sayıya girmiyor
-  bekle('aşamada oy veren sayısı var', icerir(bas, '0 / 1 kişi'), bas);
-  bekle('kimse oy vermeden başlamadı yazıyor', (liste.match(/Başlamadı/g) ?? []).length === 1, liste);
-  bekle('kareleri kendisinin olan oy veren sayılmıyor', liste.includes('Oylayacağı kare yok'), liste);
+  bekle('aşamada oy veren sayısı var', icerir(bas, '0 / 2 kişi'), bas);
+  // İki kare de Selin'in: oylayacak karesi yok. Ayrı bir durumla gösterilmiyor, çünkü
+  // "oylayacağın kare yok" bütün karelerin ona ait olduğunu söylerdi (isimsizlik, karar 9).
+  bekle('kimse oy vermeden herkes başlamadı', (liste.match(/Başlamadı/g) ?? []).length === 2, liste);
   bekle('ilerlemede kimin kaç puan verdiği yazmıyor', !/\d+\s*\/\s*\d+/.test(liste), liste);
 }
 

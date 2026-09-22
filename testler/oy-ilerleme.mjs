@@ -25,6 +25,11 @@ const yukle = async (K) => {
   if (u.error) return { error: u.error };
   return K.c.from('kareler').insert({ tema: SOKAK.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
 };
+// Oylamada kare çıkınca "bitirdi" kapanıyor: bitmiş olan herkes birden "devam"a
+// düşüyor, başka hiçbir satır değişmiyor. Değişim herkese aynı, yani sahiplik söylemiyor.
+const bittiKapandi = (once, sonra) =>
+  Object.keys(once).length === Object.keys(sonra).length &&
+  Object.keys(once).every(k => sonra[k] === (once[k] === 'bitti' ? 'devam' : once[k]));
 const durumlar = async K => Object.fromEntries(
   ((await K.c.rpc('oylama_ilerlemesi', { p_etkinlik: E })).data ?? []).map(x => [x.ad, x.durum])
 );
@@ -60,16 +65,26 @@ bekle('kendi karesi hariç hepsini puanlayan bitirdi', d2['Selin Arı'] === 'bit
 
 // Sayı dönmüyor: kişinin kaç kare yüklediği listeden çıkarılamıyor (isimsizlik, karar 9)
 const satir = ((await A.c.rpc('oylama_ilerlemesi', { p_etkinlik: E })).data ?? [])[0] ?? {};
-bekle('satırda yalnız üye, ad ve durum var', Object.keys(satir).sort().join() === 'ad,durum,uye', JSON.stringify(satir));
+bekle('satırda yalnız üye, ad, durum ve kapalı var', Object.keys(satir).sort().join() === 'ad,durum,kapali,uye', JSON.stringify(satir));
+bekle('kapalı bir sayı değil', typeof satir.kapali === 'boolean', String(satir.kapali));
 bekle('durum üç değerden biri', ['bitti', 'devam', 'baslamadi'].includes(satir.durum), String(satir.durum));
 
 // SALDIRI: oylamada kare çıkarmak ölçüyü oynatmamalı. Oynatsaydı yönetici X dışındaki
 // bütün kareleri çıkarıp durumu değişen kişiyi X'in sahibi diye okurdu (güvenlik incelemesi).
 const oncesi = JSON.stringify(await durumlar(A));
 bekle('yönetici Deniz\'in karesini çıkarıyor', !(await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'etkinlik dışı' })).error);
-bekle('saldırı 1: oylamada kare çıkınca kimsenin durumu değişmiyor', JSON.stringify(await durumlar(A)) === oncesi, oncesi + ' -> ' + JSON.stringify(await durumlar(A)));
+bekle('saldırı 1: oylamada kare çıkınca yalnız bitirenler devama düşüyor, başka değişen yok',
+  bittiKapandi(JSON.parse(oncesi), await durumlar(A)), oncesi + ' -> ' + JSON.stringify(await durumlar(A)));
 bekle('Ayşe kalan tek kareyi puanlıyor', !(await A.c.from('oylar').insert({ kare: kB.data.id, veren: A.id, puan: 6 })).error);
 bekle('çıkarılan kare ölçüde kaldığı için bitmiş sayılmıyor', (await durumlar(A))['Ayşe Kaya'] === 'devam', JSON.stringify(await durumlar(A)));
+// SALDIRI: oylama açılır açılmaz hedef kareyi çıkarıp beklemek. O kareyi kimse
+// tamamlayamıyor; tamamlayabilen tek kişi sahibi olurdu. Bu yüzden "bitirdi" kapanıyor.
+{
+  const d = await durumlar(A);
+  bekle('saldırı 6: oylamada kare çıkınca kimse bitirdi görünmüyor', !Object.values(d).includes('bitti'), JSON.stringify(d));
+  const satirlar = (await A.c.rpc('oylama_ilerlemesi', { p_etkinlik: E })).data ?? [];
+  bekle('saldırı 6: kapalı olduğu ekrana söyleniyor', satirlar.every(x => x.kapali === true), JSON.stringify(satirlar));
+}
 
 // SALDIRI: X dışındaki her kareyi çıkarıp tek tek sahiplik okumak
 const araci = JSON.stringify(await durumlar(A));
@@ -80,7 +95,10 @@ await A.c.rpc('kare_geri_al', { p_kare: kA.data.id });
 await A.c.rpc('kare_geri_al', { p_kare: kB.data.id });
 bekle('saldırı 3: geri almak da bir şey söylemiyor', JSON.stringify(await durumlar(A)) === araci, JSON.stringify(await durumlar(A)));
 await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
-bekle('hepsi geri gelince Ayşe yine devam ediyor', (await durumlar(A))['Ayşe Kaya'] === 'devam', JSON.stringify(await durumlar(A)));
+// Çıkarılan kare geri gelince liste yine tam: "bitirdi" geri açılıyor
+const geriye = await durumlar(A);
+bekle('hepsi geri gelince Selin yine bitirdi görünüyor', geriye['Selin Arı'] === 'bitti', JSON.stringify(geriye));
+bekle('hepsi geri gelince Ayşe devam ediyor', geriye['Ayşe Kaya'] === 'devam', JSON.stringify(geriye));
 
 // SALDIRI: ölçüyü donduran çapayı (yukleme_biter) yöneticinin kendisi kaydırması.
 // İkinci güvenlik turu bunu baştan sona çalıştırmıştı: kareleri çıkar, saati şimdiye
@@ -92,8 +110,12 @@ bekle('hepsi geri gelince Ayşe yine devam ediyor', (await durumlar(A))['Ayşe K
   const e1 = (await A.c.from('etkinlikler').select('yukleme_biter, oylama_biter').eq('id', E).single()).data;
   bekle('saldırı 4: saatler yerinde kaldı', JSON.stringify(e0) === JSON.stringify(e1), JSON.stringify(e0) + ' -> ' + JSON.stringify(e1));
   bekle('saldırı 4: sonucu erken açamıyor', ((await A.c.from('etkinlikler').update({ oylama_biter: new Date().toISOString() }).eq('id', E).select()).data ?? []).length === 0);
-  bekle('saldırı 4: temayı başka etkinliğe taşıyamıyor', ((await A.c.from('temalar').update({ etkinlik: null }).eq('id', SOKAK.id).select()).data ?? []).length === 0);
-  bekle('saldırı 4: temayı silemiyor', ((await A.c.from('temalar').delete().eq('id', SOKAK.id).select()).data ?? []).length === 0);
+  // Karesi olmayan ayrı bir tema: silme denemesi yabancı anahtara değil yetkiye çarpsın
+  const bos = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Bos', sira: 2, bulusmada: false }).select('id').single()).data;
+  bekle('saldırı 4: temanın adını değiştiremiyor', ((await A.c.from('temalar').update({ ad: 'Degisti' }).eq('id', SOKAK.id).select()).data ?? []).length === 0);
+  bekle('saldırı 4: temayı silemiyor', ((await A.c.from('temalar').delete().eq('id', bos.id).select()).data ?? []).length === 0);
+  bekle('saldırı 4: tema yerinde duruyor', ((await admin.from('temalar').select('ad').eq('id', SOKAK.id).single()).data?.ad) === 'Sokak');
+  await admin.from('temalar').delete().eq('id', bos.id);
 }
 
 // SALDIRI: toplu çıkarılmış kareyi yeniden çıkarıp ölçüye sokmak (çıkarma zamanı tazelenmemeli)
@@ -104,7 +126,8 @@ bekle('hepsi geri gelince Ayşe yine devam ediyor', (await durumlar(A))['Ayşe K
   await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'ikinci' });
   const zaman2 = (await admin.from('diskalifiye').select('zaman').eq('kare', kD.data.id).single()).data?.zaman;
   bekle('saldırı 5: yeniden çıkarmak zamanı tazelemiyor', zaman1 === zaman2, `${zaman1} -> ${zaman2}`);
-  bekle('saldırı 5: durumlar yine değişmiyor', JSON.stringify(await durumlar(A)) === once, once + ' -> ' + JSON.stringify(await durumlar(A)));
+  bekle('saldırı 5: durumlar yine ayırt edici bir şey söylemiyor',
+    bittiKapandi(JSON.parse(once), await durumlar(A)), once + ' -> ' + JSON.stringify(await durumlar(A)));
   await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
 }
 
@@ -112,6 +135,28 @@ bekle('hepsi geri gelince Ayşe yine devam ediyor', (await durumlar(A))['Ayşe K
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
 bekle('sonuçta yönetici hâlâ görüyor', Object.keys(await durumlar(A)).length === 3);
 bekle('sonuçta üye hâlâ göremiyor', Object.keys(await durumlar(B)).length === 0);
+
+// Oylama öncesi çıkarılan kare sonuçtan önce geri alınmıyor: geri alınsa ölçüye girer
+// ve beklentisi artmayan kişi sahibi olurdu (karar 103 zaten "sonuçtan sonra" diyordu)
+{
+  const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const T3 = (await admin.from('temalar').insert({ etkinlik: E3, ad: 'Iz', sira: 1, bulusmada: true }).select('id').single()).data;
+  const yol = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
+  await B.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const k3 = await B.c.from('kareler').insert({ tema: T3.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
+  bekle('yüklemede kare çıkarılıyor', !(await A.c.rpc('kare_cikar', { p_kare: k3.data.id, p_neden: 'yükleme sırasında' })).error);
+  // Oylamayı uygulamanın kendi yolundan açıyoruz: yukleme_biter o anda now() oluyor,
+  // yani çıkarma gerçekten "oylamadan önce" kalıyor (saati elle geri çekmek bunu bozardı)
+  bekle('oylama uygulamadaki gibi açılıyor', !(await A.c.rpc('oylamayi_ac', { p_etkinlik: E3 })).error);
+  bekle('saldırı 7: oylamada eski çıkarma geri alınamıyor', hata(await A.c.rpc('kare_geri_al', { p_kare: k3.data.id })).includes('toplu_geri'));
+  // Şemada oylama_biter > yukleme_biter kısıtı var, saati ona göre ilerletiyoruz
+  const yb = (await admin.from('etkinlikler').select('yukleme_biter').eq('id', E3).single()).data.yukleme_biter;
+  const ilerlet = await admin.from('etkinlikler').update({ oylama_biter: new Date(Date.parse(yb) + 1000).toISOString() }).eq('id', E3).select('oylama_biter');
+  bekle('sonuca ilerletildi', (ilerlet.data ?? []).length === 1, JSON.stringify(ilerlet.error ?? ilerlet.data));
+  await new Promise(r => setTimeout(r, 1300));
+  const geri3 = await A.c.rpc('kare_geri_al', { p_kare: k3.data.id });
+  bekle('sonuçta geri alınabiliyor', !geri3.error, hata(geri3) + ' | asama: ' + JSON.stringify((await A.c.from('etkinlikler').select('yukleme_biter, oylama_biter').eq('id', E3).single()).data));
+}
 
 // Sonuçta ölçü o anki yarışan karelere dönüyor: sahiplik zaten açık
 await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'sonuç sonrası' });

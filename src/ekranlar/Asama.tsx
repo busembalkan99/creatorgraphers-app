@@ -284,14 +284,14 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
 function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
   // null: daha okunmadı. Boş dizi ile karıştırılmamalı, yoksa liste gelene kadar
   // ekranda "okunamadı" yazıyor.
-  const [liste, setListe] = useState<{ uye: string; ad: string; durum: string }[] | null>(null)
+  const [liste, setListe] = useState<{ uye: string; ad: string; durum: string; kapali: boolean }[] | null>(null)
   const [hata, setHata] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
       const { data, error } = await sor(sb.rpc('oylama_ilerlemesi', { p_etkinlik: e.id }))
       if (error) throw error
-      setListe((data ?? []) as { uye: string; ad: string; durum: string }[])
+      setListe((data ?? []) as { uye: string; ad: string; durum: string; kapali: boolean }[])
     })().catch(x => setHata(hataMetni(x)))
   }, [e.id, surum])
 
@@ -316,6 +316,11 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
             </div>
           ))}
         </div>
+      )}
+      {/* Oylamada kare çıkarılınca "bitirdi" kapanıyor: o kareyi kimse tamamlayamıyor,
+          tamamlayabilen tek kişi sahibi olurdu (isimsizlik, karar 9). */}
+      {liste?.[0]?.kapali && (
+        <p className="veri">Oylamada kare çıkarıldı. Kimin bitirdiği sonuçlara kadar kapalı.</p>
       )}
       <p className="veri">Kimin hangi kareye kaç puan verdiği burada da görünmüyor.</p>
       <Hata metin={hata} />

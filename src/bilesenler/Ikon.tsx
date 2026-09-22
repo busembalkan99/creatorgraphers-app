@@ -11,6 +11,8 @@ const P = {
   kilit: '<rect width="14" height="10" x="5" y="11"/><path d="M12,3 L12,3 C14.7614237,3 17,5.23857625 17,8 L17,11 L7,11 L7,8 C7,5.23857625 9.23857625,3 12,3 Z"/>',
   geri: '<path d="M9 6l-6 6 6 6"/><path d="M21 12H4"/><path d="M3 12h1"/>',
   asagi: '<polyline points="6 9 12 15 18 9"/>',
+  yukari: '<polyline points="6 15 12 9 18 15"/>',
+  sag: '<polyline points="9 6 15 12 9 18"/>',
   // sekmeler: perforasyonlu film karesi elle çizildi (v16)
   film: '<rect x="2" y="6" width="20" height="12"/><rect x="4" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="10.5" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="17" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="4" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="10.5" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="17" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/>',
   sira: '<polygon points="2 12 2 21 6 21 6 12"/><polygon points="18 7 18 21 22 21 22 7"/><polygon points="10 3 10 21 14 21 14 3"/>',

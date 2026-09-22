@@ -320,6 +320,18 @@ await olc(A, '24-oylama-onay');
 await A.locator('.kutu button.btn:has-text("Oylamayı aç")').click();
 bekle('oylama açıldı', await bekleMetin(A, 'Oylama açık'));
 bekle('oylamada iptal bölümü yok', !icerir(await metin(A), 'İptali başlat'));
+// Karar 105: sonuçlar açılana kadar kaç kişinin oy verdiği hiçbir yerde görünmüyordu
+{
+  // Liste sunucudan geliyor, bölüm başlığı ondan önce basılıyor
+  await A.locator('.sec', { hasText: 'Oy veren' }).locator('span').waitFor({ timeout: 8000 }).catch(() => {});
+  const bas = await A.locator('.sec', { hasText: 'Oy veren' }).innerText();
+  const liste = await A.locator('.ozet').last().innerText();
+  // Bu anda yarışan iki karenin ikisi de Selin'in: oylayacak karesi yok, sayıya girmiyor
+  bekle('aşamada oy veren sayısı var', icerir(bas, '0 / 1 kişi'), bas);
+  bekle('kimse oy vermeden başlamadı yazıyor', (liste.match(/Başlamadı/g) ?? []).length === 1, liste);
+  bekle('kareleri kendisinin olan oy veren sayılmıyor', liste.includes('Oylayacağı kare yok'), liste);
+  bekle('ilerlemede kimin kaç puan verdiği yazmıyor', !/\d+\s*\/\s*\d+/.test(liste), liste);
+}
 
 // Yönetici oylamayı erken açtı. Uygulaması açık olan kişi bunu yenilemeden görmeli:
 // aşamayı saatten hesaplamak yetmiyor, eski satır elde duruyor.
@@ -389,6 +401,12 @@ bekle('olmayan tema adresinde kilit ekranı', icerir(await metin(A), 'Oylama aç
 await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
 bekle('kurucuya zorunlu değil', icerir(await metin(A), 'oylaman şart değil'), (await metin(A)).slice(0, 160));
 bekle('isim sızmıyor', !icerir(await metin(A), 'Selin Arı') && !icerir(await metin(A), 'Deniz Akın'), (await metin(A)).slice(0, 160));
+// Karar 105: satır bir düğme ama okunur veri satırlarıyla aynı görünüyordu, kimse tıklanabildiğini anlamamıştı
+{
+  const gitler = (await A.locator('.tema-satir .git').allTextContents()).map(x => x.trim());
+  bekle('tema satırında eylem adı var', gitler.length === 2 && gitler.every(x => x.toLocaleLowerCase('tr-TR').includes('puanla')), JSON.stringify(gitler));
+  bekle('eylem adının yanında ok', (await A.locator('.tema-satir .git svg.ic').count()) === 2);
+}
 await olc(A, '27-oylama-temalar');
 await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
 bekle('akışta iki kare', (await A.locator('.kare').count()) === 2);
@@ -472,11 +490,23 @@ bekle('puan ekranda 07', await yaz(A, '.puan .deger') === '07');
 const oy1 = (await admin.from('oylar').select('*')).data ?? [];
 bekle('puan veritabanına yazıldı', oy1.length === 1 && oy1[0].puan === 7, JSON.stringify(oy1));
 await olc(A, '29-oylama-puanli');
+// Karar 105: kare ekranı tam dolduruyor, kaydırma çubuğu gizli; sonraki kareye geçileceği anlaşılmıyordu
+bekle('puan verilince kaydırma ipucu çıkıyor', await A.locator('.kaydir-ipucu').first().isVisible());
+bekle('ipucu sonraki kareyi söylüyor', icerir(await yaz(A, '.kaydir-ipucu'), 'yukarı kaydır'), await yaz(A, '.kaydir-ipucu'));
+bekle('ipucu henüz öğrenilmedi', (await A.evaluate(() => localStorage.getItem('cg-oy-kaydirma'))) === null);
+await A.locator('.akis').evaluate(el => el.scrollBy({ top: el.clientHeight }));
+await A.waitForTimeout(900);
+bekle('kaydırınca ipucu kalkıyor', (await A.locator('.kaydir-ipucu').count()) === 0);
+bekle('ipucu öğrenildi diye kaydedildi', (await A.evaluate(() => localStorage.getItem('cg-oy-kaydirma'))) === 'ogrenildi');
 // yarıda kalmışken kart "devam et" diyor
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('yarıda kalınca kartta devam et', icerir(await metin(A), 'Oylamaya devam et'), (await metin(A)).slice(0, 140));
 await A.goto(APP + '#/oyla'); await A.waitForTimeout(1000);
+bekle('yarıda kalan temada eylem adı devam et oluyor',
+  icerir((await A.locator('.tema-satir .git').first().textContent()) ?? '', 'devam et'),
+  (await A.locator('.tema-satir .git').first().textContent()) ?? '');
 await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
+bekle('öğrenilmiş ipucu ikinci girişte çıkmıyor', (await A.locator('.kaydir-ipucu').count()) === 0);
 // bitiş ekranına kaydır
 await A.evaluate(() => { const a = document.querySelector('.akis'); a.scrollTo({ top: a.scrollHeight }); });
 await A.waitForTimeout(1000);
@@ -541,8 +571,22 @@ await A.locator('.tema-satir').nth(1).click(); await A.waitForTimeout(1500);
 await puanla(A.locator('.kaydirici').first(), 5 / 9);
 await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
 bekle('hepsi bitince oyların tamam', icerir(await metin(A), 'Oyların tamam'), (await metin(A)).replace(/\n/g, ' | ').slice(0, 200));
-bekle('biten temada Bitti yazıyor', await yaz(A, '.tema-satir .alt') === 'Bitti');
+bekle('biten temada Bitti yazıyor', await yaz(A, '.tema-satir .alt > span') === 'Bitti', await yaz(A, '.tema-satir .alt > span'));
+bekle('biten temada eylem adı değiştir oluyor', icerir(await yaz(A, '.tema-satir .git'), 'değiştir'), await yaz(A, '.tema-satir .git'));
 await olc(A, '33-oylama-tamam');
+// Oyunu bitiren yöneticinin aşama ekranındaki hâli (karar 105)
+await A.goto(APP + '#/asama'); await A.waitForTimeout(1500);
+{
+  const bas = await A.locator('.sec', { hasText: 'Oy veren' }).innerText();
+  const liste = await A.locator('.ozet').last().innerText();
+  bekle('oy veren sayısı artıyor', icerir(bas, '1 / 3 kişi'), bas);
+  bekle('bitiren Bitirdi diye görünüyor', liste.includes('Ayşe Kaya') && liste.includes('Bitirdi'), liste);
+  bekle('oy vermeyenler başlamadı kalıyor', (liste.match(/Başlamadı/g) ?? []).length === 2, liste);
+}
+await olc(A, '33b-asama-oy-veren');
+// Üye aynı ekranı hiç açamıyor
+await B.goto(APP + '#/asama'); await B.waitForTimeout(1200);
+bekle('üye aşama ekranını açamıyor', !icerir(await metin(B), 'Oy veren'), (await metin(B)).slice(0, 120));
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('kartta puanlarına bak', icerir(await metin(A), 'Puanlarına bak'));
 bekle('bitince kalan kare rozeti yok', !/kare kaldı/.test(await metin(A)), (await metin(A)).slice(0, 140));

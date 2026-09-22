@@ -97,15 +97,25 @@ export function Oylama({ uye }: { uye: Uye }) {
             </div>
             <div className="cizgi"><i style={{ width: `${oran}%` }} /></div>
             <div className="alt">
-              {t.toplam === 0
-                ? t.zorunlu
-                  ? 'Bu temada senin dışında kare yok'
-                  : 'Bu temaya kimse kare vermemiş'
-                : kalan === 0
-                  ? 'Bitti'
-                  : t.zorunlu
-                    ? `${kalan} kare kaldı · kare verdin, oylaman gerekiyor`
-                    : `${kalan} kare kaldı · karen yok, oylaman şart değil`}
+              <span>
+                {t.toplam === 0
+                  ? t.zorunlu
+                    ? 'Bu temada senin dışında kare yok'
+                    : 'Bu temaya kimse kare vermemiş'
+                  : kalan === 0
+                    ? 'Bitti'
+                    : t.zorunlu
+                      ? `${kalan} kare kaldı · kare verdin, oylaman gerekiyor`
+                      : `${kalan} kare kaldı · karen yok, oylaman şart değil`}
+              </span>
+              {/* Karar 105: satır bir düğme ama okunur veri satırlarıyla aynı görünüyordu,
+                  kimse tıklanabildiğini anlamamıştı. Eylem adı ve ok onu söylüyor. */}
+              {t.toplam > 0 && (
+                <span className="git">
+                  {kalan === 0 ? 'Değiştir' : t.puanladigim ? 'Devam et' : 'Puanla'}
+                  <Ikon ad="sag" />
+                </span>
+              )}
             </div>
           </button>
         )
@@ -133,6 +143,18 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   const yonetici = uye.rol !== 'uye'
   const [cikar, setCikar] = useState<string | null>(null)
   const [cikti, setCikti] = useState(false)
+  // Karar 105: kare ekranı tam dolduruyor, altındakinden hiçbir şey görünmüyor ve kaydırma
+  // çubuğu gizli. Puan verilince ipucu beliriyor, bir kere kaydıran bir daha görmüyor.
+  const [ipucu, setIpucu] = useState(() => {
+    try { return localStorage.getItem('cg-oy-kaydirma') !== 'ogrenildi' } catch { return true }
+  })
+  const ogrendi = useCallback(() => {
+    setIpucu(acik => {
+      if (!acik) return acik
+      try { localStorage.setItem('cg-oy-kaydirma', 'ogrenildi') } catch { /* gizli sekmede yazılamaz */ }
+      return false
+    })
+  }, [])
 
   useEffect(() => {
     ;(async () => {
@@ -182,7 +204,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   }
 
   return (
-    <div className="akis" ref={akis} data-asama="oylama">
+    <div className="akis" ref={akis} data-asama="oylama" onScroll={ogrendi}>
       {oyHatasi && <div className="oy-hata"><Hata metin={oyHatasi} /></div>}
       {cikti && <div className="oy-hata"><p className="veri" role="status" style={{ marginTop: 0, paddingBottom: 10 }}>Kare yarışmadan çıkarıldı. Profil'de Yönetim'den geri alabilirsin.</p></div>}
       {kareler.map((k, i) => (
@@ -213,6 +235,12 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           </div>
           <div className="ince" />
           <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
+          {ipucu && k.puan != null && (
+            <p className="kaydir-ipucu" role="status">
+              <Ikon ad="yukari" />
+              {i + 1 < kareler.length ? 'Sonraki kare için yukarı kaydır' : 'Bitirmek için yukarı kaydır'}
+            </p>
+          )}
         </section>
       ))}
 

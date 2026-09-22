@@ -385,6 +385,15 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kare{height:100%;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;
   padding:calc(12px + env(safe-area-inset-top)) var(--pad) calc(14px + env(safe-area-inset-bottom));touch-action:pan-y}
 .kare .ince{flex:0 0 auto;height:1px;background:var(--rule)}
+/* Karar 105: kare ekranı tam dolduruyor, kaydırma çubuğu gizli, altındaki kareden hiçbir şey
+   görünmüyor; kimse yukarı kaydırılacağını anlamamıştı. Puan verilince beliriyor, bir kere
+   kaydıran bir daha görmüyor: fotoğrafın payını yalnız öğrenirken alıyor. */
+.kaydir-ipucu{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:7px;
+  min-height:26px;margin-top:8px;font-size:11px;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--soft);animation:ipucu-bel .3s ease-out}
+.kaydir-ipucu .ic{width:14px;height:14px;animation:ipucu-zipla 1.8s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes ipucu-bel{from{opacity:0}to{opacity:1}}
+@keyframes ipucu-zipla{0%,60%,100%{transform:none}30%{transform:translateY(-4px)}}
 
 .plaka{flex:0 0 auto;display:flex;align-items:flex-end;gap:12px;padding:10px 0 11px}
 .plaka .no{font-size:52px;line-height:.76;letter-spacing:-.04em;font-variation-settings:"wdth" 68,"wght" 900;
@@ -470,7 +479,13 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   font-variant-numeric:tabular-nums}
 .tema-satir .cizgi{margin-top:9px;height:4px;background:rgba(237,237,234,.14)}
 .tema-satir .cizgi i{display:block;height:100%;background:var(--oyla)}
-.tema-satir .alt{margin-top:7px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
+.tema-satir .alt{margin-top:7px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
+  display:flex;align-items:center;gap:10px;line-height:1.4}
+/* Karar 105: satır düğme ama .ozet ve .adim gibi okunur veri satırlarıyla aynı görünüyordu.
+   Eylem adı tam mürekkep, durum metni soluk: hangisinin çağrı olduğu tondan da okunuyor. */
+.tema-satir .git{margin-left:auto;flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;
+  color:var(--ink);font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.tema-satir .git .ic{width:13px;height:13px}
 .tema-satir.tamam .cizgi i{background:var(--ink)}
 
 /* ==========================================================

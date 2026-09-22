@@ -110,6 +110,7 @@ export function Asama() {
       {/* Buluşma günü yöneticinin ilk işi yoklama: grup mesajının altında kalıyordu */}
       <Yoklama e={e} surum={surum} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
       <Cikarilanlar e={e} surum={surum} />
+      {(a === 'oylama' || a === 'sonuc') && <OyIlerlemesi e={e} surum={surum} />}
 
       <div className="mesaj">
         <span className="lab">Gruba yazılacak</span>
@@ -275,6 +276,50 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
       )}
       <Hata metin={hata} />
     </div>
+  )
+}
+
+/** Kim oyunu verdi, kim vermedi (karar 105). Kaç puan verdiği yazmıyor: sayı, kişinin
+    oylayacağı kare sayısı üzerinden kaç kare yüklediğini ele verirdi (isimsizlik, karar 9). */
+function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
+  const [liste, setListe] = useState<{ uye: string; ad: string; durum: string }[]>([])
+  const [hata, setHata] = useState<string | null>(null)
+
+  useEffect(() => {
+    ;(async () => {
+      const { data, error } = await sor(sb.rpc('oylama_ilerlemesi', { p_etkinlik: e.id }))
+      if (error) throw error
+      setListe((data ?? []) as { uye: string; ad: string; durum: string }[])
+    })().catch(x => setHata(hataMetni(x)))
+  }, [e.id, surum])
+
+  // Oylayacak karesi olmayan (etkinlikteki kareler hep kendisinin) oy veren sayılmıyor:
+  // tek puan vermeden sayıya girerdi.
+  const veren = liste.filter(x => x.durum === 'bitti' || x.durum === 'devam').length
+  const sayilan = liste.filter(x => x.durum !== 'yok').length
+
+  return (
+    <>
+      <h2 className="sec">Oy veren{liste.length > 0 && <span>{veren} / {sayilan} kişi</span>}</h2>
+      {liste.length === 0 ? (
+        <p className="veri" style={{ marginTop: 0 }}>Liste okunamadı.</p>
+      ) : (
+        <div className="ozet" style={{ marginTop: 12 }}>
+          {liste.map(x => (
+            <div key={x.uye}>
+              <span className="v">{x.ad}</span>
+              <span className="v" style={{ marginLeft: 'auto', color: 'var(--soft)' }}>
+                {x.durum === 'bitti' ? 'Bitirdi'
+                  : x.durum === 'devam' ? 'Devam ediyor'
+                    : x.durum === 'yok' ? 'Oylayacağı kare yok' : 'Başlamadı'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="veri">Kimin hangi kareye kaç puan verdiği burada da görünmüyor.</p>
+      <Hata metin={hata} />
+    </>
   )
 }
 

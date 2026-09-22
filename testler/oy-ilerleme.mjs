@@ -95,10 +95,17 @@ await A.c.rpc('kare_geri_al', { p_kare: kA.data.id });
 await A.c.rpc('kare_geri_al', { p_kare: kB.data.id });
 bekle('saldırı 3: geri almak da bir şey söylemiyor', JSON.stringify(await durumlar(A)) === araci, JSON.stringify(await durumlar(A)));
 await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
-// Çıkarılan kare geri gelince liste yine tam: "bitirdi" geri açılıyor
+// SALDIRI: perdeyi indirip kaldırmak. Kareyi çıkar, herkes oylayabildiğini oylasın,
+// sonra geri al: perde kalksaydı altındaki tablo hiç değişmemiş olurdu ve o kareye oy
+// veremeyen herkes bir eksik kalırdı; eksiği olmayan tek kişi sahibi olurdu.
 const geriye = await durumlar(A);
-bekle('hepsi geri gelince Selin yine bitirdi görünüyor', geriye['Selin Arı'] === 'bitti', JSON.stringify(geriye));
-bekle('hepsi geri gelince Ayşe devam ediyor', geriye['Ayşe Kaya'] === 'devam', JSON.stringify(geriye));
+bekle('saldırı 8: geri almak perdeyi kaldırmıyor', !Object.values(geriye).includes('bitti'), JSON.stringify(geriye));
+const satirlar8 = (await A.c.rpc('oylama_ilerlemesi', { p_etkinlik: E })).data ?? [];
+bekle('saldırı 8: perde kalıcı', satirlar8.every(x => x.kapali === true), JSON.stringify(satirlar8));
+// Tekrar tekrar indirip kaldırmak da bir şey söylemiyor
+await A.c.rpc('kare_cikar', { p_kare: kB.data.id, p_neden: 'bir daha' });
+await A.c.rpc('kare_geri_al', { p_kare: kB.data.id });
+bekle('saldırı 8: döngü de bir şey söylemiyor', !Object.values(await durumlar(A)).includes('bitti'), JSON.stringify(await durumlar(A)));
 
 // SALDIRI: ölçüyü donduran çapayı (yukleme_biter) yöneticinin kendisi kaydırması.
 // İkinci güvenlik turu bunu baştan sona çalıştırmıştı: kareleri çıkar, saati şimdiye
@@ -145,6 +152,9 @@ bekle('sonuçta üye hâlâ göremiyor', Object.keys(await durumlar(B)).length =
   await B.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
   const k3 = await B.c.from('kareler').insert({ tema: T3.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
   bekle('yüklemede kare çıkarılıyor', !(await A.c.rpc('kare_cikar', { p_kare: k3.data.id, p_neden: 'yükleme sırasında' })).error);
+  // Yükleme sürerken geri alma serbest: ilerleme listesi o aşamada zaten kapalı
+  bekle('yüklemede yanlışlıkla çıkarılan geri alınabiliyor', !(await A.c.rpc('kare_geri_al', { p_kare: k3.data.id })).error);
+  bekle('yüklemede yeniden çıkarılıyor', !(await A.c.rpc('kare_cikar', { p_kare: k3.data.id, p_neden: 'yine' })).error);
   // Oylamayı uygulamanın kendi yolundan açıyoruz: yukleme_biter o anda now() oluyor,
   // yani çıkarma gerçekten "oylamadan önce" kalıyor (saati elle geri çekmek bunu bozardı)
   bekle('oylama uygulamadaki gibi açılıyor', !(await A.c.rpc('oylamayi_ac', { p_etkinlik: E3 })).error);

@@ -82,6 +82,32 @@ bekle('saldırı 3: geri almak da bir şey söylemiyor', JSON.stringify(await du
 await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
 bekle('hepsi geri gelince Ayşe yine devam ediyor', (await durumlar(A))['Ayşe Kaya'] === 'devam', JSON.stringify(await durumlar(A)));
 
+// SALDIRI: ölçüyü donduran çapayı (yukleme_biter) yöneticinin kendisi kaydırması.
+// İkinci güvenlik turu bunu baştan sona çalıştırmıştı: kareleri çıkar, saati şimdiye
+// çek, çıkardıkların "oylamadan önce çıkarılmış" sayılsın, ölçü tek kareye insin.
+{
+  const e0 = (await A.c.from('etkinlikler').select('yukleme_biter, oylama_biter').eq('id', E).single()).data;
+  const yaz = await A.c.from('etkinlikler').update({ yukleme_biter: new Date().toISOString() }).eq('id', E).select();
+  bekle('saldırı 4: yönetici etkinliğin saatini doğrudan yazamıyor', ((yaz.data ?? []).length === 0) || !!yaz.error, JSON.stringify(yaz.data ?? yaz.error));
+  const e1 = (await A.c.from('etkinlikler').select('yukleme_biter, oylama_biter').eq('id', E).single()).data;
+  bekle('saldırı 4: saatler yerinde kaldı', JSON.stringify(e0) === JSON.stringify(e1), JSON.stringify(e0) + ' -> ' + JSON.stringify(e1));
+  bekle('saldırı 4: sonucu erken açamıyor', ((await A.c.from('etkinlikler').update({ oylama_biter: new Date().toISOString() }).eq('id', E).select()).data ?? []).length === 0);
+  bekle('saldırı 4: temayı başka etkinliğe taşıyamıyor', ((await A.c.from('temalar').update({ etkinlik: null }).eq('id', SOKAK.id).select()).data ?? []).length === 0);
+  bekle('saldırı 4: temayı silemiyor', ((await A.c.from('temalar').delete().eq('id', SOKAK.id).select()).data ?? []).length === 0);
+}
+
+// SALDIRI: toplu çıkarılmış kareyi yeniden çıkarıp ölçüye sokmak (çıkarma zamanı tazelenmemeli)
+{
+  const once = JSON.stringify(await durumlar(A));
+  await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'ilk' });
+  const zaman1 = (await admin.from('diskalifiye').select('zaman').eq('kare', kD.data.id).single()).data?.zaman;
+  await A.c.rpc('kare_cikar', { p_kare: kD.data.id, p_neden: 'ikinci' });
+  const zaman2 = (await admin.from('diskalifiye').select('zaman').eq('kare', kD.data.id).single()).data?.zaman;
+  bekle('saldırı 5: yeniden çıkarmak zamanı tazelemiyor', zaman1 === zaman2, `${zaman1} -> ${zaman2}`);
+  bekle('saldırı 5: durumlar yine değişmiyor', JSON.stringify(await durumlar(A)) === once, once + ' -> ' + JSON.stringify(await durumlar(A)));
+  await A.c.rpc('kare_geri_al', { p_kare: kD.data.id });
+}
+
 // Sonuç açıldıktan sonra da görünüyor
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
 bekle('sonuçta yönetici hâlâ görüyor', Object.keys(await durumlar(A)).length === 3);

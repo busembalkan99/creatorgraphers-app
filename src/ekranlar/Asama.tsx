@@ -110,7 +110,9 @@ export function Asama() {
       {/* Buluşma günü yöneticinin ilk işi yoklama: grup mesajının altında kalıyordu */}
       <Yoklama e={e} surum={surum} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
       <Cikarilanlar e={e} surum={surum} degisti={() => setSurum(n => n + 1)} />
-      {(a === 'oylama' || a === 'sonuc') && <OyIlerlemesi e={e} surum={surum} />}
+      {/* Bu ekran yalnız açık etkinliği tutuyor (acikEtkinlik sonucu dışarıda bırakıyor),
+          o yüzden burada sonuç aşaması hiç olmuyor. Sunucu sonuçta da veriyor. */}
+      {a === 'oylama' && <OyIlerlemesi e={e} surum={surum} />}
 
       <div className="mesaj">
         <span className="lab">Gruba yazılacak</span>

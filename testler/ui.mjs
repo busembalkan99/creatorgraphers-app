@@ -313,6 +313,7 @@ bekle('canlı kart: tüm temalar tamam', icerir(await metin(B), 'Karelerine bak'
 // 9 · Kurucu oylamayı açar
 await A.reload(); await A.waitForTimeout(800);
 bekle('aşama: kare sayıları', (await A.locator('.ozet').innerText()).match(/1 kare/g)?.length === 2);
+bekle('yüklemede oy veren bölümü yok', !icerir(await metin(A), 'Oy veren'), (await metin(A)).slice(0, 200));
 await A.click('button:has-text("Oylamayı aç")');
 bekle('oylama onayı sorar', await bekleMetin(A, 'Oylama şimdi açılsın mı'));
 bekle('onay kaç kare olduğunu söyler', icerir(await metin(A), '2 kareyle'));
@@ -332,6 +333,14 @@ bekle('oylamada iptal bölümü yok', !icerir(await metin(A), 'İptali başlat')
   bekle('kimse oy vermeden herkes başlamadı', (liste.match(/Başlamadı/g) ?? []).length === 2, liste);
   bekle('ilerlemede kimin kaç puan verdiği yazmıyor', !/\d+\s*\/\s*\d+/.test(liste), liste);
 }
+// Liste boş dönerse ayrı cümle
+await A.route('**/rest/v1/rpc/oylama_ilerlemesi*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(500);
+await A.goto(APP + '#/asama'); await A.waitForTimeout(1600);
+bekle('liste boş dönerse üye yok deniyor', icerir(await metin(A), 'Kulüpte üye yok'), (await metin(A)).slice(0, 220));
+await A.unroute('**/rest/v1/rpc/oylama_ilerlemesi*');
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(800);
+await A.goto(APP + '#/asama'); await A.waitForTimeout(1600);
 
 // Yönetici oylamayı erken açtı. Uygulaması açık olan kişi bunu yenilemeden görmeli:
 // aşamayı saatten hesaplamak yetmiyor, eski satır elde duruyor.

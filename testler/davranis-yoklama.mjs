@@ -223,10 +223,13 @@ bekle('6: üyenin akışından da düştü', (await B.locator(`[data-kare="${hed
 // ---------------------------------------------------------------- 7. sonuç
 // Yönetici oylamada çıkardığını Aşama'dan geri alıyor (bildirim oraya yönlendiriyor)
 await git(A, 'asama');
+bekle('6: oylamada kare çıkınca bitirdi kapanıyor', await var_(A, 'Kimin bitirdiği sonuçlara kadar kapalı'), (await metin(A)).slice(0, 300));
+bekle('6: kapalıyken kimse bitirdi görünmüyor', !(await A.locator('.ozet').last().innerText()).includes('Bitirdi'), await A.locator('.ozet').last().innerText());
 bekle('6: çıkarılanlar listesinde tek tek çıkarılan, resmi ve nedeniyle', (await A.locator('.cikan').count()) === 1
   && (await A.locator('.cikan img').count()) === 1 && (await A.locator('.cikan').innerText()).includes('Başka gün çekilmiş'));
 await A.getByRole('button', { name: 'Geri al' }).click();
 await A.waitForTimeout(1300);
+bekle('6: geri alınca perde kalkmıyor', await var_(A, 'Kimin bitirdiği sonuçlara kadar kapalı'), (await metin(A)).slice(0, 300));
 bekle('6: geri al düğmesi kareyi yarışmaya döndürüyor', ((await admin.from('diskalifiye').select('kare').eq('kare', hedefKare)).data ?? []).length === 0
   && (await A.locator('.cikan').count()) === 0);
 // Kare Selin'in; kendi karesi kendi akışında olmaz, başka üyeye bak

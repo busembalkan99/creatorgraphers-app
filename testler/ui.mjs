@@ -498,6 +498,7 @@ await A.locator('.akis').evaluate(el => el.scrollBy({ top: el.clientHeight }));
 await A.waitForTimeout(900);
 bekle('kaydırınca ipucu kalkıyor', (await A.locator('.kaydir-ipucu').count()) === 0);
 bekle('ipucu öğrenildi diye kaydedildi', (await A.evaluate(() => localStorage.getItem('cg-oy-kaydirma'))) === 'ogrenildi');
+
 // yarıda kalmışken kart "devam et" diyor
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1200);
 bekle('yarıda kalınca kartta devam et', icerir(await metin(A), 'Oylamaya devam et'), (await metin(A)).slice(0, 140));
@@ -573,6 +574,28 @@ await A.goto(APP + '#/oyla'); await A.waitForTimeout(1200);
 bekle('hepsi bitince oyların tamam', icerir(await metin(A), 'Oyların tamam'), (await metin(A)).replace(/\n/g, ' | ').slice(0, 200));
 bekle('biten temada Bitti yazıyor', await yaz(A, '.tema-satir .alt > span') === 'Bitti', await yaz(A, '.tema-satir .alt > span'));
 bekle('biten temada eylem adı değiştir oluyor', icerir(await yaz(A, '.tema-satir .git'), 'değiştir'), await yaz(A, '.tema-satir .git'));
+// Depo kapalıysa (Safari gizli sekme) oylama ekranı çökmemeli: iki catch de deneniyor
+await A.addInitScript(() => {
+  const g = Storage.prototype.getItem, s2 = Storage.prototype.setItem;
+  Storage.prototype.getItem = function (k) { if (window.__depoKapali && k === 'cg-oy-kaydirma') throw new Error('depo kapalı'); return g.call(this, k); };
+  Storage.prototype.setItem = function (k, v) { if (window.__depoKapali && k === 'cg-oy-kaydirma') throw new Error('depo kapalı'); return s2.call(this, k, v); };
+});
+// addInitScript yalnız yeni bir belge yüklenince çalışıyor; hash değişimi yetmiyor
+await A.reload(); await A.waitForTimeout(1000);
+await A.goto(APP + '#/oyla'); await A.waitForTimeout(1000);
+await A.evaluate(() => { window.__depoKapali = true; });
+await A.locator('.tema-satir').first().click(); await A.waitForTimeout(1500);
+bekle('depo kapalıyken oylama ekranı açılıyor', (await A.locator('.kare').count()) > 0, String(await A.locator('.kare').count()));
+bekle('depo okunamayınca ipucu yine gösteriliyor', (await A.locator('.kaydir-ipucu').count()) > 0);
+{
+  const ipuclari = (await A.locator('.kaydir-ipucu').allTextContents()).map(x => x.trim());
+  bekle('son karede ipucu bitirmeyi söylüyor', icerir(ipuclari.at(-1) ?? '', 'bitirmek için'), JSON.stringify(ipuclari));
+  bekle('aradaki karelerde sonraki kare deniyor', ipuclari.length < 2 || icerir(ipuclari[0], 'sonraki kare'), JSON.stringify(ipuclari));
+}
+await A.locator('.akis').evaluate(el => el.scrollBy({ top: el.clientHeight }));
+await A.waitForTimeout(800);
+bekle('depoya yazılamayınca da ekran ayakta', (await A.locator('.kare').count()) > 0 && (await A.locator('.hata').count()) === 0);
+await A.evaluate(() => { window.__depoKapali = false; });
 await olc(A, '33-oylama-tamam');
 // Oyunu bitiren yöneticinin aşama ekranındaki hâli (karar 105)
 // Liste sunucudan gelene kadar "okunamadı" yazıyordu: boş liste ile okunmamış liste aynı sayılmıştı.
@@ -591,6 +614,14 @@ await A.unroute('**/rest/v1/rpc/oylama_ilerlemesi*');
   bekle('oy vermeyenler başlamadı kalıyor', (liste.match(/Başlamadı/g) ?? []).length === 2, liste);
 }
 await olc(A, '33b-asama-oy-veren');
+// İlerleme okunamazsa: "okunuyor" diye asılı kalmıyor, hata gösteriliyor
+await A.route('**/rest/v1/rpc/oylama_ilerlemesi*', r => r.abort());
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(600);
+await A.goto(APP + '#/asama'); await A.waitForTimeout(1800);
+bekle('ilerleme okunamazsa hata kutusu çıkıyor', (await A.locator('.hata').count()) > 0, (await metin(A)).slice(0, 200));
+bekle('hata varken okunuyor yazısı asılı kalmıyor', !icerir(await metin(A), 'Okunuyor'), (await metin(A)).slice(0, 200));
+await A.unroute('**/rest/v1/rpc/oylama_ilerlemesi*');
+
 // Üye aynı ekranı hiç açamıyor
 await B.goto(APP + '#/asama'); await B.waitForTimeout(1200);
 bekle('üye aşama ekranını açamıyor', !icerir(await metin(B), 'Oy veren'), (await metin(B)).slice(0, 120));
@@ -607,6 +638,7 @@ bekle('oylanacak kare yoksa doğru cümle', icerir(await metin(B), 'senin dış�
 await admin.from('temalar').insert({ etkinlik: ev.id, ad: 'Gece', sira: 3, bulusmada: true });
 await B.reload(); await B.waitForTimeout(1500);
 bekle('boş temada kimse kare vermemiş yazıyor', icerir(await metin(B), 'kimse kare vermemiş'), await metin(B));
+bekle('boş temada eylem adı ve ok çıkmıyor', (await B.locator('.tema-satir', { hasText: 'Gece' }).locator('.git').count()) === 0);
 await admin.from('temalar').delete().eq('etkinlik', ev.id).eq('sira', 3);
 await olc(B, '32-oylama-uye');
 

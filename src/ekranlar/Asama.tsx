@@ -301,7 +301,8 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
   return (
     <>
       <h2 className="sec">Oy veren{sayilan > 0 && <span>{veren} / {sayilan} kişi</span>}</h2>
-      {liste === null ? (
+      {/* Hata varken "okunuyor" demeye devam etmesin: ikisi bir arada duruyordu */}
+      {hata ? null : liste === null ? (
         <p className="veri" style={{ marginTop: 0 }}>Okunuyor.</p>
       ) : liste.length === 0 ? (
         <p className="veri" style={{ marginTop: 0 }}>Kulüpte üye yok.</p>

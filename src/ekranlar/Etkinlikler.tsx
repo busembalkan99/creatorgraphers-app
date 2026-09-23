@@ -79,7 +79,8 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
       .then(d => {
         setV(bellegeYaz(`${uye.id}:etkinlikler`, d)); setHata(null)
         // Karar 39: sonuç açıldıktan sonraki ilk girişte Wrapped kendiliğinden açılır, bir kez
-        void wrappedGerekirseAc(d.etkinlikler, asama)
+        // Ağ hatası ana ekranı etkilemesin: bir sonraki tazelemede yeniden denenir
+        wrappedGerekirseAc(d.etkinlikler, asama).catch(() => {})
       })
       .catch(e => { if (ilk) setHata(hataMetni(e)) })
       .finally(() => { ilk = false })

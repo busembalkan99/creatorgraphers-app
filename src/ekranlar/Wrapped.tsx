@@ -51,7 +51,8 @@ export async function wrappedGerekirseAc(etkinlikler: Etkinlik[], asamaBul: (e: 
     .sort((a, b) => Date.parse(b.oylama_biter) - Date.parse(a.oylama_biter))[0]
   if (!e || bakilan.has(e.id)) return
   bakilan.add(e.id)
-  const { data } = await sb.rpc('wrapped_ozeti', { p_etkinlik: e.id })
+  const { data, error } = await sb.rpc('wrapped_ozeti', { p_etkinlik: e.id })
+  if (error) { bakilan.delete(e.id); throw error }
   const o = ((data ?? []) as Ozet[])[0]
   if (o && !o.izlendi && Number(o.kare) > 0) git(`wrapped/${e.id}`)
 }
@@ -64,6 +65,8 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
   const bitti = useRef(false)
   const basla = useRef<number | null>(null)
   const kaydirdi = useRef(false)
+  // Klavyeyle gezinen için: açılır açılmaz oklar çalışsın
+  const kok = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -93,6 +96,7 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
   }, [etkinlikId])
 
   // Supabase sorgusu .then çağrılmadan gönderilmiyor: `void sb.rpc(...)` hiç çalışmıyordu
+  useEffect(() => { if (v) kok.current?.focus() }, [v])
   const izle = () => { if (!bitti.current) { bitti.current = true; sb.rpc('wrapped_izle', { p_etkinlik: etkinlikId }).then(() => {}) } }
   const sonuca = () => { izle(); git(`sonuc/${etkinlikId}`) }
 
@@ -110,7 +114,7 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
   const kart = kartlar[i]
 
   return (
-    <div className="wr" lang="tr"
+    <div className="wr" lang="tr" ref={kok}
       onPointerDown={ev => { basla.current = ev.clientX; kaydirdi.current = false }}
       onPointerUp={ev => {
         if (basla.current == null) return

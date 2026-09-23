@@ -239,10 +239,12 @@ try {
   bekle('sonuç ekranından tekrar izlenebiliyor', P.url().includes(`#/wrapped/${E}`) && (await kartAdi(P)) === 'acilis', P.url());
 
   // ------------------------------------------------ yükleme hatası: "geliyor"da asılı kalmıyor
+  const hataOnce = hatalar.length
   await P.route('**/rest/v1/rpc/wrapped_ozeti*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
   await ac(P, `wrapped/${E}`);
   bekle('hata: yüklenemezse hata yazıyor', !(await var_(P, 'Sonuçlar geliyor')) && (await var_(P, 'ters gitti') || await var_(P, 'Bağlantı')), (await metin(P)).slice(0, 120));
   await P.unroute('**/rest/v1/rpc/wrapped_ozeti*');
+  hatalar.splice(hataOnce)   // zorlanan 500'ün kaydı; başka hiçbir hata süzülmüyor
 
   // ------------------------------------------------ ortak birincilik, kimsenin oylamadığı tema, puansız kare
   // Gece: dört kare, ilk ikisi eşit 9 (ortak birinci), üçüncüsü 5, dördüncüsüne kimse puan vermiyor.
@@ -281,7 +283,24 @@ try {
   await ac(P4, `wrapped/${E3}`); await kisiselKartaGit(P4);
   bekle('C: kimsenin oylamadığı tema', await var_(P4, 'Bu temayı kimse oylamamış'), (await metin(P4)).slice(0, 220));
 
-  bekle('sayfa hatası yok', hatalar.filter(h => !/500|deneme/.test(h)).length === 0, hatalar.slice(0, 3).join(' | '));
+  // ------------------------------------------------ B: birden çok temada sıralamaya girdin
+  // İki tema, her birinde beş kare (5 / 2,5 → iki kare sıralamada). Mert iki temada da ikinci.
+  const E4 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const T4 = (await admin.from('temalar').insert([
+    { etkinlik: E4, ad: 'Sis', sira: 1, bulusmada: true }, { etkinlik: E4, ad: 'Duvar', sira: 2, bulusmada: false },
+  ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
+  const sahip4 = {};
+  for (const t of T4) for (const u of foto.slice(4, 9)) sahip4[await yukle(u, E4, t.id)] = u.id;
+  await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).eq('id', E4);
+  const birinci4 = foto[8].id, ikinci4 = foto[4].id;
+  for (const u of U.slice(0, 10)) for (const [k, sid] of Object.entries(sahip4))
+    await u.c.from('oylar').insert({ kare: k, veren: u.id, puan: sid === birinci4 ? 10 : sid === ikinci4 ? 8 : 3 });
+  await admin.from('etkinlikler').update({ oylama_biter: saat(-0.02) }).eq('id', E4);
+  const PM = await kisi(foto[4].eposta);
+  await ac(PM, `wrapped/${E4}`); await kisiselKartaGit(PM);
+  bekle('B: iki temada sıralamaya girdin', await var_(PM, 'İki temada sıralamaya girdin') && (await PM.locator('.kisi .no-kutu').textContent()) === '02', (await metin(PM)).slice(0, 220));
+
+  bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {
   await b.close();
 }

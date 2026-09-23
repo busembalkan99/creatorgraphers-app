@@ -4,6 +4,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik } from '../lib/tipler'
 import { ayAdi } from '../lib/zaman'
 import { git } from '../lib/yol'
+import { paylasilacakKare } from './Paylas'
 
 /**
  * Wrapped: sonuç açılışı (karar 39). Spec: ideations/creatorgraphers/2026-09-20_wrapped-spec.md
@@ -103,7 +104,7 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
   if (hata) return <div className="wr"><div className="w-sahne"><div className="w-yukleniyor">{hata}</div></div></div>
   if (!v) return <div className="wr"><div className="w-sahne"><div className="w-yukleniyor">Sonuçlar geliyor</div></div></div>
 
-  const kartlar = kartlariKur(v, { sonuca, tekrar: () => { setI(0); setZiyaret(z => ({ ...z, 0: (z[0] ?? 0) + 1 })) } })
+  const kartlar = kartlariKur(v, { sonuca, paylas: () => { izle(); git(`paylas/${etkinlikId}`) }, tekrar: () => { setI(0); setZiyaret(z => ({ ...z, 0: (z[0] ?? 0) + 1 })) } })
   const n = kartlar.length
   const git_ = (j: number) => {
     if (j < 0 || j >= n) return
@@ -150,7 +151,7 @@ type Kart = { ad: string; sinif: string; kisi?: boolean; govde: ReactNode; sag: 
 
 function kartlariKur(
   { e, temalar, kareler, ozet }: { e: Etkinlik; temalar: Tema[]; kareler: SK[]; ozet: Ozet },
-  eylem: { sonuca: () => void; tekrar: () => void },
+  eylem: { sonuca: () => void; paylas: () => void; tekrar: () => void },
 ): Kart[] {
   const ay = ayAdi(e.bulusma_gunu)
   const yil = e.bulusma_gunu.slice(0, 4)
@@ -286,8 +287,8 @@ function kartlariKur(
         <div className="muhur">Bitti</div>
         <div className="dugmeler">
           <button className="dg w-dolu g1" onClick={eylem.sonuca}>Sonuçlara geç</button>
-          {/* Spec bölüm 4: paylaşım kartları ayrı iş; bu sürümde sonuç ekranına götürüyor */}
-          <button className="dg w-bos g2" onClick={eylem.sonuca}>Kartını paylaş</button>
+          {/* Karar 108: paylaşım ekranı Wrapped'le birlikte. Yarışan karesi olmayana kart yok (spec 10.3) */}
+          {paylasilacakKare(kareler) && <button className="dg w-bos g2" onClick={eylem.paylas}>Kartını paylaş</button>}
         </div>
         <button className="w-tekrar mono" onClick={eylem.tekrar}>Tekrar izle</button>
       </div>

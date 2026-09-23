@@ -7,6 +7,7 @@ import { Ikon } from '../bilesenler/Ikon'
 import { Buyutec } from '../bilesenler/Buyutec'
 import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
+import { paylasilacakKare } from './Paylas'
 
 /**
  * Sonuçlar (kararlar 7, 10, 18, 19, 24, 38, 43, 52, 68, 77, 98).
@@ -137,6 +138,10 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
       </div>
       {yarisan.length > 0 && (
         <button className="btn ik" onClick={() => git(`wrapped/${etkinlikId}`)}>Sonuç açılışını tekrar izle</button>
+      )}
+      {/* Karar 104: yarışan karesi olan kendi kartını paylaşabiliyor */}
+      {paylasilacakKare(v.kareler) && (
+        <button className="btn ik" onClick={() => git(`paylas/${etkinlikId}`)}>Kartını paylaş</button>
       )}
 
       {temalar.length === 0 ? (

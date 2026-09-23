@@ -194,7 +194,7 @@ let karisikKareler = [];
   karisikKareler = [];
   for (let i = 0; i < 4; i++) {
     const posta = `karisik${i}@test.local`;
-    const { data: l } = await admin.auth.admin.listUsers();
+    const { data: l } = await admin.auth.admin.listUsers({ perPage: 1000 });
     const k = l.users.find(u => u.email === posta)
       ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
     await admin.from('uyeler').insert({ id: k.id, ad: `Karışık ${i}`, eposta: posta });
@@ -301,7 +301,7 @@ bekle('sonuçta yabancı hâlâ indiremez', !!(await C.c.storage.from('kareler')
     kuran: A2.id,
   }).select('id').single()).data;
   const tema = (await admin.from('temalar').insert({ etkinlik: ek.id, ad: 'Kalabalık', sira: 1, bulusmada: false }).select('id').single()).data;
-  const { data: liste } = await admin.auth.admin.listUsers();
+  const { data: liste } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const kimlikler = [];
   const yuklemeSirasi = [];
   for (let i = 0; i < 14; i++) {

@@ -6,7 +6,7 @@ const SS = '/tmp/cgapp/ss';
 import fs from 'node:fs'; fs.mkdirSync(SS, { recursive: true });
 await sifirla();
 for (const e of ['kurucu@test.local', 'selin@test.local']) {
-  const { data } = await admin.auth.admin.listUsers();
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
   if (!data.users.find(u => u.email === e)) await admin.auth.admin.createUser({ email: e, password: 'test-sifre-1', email_confirm: true });
 }
 const bugun = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
@@ -360,7 +360,7 @@ await olc(B, '26-yukleme-kapali');
 
 // 11 · Oylama (kurucu oyluyor: kendi karesi yok)
 // Üçüncü bir kişinin karesini servis anahtarıyla ekliyoruz ki eksik kare ızgarası da görünsün.
-const { data: liste } = await admin.auth.admin.listUsers();
+const { data: liste } = await admin.auth.admin.listUsers({ perPage: 1000 });
 let ucuncu = liste.users.find(u => u.email === 'deniz@test.local');
 if (!ucuncu) ucuncu = (await admin.auth.admin.createUser({ email: 'deniz@test.local', password: 'test-sifre-1', email_confirm: true })).data.user;
 await admin.from('uyeler').insert({ id: ucuncu.id, ad: 'Deniz Akın', eposta: 'deniz@test.local' });
@@ -776,7 +776,13 @@ await admin.from('etkinlikler').update({
   oylama_biter: new Date(Date.now() - 1000).toISOString(),
 }).eq('id', ev.id);
 await A.goto(APP + '#/profil'); await A.waitForTimeout(400);
+await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(2200);
+// Karar 39: sonuç açılınca ilk girişte Wrapped kendiliğinden açılıyor, bir kez
+bekle('sonuç açılınca Wrapped kendiliğinden açılıyor', A.url().includes(`#/wrapped/${ev.id}`), A.url());
+await A.getByRole('button', { name: 'Atla' }).click(); await A.waitForTimeout(1500);
+bekle('Wrapped atlanınca sonuç ekranı', A.url().includes(`#/sonuc/${ev.id}`), A.url());
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(1500);
+bekle('Wrapped ikinci kez kendiliğinden açılmıyor', !A.url().includes('#/wrapped/'), A.url());
 bekle('biten etkinlik arşivde', icerir(await metin(A), 'Geçmiş etkinlikler') && (await A.locator('.ev').count()) === 1);
 bekle('canlı kart kalktı', (await A.locator('.live').count()) === 0);
 await olc(A, '36-arsiv');
@@ -815,6 +821,9 @@ bekle('büyüteç kapanınca detay yerinde', (await A.locator('.buyutec').count(
 await A.click('.detay .geri'); await A.waitForTimeout(1200);
 bekle('detaydan geri dönülüyor', (await A.locator('.sekmeler').count()) === 1);
 // üyenin gözünden: kendi karesi işaretli, başkasının sırasız karesinde puan yok
+await B.goto(APP + '#/etkinlikler'); await B.waitForTimeout(2200);
+bekle('üyede de Wrapped kendiliğinden açılıyor', B.url().includes(`#/wrapped/${ev.id}`), B.url());
+await B.getByRole('button', { name: 'Atla' }).click(); await B.waitForTimeout(1200);
 await B.goto(APP + '#/etkinlikler'); await B.waitForTimeout(1500);
 await B.locator('.ev').first().click(); await B.waitForTimeout(2000);
 bekle('üye sonuçları görüyor', icerir(await metin(B), 'Sonuçlandı'));
@@ -843,7 +852,7 @@ await olc(B, '39-sonuc-uye');
     kuran: A.kimlik,
   }).select('id').single()).data;
   const tema = (await admin.from('temalar').insert({ etkinlik: ek2.id, ad: 'Kalabalık', sira: 1, bulusmada: false }).select('id').single()).data;
-  const { data: l } = await admin.auth.admin.listUsers();
+  const { data: l } = await admin.auth.admin.listUsers({ perPage: 1000 });
   for (let i = 0; i < 9; i++) {
     const posta = `kalabalik${i}@test.local`;
     const k = l.users.find(u => u.email === posta)
@@ -874,7 +883,7 @@ await olc(B, '39-sonuc-uye');
     }).select('id').single()).data;
     // 8 kare: round(8/2,5)=3 sıralı. İlk iki kare eşit, yani 1, 1, 3 çıkmalı.
     const tema3 = (await admin.from('temalar').insert({ etkinlik: ek3.id, ad: 'Eşit', sira: 1, bulusmada: false }).select('id').single()).data;
-    const { data: l3 } = await admin.auth.admin.listUsers();
+    const { data: l3 } = await admin.auth.admin.listUsers({ perPage: 1000 });
     // İlk ikisi eşit puanlı. Adlar bilerek ters: yüklemede Zeynep önce, alfabede Ada önce.
     const kisiler = [['Zeynep Esen', 10], ['Ada Erim', 10], ['Can Uz', 8], ['Derya Ak', 7],
       ['Efe Bal', 6], ['Fulya Ün', 5], ['Gökhan Er', 4], ['Hale Su', 3]];
@@ -939,7 +948,7 @@ await olc(B, '39-sonuc-uye');
   const tm = (await admin.from('temalar').select('id, ad, etkinlik')).data ?? [];
   const kalabalik = tm.find(t => t.ad === 'Kalabalık');
   const esitTema = tm.find(t => t.ad === 'Eşit');
-  const { data: hepsi } = await admin.auth.admin.listUsers();
+  const { data: hepsi } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const ekle = async (tema, sahip, puan) => {
     const yol = `${tema.etkinlik}/${tema.id}/${crypto.randomUUID()}.jpg`;
     await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });

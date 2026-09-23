@@ -135,6 +135,9 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
           <span>· Sonuçlandı</span>
         </div>
       </div>
+      {yarisan.length > 0 && (
+        <button className="btn ik" onClick={() => git(`wrapped/${etkinlikId}`)}>Sonuç açılışını tekrar izle</button>
+      )}
 
       {temalar.length === 0 ? (
         <div className="bos-tema">

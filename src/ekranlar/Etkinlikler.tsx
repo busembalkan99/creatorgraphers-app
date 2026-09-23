@@ -5,6 +5,7 @@ import { asama, ayAdi, gunYaz, kalanYaz, saatEki, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
+import { wrappedGerekirseAc } from './Wrapped'
 
 /**
  * Ana ekran: etkinlikler arşivi (karar 44). Prototip: v16.
@@ -75,7 +76,11 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
     // çevirip orada bırakıyordu. Başarılı yenileme önceki hatayı da temizler.
     let ilk = true
     const yukle = () => etkinlikVerisi(uye.id)
-      .then(d => { setV(bellegeYaz(`${uye.id}:etkinlikler`, d)); setHata(null) })
+      .then(d => {
+        setV(bellegeYaz(`${uye.id}:etkinlikler`, d)); setHata(null)
+        // Karar 39: sonuç açıldıktan sonraki ilk girişte Wrapped kendiliğinden açılır, bir kez
+        void wrappedGerekirseAc(d.etkinlikler, asama)
+      })
       .catch(e => { if (ilk) setHata(hataMetni(e)) })
       .finally(() => { ilk = false })
     yukle()

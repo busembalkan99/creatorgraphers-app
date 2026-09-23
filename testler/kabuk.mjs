@@ -94,7 +94,7 @@ const window0 = 844;
   bekle('kabuk tam ekran yüksekliğinde', r.kabuk === window0, `${r.kabuk} / ${window0}`);
 }
 
-const { data: liste } = await admin.auth.admin.listUsers();
+const { data: liste } = await admin.auth.admin.listUsers({ perPage: 1000 });
 const kurucu = liste.users.find(u => u.email === 'kurucu@test.local');
 bekle('test hesabı duruyor', !!kurucu, 'önce node testler/siralama.mjs çalıştır');
 await p.evaluate(async () => {

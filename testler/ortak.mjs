@@ -10,7 +10,8 @@ const SERVIS = env.SERVICE_ROLE_KEY;
 export const admin = createClient(URL_, SERVIS, { auth: { persistSession: false } });
 export const istemci = () => createClient(URL_, ANON, { auth: { persistSession: false } });
 export async function kullanici(eposta, ad) {
-  const { data: l } = await admin.auth.admin.listUsers();
+  // Varsayılan sayfa 50 kişi; test kullanıcıları bunu geçince var olanı bulamayıp yeniden kurmaya çalışıyordu
+  const { data: l } = await admin.auth.admin.listUsers({ perPage: 1000 });
   let u = l.users.find(x => x.email === eposta);
   if (!u) u = (await admin.auth.admin.createUser({ email: eposta, password: 'test-sifre-1', email_confirm: true, user_metadata: { full_name: ad } })).data.user;
   const c = istemci();

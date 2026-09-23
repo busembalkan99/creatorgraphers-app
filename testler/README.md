@@ -16,6 +16,8 @@ node testler/kare.mjs                         # kare bilgisinin okunması: okuyu
 node testler/yoklama.mjs                      # yoklama ve yarışmadan çıkarma, sunucu kuralları
 node testler/davranis-yoklama.mjs             # aynı özelliğin davranış testi, üç kişiyle ekranda
 node testler/oy-ilerleme.mjs                  # yöneticinin gördüğü oylama ilerlemesi, sunucu kuralları
+node testler/wrapped.mjs                      # sonuç açılışının sayıları ve izlendi kaydı, sunucu kuralları
+node testler/davranis-wrapped.mjs             # Wrapped ekranda: kart kümesi, gezinme, kişisel kartın altı durumu
 ```
 
 `ui.mjs` ve `exifjpeg.mjs` Playwright'ı `~/.local/playwright-mcp` altından alıyor.

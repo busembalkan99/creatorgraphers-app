@@ -15,6 +15,7 @@ import { Kur } from './ekranlar/Kur'
 import { Asama } from './ekranlar/Asama'
 import { Oylama, OylamaTema } from './ekranlar/Oylama'
 import { Sonuc } from './ekranlar/Sonuc'
+import { Wrapped } from './ekranlar/Wrapped'
 import { Siralama } from './ekranlar/Siralama'
 
 export default function App() {
@@ -133,13 +134,17 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   let altEkran = true
   const temaId = yol.startsWith('oyla/') ? yol.slice(5) : null
   const sonucId = yol.startsWith('sonuc/') ? yol.slice(6) : null
+  const wrappedId = yol.startsWith('wrapped/') ? yol.slice(8) : null
   // profil/<kimlik>: başkasının profili, alt ekran. Kendi kimliğin sekmeye düşüyor.
   const kisiId = yol.startsWith('profil/') && yol.slice(7) !== uye.id ? yol.slice(7) : null
   const profil = <Profil uye={uye} uyeDegisti={uyeDegisti} hedef={kisiId ?? undefined} />
   const hedef = yonetici || !['uyeler', 'kur', 'asama'].includes(yol)
-    ? temaId ? 'oyla-tema' : sonucId ? 'sonuc' : kisiId ? 'kisi' : yol.startsWith('profil') ? 'profil' : yol
+    ? temaId ? 'oyla-tema' : sonucId ? 'sonuc' : wrappedId ? 'wrapped' : kisiId ? 'kisi' : yol.startsWith('profil') ? 'profil' : yol
     : 'profil'
   switch (hedef) {
+    case 'wrapped':
+      ekran = <Wrapped etkinlikId={wrappedId!} />
+      break
     case 'sonuc':
       ekran = <Sonuc uye={uye} etkinlikId={sonucId!} />
       break

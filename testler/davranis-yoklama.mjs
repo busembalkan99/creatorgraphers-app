@@ -239,6 +239,8 @@ bekle('6: geri alınan kare üyenin akışına dönüyor', (await D.locator(`[da
 // Ayşe puan versin ki sonuçta sıralama olsun
 await kA.c.from('oylar').insert({ kare: hedefKare, veren: kA.id, puan: 8 });
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
+// Bu test Wrapped'i sınamıyor: kendiliğinden açılıp ana ekranı örtmesin (davranis-wrapped.mjs sınıyor)
+await admin.from('wrapped_izlendi').insert([kA, kB, kD].map(k => ({ etkinlik: E, uye: k.id })));
 await git(D, 'sonuc/' + E);
 bekle('7: sahibi kendi çıkarılan karesini ayrı bölümde görüyor', await var_(D, 'Yarışmadan çıkarılan') && (await D.locator('.izgara figure.cikti').count()) === 1);
 bekle('7: sahibe kimin gördüğü yazıyor', await var_(D, 'Bunu yalnız sen ve yöneticiler görüyorsunuz'));

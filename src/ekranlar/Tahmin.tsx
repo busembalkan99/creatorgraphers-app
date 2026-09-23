@@ -7,7 +7,7 @@ import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 
 /**
- * Tahmin oyunu (karar 76, karar 106). Prototip: prototype/creatorgraphers/2026-09-12_v18-tahmin-oyunu.html
+ * Tahmin oyunu (karar 76, 106, 107: adaylar her soruda kare veren herkes). Prototip: prototype/creatorgraphers/2026-09-12_v18-tahmin-oyunu.html
  * Oylamasını bitiren oynar, başlatmak puanlarını kilitler. Doğru cevaplar sonuçlarla açılıyor:
  * oylama sürerken sunucu ne doğruyu ne de "doğru/yanlış"ı gönderiyor (0014).
  */
@@ -55,7 +55,9 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     } else if (dd?.basladi) {
       const { data, error } = await sor(sb.rpc('tahmin_sorularim', { p_etkinlik: etkinlikId }))
       if (error) throw error
-      setSorular(await imzala((data ?? []) as Soru[]))
+      // Karar 107: her soruda aynı liste. Veritabanının sıralaması Türkçe harfleri sona atabilir.
+      const l = ((data ?? []) as Soru[]).map(x => ({ ...x, adaylar: [...x.adaylar].sort((a, b) => a.ad.localeCompare(b.ad, 'tr')) }))
+      setSorular(await imzala(l))
     }
     setD(dd)
     setE(et)

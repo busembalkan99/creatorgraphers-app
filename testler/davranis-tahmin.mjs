@@ -29,7 +29,7 @@ const [SOKAK, DOKU] = (await admin.from('temalar').insert([
   { etkinlik: E, ad: 'Doku', sira: 2, bulusmada: false },
 ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
 
-// Kurucu kare vermiyor: hiçbir kümede adayı değil, bütün karelere soru alabiliyor (6 soru)
+// Kurucu kare vermiyor: bütün karelere soru alabiliyor (6 soru), adayları kare veren altı kişi (karar 107)
 const sahibi = {};
 const yukle = async (K, tema) => {
   const yol = `${E}/${tema.id}/${crypto.randomUUID()}.jpg`;
@@ -105,17 +105,38 @@ try {
   bekle('3: sayaç 01 / 06', (await P.locator('.tahmin-bas span').textContent()) === '01 / 06', await P.locator('.tahmin-bas span').textContent());
   bekle('3: fotoğraf yüklendi', await P.locator('.tahmin-foto img').evaluate(i => i.complete && i.naturalWidth > 0));
   bekle('3: fotoğraf kırpılmıyor', await P.locator('.tahmin-foto img').evaluate(i => getComputedStyle(i).objectFit === 'contain'));
-  bekle('3: dört aday', (await P.locator('.aday').count()) === 4);
+  const adlar = async () => (await P.locator('.aday').allTextContents()).map(x => x.trim());
+  const ilkListe = await adlar();
+  bekle('3: adaylar kare veren herkes (6)', ilkListe.slice().sort().join() === U.slice(1).map(u => u.ad).sort().join(), JSON.stringify(ilkListe));
+  bekle('3: adaylar Türkçe alfabeye göre', JSON.stringify(ilkListe) === JSON.stringify([...ilkListe].sort((a, b) => a.localeCompare(b, 'tr'))), JSON.stringify(ilkListe));
+  bekle('3: aday düğmeleri ekrana sığıyor, iki sütun', await P.locator('.adaylar').evaluate(g => getComputedStyle(g).gridTemplateColumns.split(' ').length === 2 && g.scrollWidth <= g.clientWidth));
   bekle('3: seçim yokken ilerle kapalı', await P.getByRole('button', { name: 'Sıradaki' }).isDisabled());
   await olc(P, '62-tahmin-soru');
+
+  // Uzun liste (gerçek kulüpte 12+ fotoğrafçı): fotoğraf başlığı ve isimleri örtmemeli
+  const sahteAd = ['Zeynep Çelik', 'Şule Oğuz', 'Ömer Yıldız', 'İlker Aydın', 'Barış Kılıç', 'Gökçe Uçar', 'Hande Işık'];
+  await P.route('**/rest/v1/rpc/tahmin_sorularim*', async r => {
+    const c = await r.fetch();
+    r.fulfill({ response: c, json: (await c.json()).map(x => ({ ...x, adaylar: [...x.adaylar, ...sahteAd.map((ad, i) => ({ uye: `00000000-0000-0000-0000-00000000000${i}`, ad }))] })) });
+  });
+  await P.reload(); await P.waitForTimeout(2500);
+  const kutu = async q => P.locator(q).first().boundingBox();
+  const [bas, foto, ilkAday] = [await kutu('.tahmin-bas'), await kutu('.tahmin-foto img'), await kutu('.aday')];
+  bekle('3: uzun liste: 13 aday', (await P.locator('.aday').count()) === 13);
+  bekle('3: uzun liste: fotoğraf başlığı ve isimleri örtmüyor', !!(bas && foto && ilkAday) && foto.y >= bas.y + bas.height && foto.y + foto.height <= ilkAday.y, JSON.stringify({ bas, foto, ilkAday }));
+  bekle('3: uzun liste: fotoğraf görünür boyda', (foto?.height ?? 0) >= 150, String(foto?.height));
+  await olc(P, '62b-tahmin-uzun-liste');
+  await P.unroute('**/rest/v1/rpc/tahmin_sorularim*');
+  await P.reload(); await P.waitForTimeout(2500);
 
   // İlk soruyu geç
   await P.getByRole('button', { name: 'Bilmiyorum, geç' }).click(); await P.waitForTimeout(900);
   bekle('3: geçince ikinci soruya geçti', (await P.locator('.tahmin-bas span').textContent()) === '02 / 06');
   bekle('3: geçiş veritabanına yazıldı', ((await admin.from('tahmin_soru').select('gecti').eq('uye', A.id).eq('sira', 1).single()).data?.gecti) === true);
 
-  // Kalanlar: ilk adayı seç
+  // Kalanlar: ilk adayı seç. Her soruda liste aynı kalmalı.
   for (let i = 2; i <= vtSoru.length; i++) {
+    bekle(`3: soru ${i}: aday listesi aynı`, JSON.stringify(await adlar()) === JSON.stringify(ilkListe));
     const ad = (await P.locator('.aday').first().textContent()).trim();
     await P.locator('.aday').first().click();
     bekle(`3: soru ${i}: seçim altta görünüyor`, (await P.locator('.tahmin-alt .secim b').textContent()).trim() === ad);

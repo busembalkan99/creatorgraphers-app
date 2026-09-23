@@ -156,7 +156,7 @@ bekle('oylamasını bitiren oynamasa da oyun açık görünüyor', (await durum(
 // ------------------------------------------------ sonuç açılınca
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
 bekle('sonuçta başlatılamıyor (kaçıran oynamıyor)', hata(await U[6].c.rpc('tahmin_baslat', { p_etkinlik: E })).includes('tahmin_oylama_kapali'));
-bekle('sonuçta cevap yazılamıyor', hata(await U[1].c.rpc('tahmin_cevapla', { p_etkinlik: E, p_sira: 1, p_cevap: null, p_gec: true })).includes('oylama_kapali'));
+bekle('sonuçta cevap yazılamıyor', hata(await U[1].c.rpc('tahmin_cevapla', { p_etkinlik: E, p_sira: 1, p_cevap: null, p_gec: true })).includes('tahmin_oylama_kapali'));
 
 const son = (await A.c.rpc('tahmin_sonucum', { p_etkinlik: E })).data ?? [];
 bekle('sonuçta her soru dönüyor', son.length === sA.length, `${son.length} / ${sA.length}`);

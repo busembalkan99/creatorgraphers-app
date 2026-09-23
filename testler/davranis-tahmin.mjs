@@ -197,6 +197,19 @@ try {
   bekle('6: geçilen satır geçtin diyor', await var_(P, 'geçtin'));
   bekle('6: skorun yalnız kişiye olduğu yazıyor', await var_(P, 'Bu skoru yalnız sen görüyorsun'));
   await olc(P, '66-tahmin-sonuc');
+  // Oylamada çıkarılan kare: satırda söyleniyor, skora girmiyor. Sunucu cevabında bir doğru
+  // satır (yoksa ilk satır) çıkarılmış gösteriliyor.
+  await P.route('**/rest/v1/rpc/tahmin_sonucum*', async r => {
+    const c = await r.fetch(); const l = await c.json();
+    const i = Math.max(0, l.findIndex(x => x.dogru));
+    r.fulfill({ response: c, json: l.map((x, j) => (j === i ? { ...x, sayildi: false } : x)) });
+  });
+  await P.reload(); await P.waitForTimeout(2000);
+  const cikanDogru = dogruSayisi > 0 ? 1 : 0;
+  bekle('6: çıkarılan kare satırda söyleniyor', (await P.locator('.tahmin-satir', { hasText: 'Yarışmadan çıkarıldı, skora girmedi' }).count()) === 1);
+  bekle('6: çıkarılan kare skora girmiyor', (await P.locator('.tahmin-skor b').textContent()) === `${dogruSayisi - cikanDogru}/5`, await P.locator('.tahmin-skor b').textContent());
+  bekle('6: çıkarılan kare listede kalıyor', (await P.locator('.tahmin-satir').count()) === 6);
+  await P.unroute('**/rest/v1/rpc/tahmin_sonucum*');
 
   // Tanınma: hangi karenin alt sınırı geçtiği rastgele, o yüzden Sokak sekmesindeki her
   // kareye tek tek bakılıyor. Alt sınırı geçen her karede satır doğru sayıyla, geçmeyende yok.

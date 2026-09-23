@@ -45,7 +45,11 @@ for (const u of U.slice(0, 10)) {
   for (const k of l) await u.c.from('oylar').insert({ kare: k.id, veren: u.id, puan: Math.max(1, 10 - kare.indexOf(k.id)) });
 }
 await A.c.rpc('kare_cikar', { p_kare: kare[8], p_neden: 'Buluşmaya katılmadın.' });
-await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
+// Sekiz gün önce sonuçlanmış eski bir etkinlik: kendiliğinden açılmamalı (yedi gün penceresi)
+const ESKI = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+const TE = (await admin.from('temalar').insert({ etkinlik: ESKI, ad: 'Eski', sira: 1, bulusmada: true }).select('id').single()).data.id;
+await yukle(foto[0], ESKI, TE);
+await admin.from('etkinlikler').update({ yukleme_baslar: saat(-240), yukleme_biter: saat(-216), oylama_biter: saat(-192) }).eq('id', ESKI);
 
 // Sunucunun gerçeği: kim kaçıncı, kim sıralamada
 const sk = async K => (await K.c.rpc('sonuc_kareleri', { p_etkinlik: E })).data ?? [];
@@ -87,8 +91,16 @@ async function kisiselKartaGit(p) {
 }
 
 try {
-  // ------------------------------------------------ 1. kendiliğinden açılış, bir kez
+  // ------------------------------------------------ 0. yedi günden eski sonuç kendiliğinden açılmıyor
   const P = await kisi(A.eposta);
+  await ac(P, 'etkinlikler'); await P.waitForTimeout(1500);
+  bekle('0: sekiz gün önce sonuçlanan etkinlik kendiliğinden açılmıyor', !P.url().includes('#/wrapped/'), P.url());
+  // Oylama sürerken Wrapped adresi açılırsa sonuç ekranına yönleniyor
+  await ac(P, `wrapped/${E}`);
+  bekle('0: sonuç açılmadan Wrapped yok, sonuç ekranına yönleniyor', P.url().includes(`#/sonuc/${E}`), P.url());
+  await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E);
+
+  // ------------------------------------------------ 1. kendiliğinden açılış, bir kez
   await ac(P, 'etkinlikler');
   await P.waitForTimeout(1500);
   bekle('1: sonuç açıldıktan sonra ilk girişte Wrapped açılıyor', P.url().includes(`#/wrapped/${E}`), P.url());
@@ -209,7 +221,67 @@ try {
   bekle('iki tema: ortalama değil en yüksek puan (karar 52)', await var_(P, 'en yüksek') && !(await var_(P, 'ort.')));
   await olc(P, '79-wrapped-temalar');
 
-  bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
+  // ------------------------------------------------ klavye ve geri kaydırma
+  await ac(P, `wrapped/${E}`);
+  await P.locator('.wr').focus();
+  await P.keyboard.press('ArrowRight'); await P.waitForTimeout(300);
+  bekle('klavye: sağ ok ileri', (await kartAdi(P)) === 'tema');
+  await P.keyboard.press('ArrowLeft'); await P.waitForTimeout(300);
+  bekle('klavye: sol ok geri', (await kartAdi(P)) === 'acilis');
+  await sag(P); await sag(P);
+  await P.mouse.move(80, 420); await P.mouse.down(); await P.mouse.move(300, 420, { steps: 6 }); await P.mouse.up(); await P.waitForTimeout(400);
+  bekle('sağa kaydırınca geri', (await kartAdi(P)) === 'tema', await kartAdi(P));
+  // Kapanıştaki "Sonuçlara geç" ve sonuç ekranındaki "tekrar izle"
+  for (let j = 0; j < 5; j++) await sag(P);
+  await P.getByRole('button', { name: 'Sonuçlara geç' }).click(); await P.waitForTimeout(1500);
+  bekle('kapanış: sonuçlara geç sonuç ekranına götürüyor', P.url().includes(`#/sonuc/${E}`), P.url());
+  await P.getByRole('button', { name: 'Sonuç açılışını tekrar izle' }).click(); await P.waitForTimeout(1800);
+  bekle('sonuç ekranından tekrar izlenebiliyor', P.url().includes(`#/wrapped/${E}`) && (await kartAdi(P)) === 'acilis', P.url());
+
+  // ------------------------------------------------ yükleme hatası: "geliyor"da asılı kalmıyor
+  await P.route('**/rest/v1/rpc/wrapped_ozeti*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+  await ac(P, `wrapped/${E}`);
+  bekle('hata: yüklenemezse hata yazıyor', !(await var_(P, 'Sonuçlar geliyor')) && (await var_(P, 'ters gitti') || await var_(P, 'Bağlantı')), (await metin(P)).slice(0, 120));
+  await P.unroute('**/rest/v1/rpc/wrapped_ozeti*');
+
+  // ------------------------------------------------ ortak birincilik, kimsenin oylamadığı tema, puansız kare
+  // Gece: dört kare, ilk ikisi eşit 9 (ortak birinci), üçüncüsü 5, dördüncüsüne kimse puan vermiyor.
+  // Pencere: tek kare, kimse oylamıyor (temanın kartı açılmamalı).
+  const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const [G, PE] = (await admin.from('temalar').insert([
+    { etkinlik: E3, ad: 'Gece', sira: 1, bulusmada: true }, { etkinlik: E3, ad: 'Pencere', sira: 2, bulusmada: false },
+  ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
+  const g = [];
+  for (const u of foto.slice(0, 4)) g.push(await yukle(u, E3, G.id));
+  await yukle(foto[4], E3, PE.id);
+  await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).eq('id', E3);
+  for (const u of U.slice(0, 10)) {
+    for (const [j, k] of g.entries()) {
+      if (j === 3) continue;                                  // dördüncü kareye kimse puan vermiyor
+      await u.c.from('oylar').insert({ kare: k, veren: u.id, puan: j < 2 ? 9 : 5 });   // kendi karesine tetik reddediyor
+    }
+  }
+  await admin.from('etkinlikler').update({ oylama_biter: saat(-0.05) }).eq('id', E3);
+  const sk3 = (await A.c.rpc('sonuc_kareleri', { p_etkinlik: E3 })).data ?? [];
+  bekle('ortak: sunucuda iki birinci (kontrol)', sk3.filter(k => k.sira === 1).length === 2, JSON.stringify(sk3.map(k => k.sira)));
+  await ac(P, `wrapped/${E3}`);
+  const s3 = [];
+  for (let j = 0; j < 5; j++) { s3.push(await kartAdi(P)); await sag(P); }
+  bekle('oylanmayan temanın kartı açılmıyor', JSON.stringify(s3) === JSON.stringify(['acilis', 'tema', 'temalar', 'kisisel', 'kapanis']), JSON.stringify(s3));
+  await ac(P, `wrapped/${E3}`); await sag(P);
+  bekle('ortak: tema kartı ortak birinci, iki kare', await var_(P, 'Ortak') && await var_(P, 'eşit puan aldı') && (await P.locator('.k2 .cerceve img, .k2 .cerceve .bos-foto').count()) === 2, (await metin(P)).slice(0, 200));
+  await olc(P, '80-wrapped-ortak');
+  const P0 = await kisi(foto[0].eposta);
+  await ac(P0, `wrapped/${E3}`); await kisiselKartaGit(P0);
+  bekle('ortak: kişisel kart ortak birinci oldun', await var_(P0, 'birinci oldun') && await var_(P0, 'Gece temasında ortak birinci oldun'), (await metin(P0)).slice(0, 220));
+  const P3 = await kisi(foto[3].eposta);
+  await ac(P3, `wrapped/${E3}`); await kisiselKartaGit(P3);
+  bekle('C: kimsenin puan vermediği kare', await var_(P3, 'Bu kareye kimse puan vermemiş') && await var_(P3, 'Puan yok'), (await metin(P3)).slice(0, 220));
+  const P4 = await kisi(foto[4].eposta);
+  await ac(P4, `wrapped/${E3}`); await kisiselKartaGit(P4);
+  bekle('C: kimsenin oylamadığı tema', await var_(P4, 'Bu temayı kimse oylamamış'), (await metin(P4)).slice(0, 220));
+
+  bekle('sayfa hatası yok', hatalar.filter(h => !/500|deneme/.test(h)).length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {
   await b.close();
 }

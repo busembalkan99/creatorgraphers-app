@@ -57,4 +57,10 @@ bekle('tablo doğrudan okunamıyor', ((await A.c.from('wrapped_izlendi').select(
 bekle('üye olmayan izlendi yazamıyor', !(await C.c.rpc('wrapped_izle', { p_etkinlik: E })).error &&
   ((await admin.from('wrapped_izlendi').select('uye').eq('uye', C.id)).data ?? []).length === 0);
 
+// İptal edilen etkinlikte Wrapped yok
+await admin.from('etkinlikler').update({ iptal: true }).eq('id', E);
+bekle('iptal edilen etkinlikte özet boş', (await ozet(D)) === null);
+bekle('iptal edilen etkinlikte izlendi yazılmıyor', !(await D.c.rpc('wrapped_izle', { p_etkinlik: E })).error &&
+  ((await admin.from('wrapped_izlendi').select('uye').eq('uye', D.id)).data ?? []).length === 0);
+
 rapor();

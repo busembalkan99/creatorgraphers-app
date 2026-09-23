@@ -16,8 +16,11 @@
 -- (temada kişi başına tek kare olunca eşleştirme bulmacası çözülüyor). Bu dosyanın kuralları:
 --
 --  * Aday listesi kareye bağlı değil. Kimin hangi soruda aday olduğu hiçbir şey söylemiyor,
---    çünkü herkes her soruda aday. Kişiler listelerini karşılaştırsa da yalnız birbirlerinin
---    adını görürler.
+--    çünkü herkes her soruda aday.
+--  * Bilinen, kabul edilen artık (karar 109): liste, oylama sürerken etkinliğe kimin kare
+--    verdiğini gösteriyor. Anlaşan bir grup kendi adlarını çıkarınca kalan isimler kendi
+--    vermedikleri karelerin sahipleri. Bu yüzden oyun en az altı fotoğrafçıyla açılıyor:
+--    sahibi tek isme indirmek için beş kişinin anlaşması gerekiyor.
 --  * Soru seçimi başkasının oyununa bakmıyor. "Az sorulan kare önce" gibi bir kural, bir
 --    karenin az sorulmasından sahibinin oyuna başladığını ele veriyordu.
 --  * Aday havuzu oylama boyunca değişmiyor: kare veren herkes, yalnız yoklamayla toplu
@@ -109,9 +112,10 @@ begin
   if exists (select 1 from public.oylama_kareleri(p_etkinlik) where puan is null) then
     return 'oylar_eksik';
   end if;
-  -- Dörtten az fotoğrafçı varsa oyun anlamsız (oyuncu kendini eleyince iki isim kalırdı).
-  -- Sebebi ayrı söylenmiyor: oylama sürerken bir sayı söylemek olurdu.
-  if (select count(*) from gizli.tahmin_havuzu(p_etkinlik)) < 4 then return 'yok'; end if;
+  -- Altıdan az fotoğrafçı varsa oyun yok (karar 109: küçük havuzda anlaşan birkaç kişi
+  -- kalan adı karelerle eşleştirir). Sebebi ayrı söylenmiyor: oylama sürerken bir sayı
+  -- söylemek olurdu.
+  if (select count(*) from gizli.tahmin_havuzu(p_etkinlik)) < 6 then return 'yok'; end if;
   -- Sorulacak başkasının karesi yoksa da oyun yok
   if not exists (select 1 from gizli.tahmin_kareleri(p_etkinlik) where sahip <> auth.uid()) then
     return 'yok';
@@ -209,9 +213,11 @@ declare
   e public.etkinlikler;
   s public.tahmin_soru;
 begin
+  -- Kulüpten çıkarılan üye yarım kalan oyununa da cevap veremiyor
+  if not public.uye_mi() then raise exception 'tahmin_uye_degil' using errcode = 'P0001'; end if;
   select * into e from public.etkinlikler where id = p_etkinlik;
   if e.id is null or public.asama(e) <> 'oylama' then
-    raise exception 'oylama_kapali' using errcode = 'P0001';
+    raise exception 'tahmin_oylama_kapali' using errcode = 'P0001';
   end if;
   select * into s from public.tahmin_soru
    where etkinlik = p_etkinlik and uye = auth.uid() and sira = p_sira for update;

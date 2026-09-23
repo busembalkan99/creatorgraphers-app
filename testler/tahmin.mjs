@@ -2,14 +2,14 @@
 // Aşamalar saatler elle kaydırılarak geçiliyor. Rastgelelik yüzünden sayılar değil,
 // her rastgele sonuçta tutması gereken kurallar ölçülüyor.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, istemci } from './ortak.mjs';
 const hata = r => r.error?.message ?? '';
 await sifirla();
 
 const KISI = [
   ['kurucu@test.local', 'Ayşe Kaya'], ['selin@test.local', 'Selin Arı'], ['can@test.local', 'Can Öz'],
   ['deniz@test.local', 'Deniz Akın'], ['elif@test.local', 'Elif Sunar'], ['mert@test.local', 'Mert Demir'],
-  ['pelin@test.local', 'Pelin Er'],
+  ['pelin@test.local', 'Pelin Er'], ['onur@test.local', 'Onur Tek'], ['kaan@test.local', 'Kaan Uz'],
 ];
 const U = [];
 for (const [e, ad] of KISI) U.push({ ...(await kullanici(e, ad)), ad });
@@ -33,7 +33,7 @@ const yukle = async (K, tema) => {
   return K.c.from('kareler').insert({ tema: tema.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
 };
 const sahibi = {};
-for (const u of U) { const r = await yukle(u, SOKAK); if (!r.error) sahibi[r.data.id] = u.id; }
+for (const u of U.slice(0, 7)) { const r = await yukle(u, SOKAK); if (!r.error) sahibi[r.data.id] = u.id; }
 for (const u of [U[1], U[2]]) { const r = await yukle(u, PORTRE); if (!r.error) sahibi[r.data.id] = u.id; }
 bekle('dokuz kare yüklendi (kontrol)', Object.keys(sahibi).length === 9, String(Object.keys(sahibi).length));
 
@@ -59,6 +59,24 @@ bekle('tablolar okunamıyor: oyun', !!(await A.c.from('tahmin_oyun').select('*')
 bekle('eski kare başına küme tablosu yok (karar 107)', !!(await admin.from('tahmin_aday').select('*')).error);
 bekle('tablolar yazılamıyor: oyun', !!(await A.c.from('tahmin_oyun').insert({ etkinlik: E, uye: A.id })).error);
 bekle('tablolar yazılamıyor: soru', !!(await A.c.from('tahmin_soru').insert({ etkinlik: E, uye: A.id, sira: 1, kare: Object.keys(sahibi)[0] })).error);
+
+// ------------------------------------------------ üye olmayan ve giriş yapmamış (karar 9)
+{
+  const yabanci = await kullanici('yabanci@test.local', 'Yabancı');
+  const anon = istemci();
+  const bos = async (K, fn, arg) => ((await K.rpc(fn, arg)).data ?? []).length === 0;
+  const kare1 = Object.keys(sahibi)[0];
+  bekle('üye olmayan: durum boş', await bos(yabanci.c, 'tahmin_durumu', { p_etkinlik: E }));
+  bekle('üye olmayan: başlatamıyor', hata(await yabanci.c.rpc('tahmin_baslat', { p_etkinlik: E })).includes('tahmin_uye_degil'));
+  bekle('üye olmayan: soru yok', await bos(yabanci.c, 'tahmin_sorularim', { p_etkinlik: E }));
+  bekle('üye olmayan: cevap yazamıyor', hata(await yabanci.c.rpc('tahmin_cevapla', { p_etkinlik: E, p_sira: 1, p_cevap: null, p_gec: true })).includes('tahmin_uye_degil'));
+  bekle('üye olmayan: sonuç, tanınma, profil boş', await bos(yabanci.c, 'tahmin_sonucum', { p_etkinlik: E }) && await bos(yabanci.c, 'taninma', { p_kare: kare1 }) && JSON.stringify(((await yabanci.c.rpc('tahmin_profilim')).data ?? [])[0] ?? { bilen: 0, toplam: 0 }) === '{"bilen":0,"toplam":0}');
+  for (const [fn, arg] of [['tahmin_durumu', { p_etkinlik: E }], ['tahmin_baslat', { p_etkinlik: E }], ['tahmin_sorularim', { p_etkinlik: E }],
+    ['tahmin_cevapla', { p_etkinlik: E, p_sira: 1, p_cevap: null, p_gec: true }], ['tahmin_sonucum', { p_etkinlik: E }], ['taninma', { p_kare: kare1 }], ['tahmin_profilim', {}]])
+    bekle(`giriş yapmamış: ${fn} çağrılamıyor`, !!(await anon.rpc(fn, arg)).error);
+  for (const [fn, arg] of [['tahmin_havuzu', { p_etkinlik: E }], ['tahmin_adaylarim', { p_etkinlik: E }], ['tahmin_kareleri', { p_etkinlik: E }], ['tahmin_acik', { p_etkinlik: E }]])
+    bekle(`üye: gizli.${fn} çağrılamıyor`, !!(await A.c.schema('gizli').rpc(fn, arg)).error);
+}
 
 // ------------------------------------------------ oylayınca açılıyor
 await oylaHepsini(A);
@@ -148,8 +166,8 @@ bekle('skor gerçek cevaplardan', son.filter(s => s.dogru).length === beklenenDo
 if (gecSira) bekle('geçilen soru doğru sayılmıyor', son.find(s => s.sira === gecSira)?.gecti === true && son.find(s => s.sira === gecSira)?.dogru === false);
 bekle('profil sonuçlanan etkinliği sayıyor', JSON.stringify(((await A.c.rpc('tahmin_profilim')).data ?? [])[0]) === JSON.stringify({ bilen: beklenenDogru, toplam: sA.length - (gecSira ? 1 : 0) }), JSON.stringify((await A.c.rpc('tahmin_profilim')).data));
 
-// Tanınma: alt sınır kişi sayısının üçte biri (7 kişi → 3), geç sayılmıyor
-const esik = Math.ceil(7 / 3);
+// Tanınma: alt sınır kişi sayısının üçte biri (9 kişi → 3), geç sayılmıyor
+const esik = Math.ceil(9 / 3);
 const tahminSayisi = {};
 for (const x of (await admin.from('tahmin_soru').select('kare, cevap')).data ?? []) if (x.cevap) tahminSayisi[x.kare] = (tahminSayisi[x.kare] ?? 0) + 1;
 let taninmaDogru = true; const tAyr = [];
@@ -161,9 +179,9 @@ for (const k of Object.keys(sahibi)) {
 }
 bekle('tanınma alt sınırı ve toplam doğru, herkes görüyor', taninmaDogru, tAyr.join(' | '));
 
-// ------------------------------------------------ havuz kuralları (karar 107)
-// Altı fotoğrafçı: Mert'in karesi yoklamayla toplu çıkarılıyor (havuz dışı), Elif'inki
-// yüklemede tek tek çıkarılıyor (havuzda kalıyor). Pelin kare vermiyor.
+// ------------------------------------------------ havuz kuralları (karar 107, 109)
+// Sekiz fotoğrafçı: Mert'in karesi yoklamayla toplu çıkarılıyor (havuz dışı), Elif'inki
+// yüklemede tek tek çıkarılıyor (havuzda kalıyor). Pelin kare vermiyor. Havuz yedi kişi.
 {
   const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
   const T2 = (await admin.from('temalar').insert([
@@ -178,48 +196,72 @@ bekle('tanınma alt sınırı ve toplam doğru, herkes görüyor', taninmaDogru,
     if (!r.error) sahip2[r.data.id] = u.id;
     return r.data?.id;
   };
-  for (const u of U.slice(0, 6)) await yukle2(u, T2[0]);
+  const [ELIF, MERT, PELIN, ONUR, KAAN] = [U[4], U[5], U[6], U[7], U[8]];
+  for (const u of [...U.slice(0, 6), ONUR, KAAN]) await yukle2(u, T2[0]);
   for (const u of U.slice(0, 4)) await yukle2(u, T2[1]);
-  bekle('havuz: on kare (kontrol)', Object.keys(sahip2).length === 10, String(Object.keys(sahip2).length));
-  const [ELIF, MERT, PELIN] = [U[4], U[5], U[6]];
+  bekle('havuz: on iki kare (kontrol)', Object.keys(sahip2).length === 12, String(Object.keys(sahip2).length));
   const elifKare = Object.keys(sahip2).find(k => sahip2[k] === ELIF.id);
   const mertKare = Object.keys(sahip2).find(k => sahip2[k] === MERT.id);
+  const kaanKare = Object.keys(sahip2).find(k => sahip2[k] === KAAN.id);
   bekle('havuz: tek tek çıkarma (kontrol)', !(await A.c.rpc('kare_cikar', { p_kare: elifKare, p_neden: 'deneme' })).error);
   await admin.from('diskalifiye').insert({ kare: mertKare, neden: 'Buluşmaya katılmadın.', eden: A.id, toplu: true });
   await admin.from('etkinlikler').update({ yukleme_biter: saat(-0.5) }).eq('id', E2);
+  // Kaan'ın karesi oylama açılınca çıkarılıyor: kimse puanlamadan (sonra geri alınacak)
+  bekle('havuz: oylamada çıkarma (kontrol)', !(await A.c.rpc('kare_cikar', { p_kare: kaanKare, p_neden: 'deneme' })).error);
   for (const u of U) {
     const l = (await u.c.rpc('oylama_kareleri', { p_etkinlik: E2 })).data ?? [];
     for (const k of l) await u.c.from('oylar').insert({ kare: k.id, veren: u.id, puan: 6 });
   }
-  const havuz2 = U.slice(0, 5).map(u => u.id);   // Mert yok, Elif var
+  const havuz2 = [...U.slice(0, 5), ONUR, KAAN].map(u => u.id);   // Mert yok, Elif ve Kaan var
   const sor2 = async K => (await K.c.rpc('tahmin_sorularim', { p_etkinlik: E2 })).data ?? [];
 
   bekle('havuz: kare vermeyen başlatabiliyor', !(await PELIN.c.rpc('tahmin_baslat', { p_etkinlik: E2 })).error);
   const sP = await sor2(PELIN);
   const pl = sP[0]?.adaylar.map(a => a.uye) ?? [];
-  bekle('havuz: tek tek çıkarılanın sahibi listede', pl.includes(ELIF.id), JSON.stringify(sP[0]?.adaylar.map(a => a.ad)));
+  bekle('havuz: tek tek çıkarılanın sahibi listede', pl.includes(ELIF.id) && pl.includes(KAAN.id), JSON.stringify(sP[0]?.adaylar.map(a => a.ad)));
   bekle('havuz: toplu çıkarılan listede yok', !pl.includes(MERT.id));
   bekle('havuz: liste tam olarak havuz', pl.slice().sort().join() === havuz2.slice().sort().join());
-  bekle('havuz: çıkarılan kareler sorulmuyor', sP.every(s => s.kare !== elifKare && s.kare !== mertKare));
-  // Soru sayısı: 8 yarışan kare, 7 kişi → ceil(5·8/7) = 6
-  bekle('havuz: soru sayısı kare sayısına göre (6)', sP.length === 6, String(sP.length));
+  bekle('havuz: çıkarılan kareler sorulmuyor', sP.every(s => ![elifKare, mertKare, kaanKare].includes(s.kare)));
+  // Soru sayısı: 9 yarışan kare, 9 kişi → ceil(5·9/9) = 5
+  bekle('havuz: soru sayısı kare sayısına göre (5)', sP.length === 5, String(sP.length));
   bekle('havuz: toplu çıkarılan isim cevap olamıyor', hata(await PELIN.c.rpc('tahmin_cevapla', { p_etkinlik: E2, p_sira: 1, p_cevap: MERT.id, p_gec: false })).includes('tahmin_aday_degil'));
   bekle('havuz: kare vermeyen biri cevap olamıyor', hata(await PELIN.c.rpc('tahmin_cevapla', { p_etkinlik: E2, p_sira: 1, p_cevap: PELIN.id, p_gec: false })).includes('tahmin_aday_degil'));
   bekle('havuz: tek tek çıkarılanın sahibi cevap olabiliyor', !(await PELIN.c.rpc('tahmin_cevapla', { p_etkinlik: E2, p_sira: 1, p_cevap: ELIF.id, p_gec: false })).error);
 
-  // Fotoğrafçı da oynuyor: kendi iki karesi hariç altı kare kalıyor, altısı da geliyor
+  // Fotoğrafçı da oynuyor: kendi iki karesi hariç yedi kare kalıyor, beşi geliyor
   bekle('havuz: fotoğrafçı başlatabiliyor', !(await U[1].c.rpc('tahmin_baslat', { p_etkinlik: E2 })).error);
   const s1 = await sor2(U[1]);
-  bekle('havuz: fotoğrafçıya kendi karesi gelmiyor, kalan altısı geliyor', s1.length === 6 && s1.every(s => sahip2[s.kare] !== U[1].id), String(s1.length));
+  bekle('havuz: fotoğrafçıya kendi karesi gelmiyor', s1.length === 5 && s1.every(s => sahip2[s.kare] !== U[1].id), String(s1.length));
 
-  // Oylamada çıkarma havuzu değiştirmiyor
-  const denizKare = Object.keys(sahip2).find(k => sahip2[k] === U[3].id);
+  // Geri alınan kare: oyunu başlatan ona sonradan puan veremiyor (oy_kontrol, INSERT yolu)
+  bekle('havuz: oylamada geri alma (kontrol)', !(await A.c.rpc('kare_geri_al', { p_kare: kaanKare })).error);
+  bekle('kilit: geri dönen kareye başlatan puan veremiyor', hata(await PELIN.c.from('oylar').insert({ kare: kaanKare, veren: PELIN.id, puan: 8 })).includes('tahmin_kilidi'));
+  bekle('kilit: başlatmayan geri dönen kareye puan verebiliyor', !(await ONUR.c.from('oylar').insert({ kare: kaanKare, veren: ONUR.id, puan: 8 })).error);
+
+  // Oylamada Pelin'in ikinci sorusunun karesi çıkarılıyor: liste değişmiyor, sonuçta sayılmıyor
+  const cikanKare = sP[1].kare;
   const onceListe = JSON.stringify(sP[0].adaylar);
-  bekle('havuz: oylamada çıkarma (kontrol)', !(await A.c.rpc('kare_cikar', { p_kare: denizKare, p_neden: 'deneme' })).error);
+  bekle('havuz: oylamada soru karesini çıkarma (kontrol)', !(await A.c.rpc('kare_cikar', { p_kare: cikanKare, p_neden: 'deneme' })).error);
   bekle('havuz: oylamada çıkarılan karenin sahibi listede kalıyor', JSON.stringify((await sor2(PELIN))[0]?.adaylar) === onceListe);
+  for (const s of sP.slice(1)) await PELIN.c.rpc('tahmin_cevapla', { p_etkinlik: E2, p_sira: s.sira, p_cevap: sahip2[s.kare], p_gec: false });
+  // Kulüpten çıkarılan oyuncu yarım oyununa cevap veremiyor
+  const s1ilk = s1[0];
+  await admin.from('uyeler').update({ cikarildi_at: new Date().toISOString() }).eq('id', U[1].id);
+  bekle('çıkarılan üye: yarım oyununa cevap veremiyor', hata(await U[1].c.rpc('tahmin_cevapla', { p_etkinlik: E2, p_sira: s1ilk.sira, p_cevap: ELIF.id, p_gec: false })).includes('tahmin_uye_degil'));
+  bekle('çıkarılan üye: soruları görünmüyor', ((await sor2(U[1])).length) === 0);
+  await admin.from('uyeler').update({ cikarildi_at: null }).eq('id', U[1].id);
+
+  // Sonuç: çıkarılan kare skora, tanınmaya ve profile girmiyor
+  await admin.from('etkinlikler').update({ oylama_biter: saat(-0.1) }).eq('id', E2);
+  const sonP = (await PELIN.c.rpc('tahmin_sonucum', { p_etkinlik: E2 })).data ?? [];
+  bekle('çıkarılan kare: sonuçta var ama sayılmıyor', sonP.find(x => x.kare === cikanKare)?.sayildi === false && sonP.filter(x => x.kare !== cikanKare).every(x => x.sayildi), JSON.stringify(sonP.map(x => [x.sira, x.sayildi])));
+  bekle('çıkarılan kare: tanınma satırı yok', ((await U[3].c.rpc('taninma', { p_kare: cikanKare })).data ?? []).length === 0);
+  // Pelin yalnız bu etkinlikte oynadı: ilk soru yanlış (Elif), çıkarılan hariç kalan üçü doğru
+  const beklenen = { bilen: sonP.filter(x => x.kare !== cikanKare && x.dogru).length, toplam: sonP.filter(x => x.kare !== cikanKare && !x.gecti).length };
+  bekle('çıkarılan kare: profil saymıyor', JSON.stringify(((await PELIN.c.rpc('tahmin_profilim')).data ?? [])[0]) === JSON.stringify(beklenen) && beklenen.toplam === 4, JSON.stringify([(await PELIN.c.rpc('tahmin_profilim')).data, beklenen]));
 }
 
-// ------------------------------------------------ dörtten az fotoğrafçı, ya da sorulacak kare kalmadı
+// ------------------------------------------------ altıdan az fotoğrafçı, ya da sorulacak kare kalmadı (karar 109)
 {
   const kur = async kisiler => {
     const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
@@ -237,16 +279,18 @@ bekle('tanınma alt sınırı ve toplam doğru, herkes görüyor', taninmaDogru,
     for (const u of U) for (const k of (await u.c.rpc('oylama_kareleri', { p_etkinlik: E3 })).data ?? [])
       await u.c.from('oylar').insert({ kare: k.id, veren: u.id, puan: 6 });
   };
-  const uc = await kur(U.slice(0, 3));
-  await oyla(uc.E3);
-  bekle('üç fotoğrafçıda oyun yok', ((await U[6].c.rpc('tahmin_durumu', { p_etkinlik: uc.E3 })).data ?? [])[0]?.durum === 'yok');
-  const dort = await kur(U.slice(0, 4));
-  // Diğer üç kare yüklemede tek tek çıkarılıyor: havuz dört kişi ama Ayşe'ye sorulacak kare yok
-  for (const k of dort.kareler.slice(1)) await A.c.rpc('kare_cikar', { p_kare: k, p_neden: 'deneme' });
-  await oyla(dort.E3);
-  bekle('dört fotoğrafçıda kare vermeyen oyunu görüyor', ((await U[6].c.rpc('tahmin_durumu', { p_etkinlik: dort.E3 })).data ?? [])[0]?.durum === 'acik');
-  bekle('sorulacak başkasının karesi yoksa oyun yok', ((await A.c.rpc('tahmin_durumu', { p_etkinlik: dort.E3 })).data ?? [])[0]?.durum === 'yok');
-  bekle('sorusu çıkmayan başlatamıyor ve kilitlenmiyor', hata(await A.c.rpc('tahmin_baslat', { p_etkinlik: dort.E3 })).includes('tahmin_yok') && ((await A.c.rpc('tahmin_durumu', { p_etkinlik: dort.E3 })).data ?? [])[0]?.basladi === false);
+  const durum3 = async (K, E3) => ((await K.c.rpc('tahmin_durumu', { p_etkinlik: E3 })).data ?? [])[0]?.durum;
+  const bes = await kur(U.slice(0, 5));
+  await oyla(bes.E3);
+  bekle('beş fotoğrafçıda oyun yok (karar 109)', (await durum3(U[6], bes.E3)) === 'yok');
+  bekle('beş fotoğrafçıda başlatılamıyor', hata(await U[6].c.rpc('tahmin_baslat', { p_etkinlik: bes.E3 })).includes('tahmin_yok'));
+  const alti = await kur(U.slice(0, 6));
+  // Diğer beş kare yüklemede tek tek çıkarılıyor: havuz altı kişi ama Ayşe'ye sorulacak kare yok
+  for (const k of alti.kareler.slice(1)) await A.c.rpc('kare_cikar', { p_kare: k, p_neden: 'deneme' });
+  await oyla(alti.E3);
+  bekle('altı fotoğrafçıda kare vermeyen oyunu görüyor', (await durum3(U[6], alti.E3)) === 'acik');
+  bekle('sorulacak başkasının karesi yoksa oyun yok', (await durum3(A, alti.E3)) === 'yok');
+  bekle('sorusu çıkmayan başlatamıyor ve kilitlenmiyor', hata(await A.c.rpc('tahmin_baslat', { p_etkinlik: alti.E3 })).includes('tahmin_yok') && ((await A.c.rpc('tahmin_durumu', { p_etkinlik: alti.E3 })).data ?? [])[0]?.basladi === false);
 }
 
 rapor();

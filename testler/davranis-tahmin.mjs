@@ -97,6 +97,12 @@ try {
   bekle('2: başlamadan veritabanında oyun yok', ((await admin.from('tahmin_oyun').select('uye').eq('uye', A.id)).data ?? []).length === 0);
 
   // ------------------------------------------------ 3. başlat ve oyna
+  // Teklif ekranı açıkken oylama kapanırsa: başlatma düşüyor, ekran nedenini söylüyor
+  await P.route('**/rest/v1/rpc/tahmin_baslat*', r => r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: 'P0001', message: 'tahmin_oylama_kapali', details: null, hint: null }) }), { times: 1 });
+  await P.getByRole('button', { name: 'Oyunu başlat' }).click(); await P.waitForTimeout(1200);
+  bekle('3: başlatma düşünce nedeni yazıyor', await var_(P, 'Tahmin oyunu yalnız oylama sürerken oynanıyor.'), (await metin(P)).slice(-200));
+  bekle('3: başlatma düşünce düğme yine basılabilir', await P.getByRole('button', { name: 'Oyunu başlat' }).isEnabled());
+  bekle('3: başlatma düşünce veritabanında oyun yok', ((await admin.from('tahmin_oyun').select('uye').eq('uye', A.id)).data ?? []).length === 0);
   await P.getByRole('button', { name: 'Oyunu başlat' }).click(); await P.waitForTimeout(1800);
   const vtSoru = (await admin.from('tahmin_soru').select('sira, kare').eq('uye', A.id).order('sira')).data ?? [];
   bekle('3: sunucu soruları seçti', vtSoru.length === 6, String(vtSoru.length));
@@ -130,6 +136,12 @@ try {
   await P.reload(); await P.waitForTimeout(2500);
 
   // İlk soruyu geç
+  // Cevap sunucuda düşerse: soru yerinde kalıyor, neden yazıyor
+  await P.route('**/rest/v1/rpc/tahmin_cevapla*', r => r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: 'P0001', message: 'tahmin_oylama_kapali', details: null, hint: null }) }), { times: 1 });
+  await P.getByRole('button', { name: 'Bilmiyorum, geç' }).click(); await P.waitForTimeout(900);
+  bekle('3: cevap düşünce nedeni yazıyor', await var_(P, 'Tahmin oyunu yalnız oylama sürerken oynanıyor.'), (await metin(P)).slice(-200));
+  bekle('3: cevap düşünce aynı soruda kalıyor', (await P.locator('.tahmin-bas span').textContent()) === '01 / 06');
+  bekle('3: cevap düşünce veritabanına bir şey yazılmadı', ((await admin.from('tahmin_soru').select('gecti, cevap').eq('uye', A.id).eq('sira', 1).single()).data?.gecti) === false);
   await P.getByRole('button', { name: 'Bilmiyorum, geç' }).click(); await P.waitForTimeout(900);
   bekle('3: geçince ikinci soruya geçti', (await P.locator('.tahmin-bas span').textContent()) === '02 / 06');
   bekle('3: geçiş veritabanına yazıldı', ((await admin.from('tahmin_soru').select('gecti').eq('uye', A.id).eq('sira', 1).single()).data?.gecti) === true);
@@ -162,8 +174,9 @@ try {
   await git(P, 'oyla');
   bekle('4: oylama listesinde kart gönderildi diyor', (await P.locator('.tahmin-kart').textContent()).includes('Tahminlerin gönderildi'));
 
-  // ------------------------------------------------ 5. ötekiler de oynuyor (tanınma sayısı için)
-  for (const u of U.slice(1)) {
+  // ------------------------------------------------ 5. ötekiler de oynuyor (tanınma sayısı için); Pelin oynamıyor
+  const PELIN = U[6];
+  for (const u of U.slice(1, 6)) {
     const r = await u.c.rpc('tahmin_baslat', { p_etkinlik: E });
     if (r.error) continue;
     for (const s of (await u.c.rpc('tahmin_sorularim', { p_etkinlik: E })).data ?? [])
@@ -213,6 +226,15 @@ try {
   bekle('6: alt sınırı geçen en az bir kare sınandı', gecen > 0, String(gecen));
   bekle('6: tanınma satırı her karede doğru, herkese görünüyor', yanlis.length === 0, yanlis.join(' | '));
 
+
+  // Oynamayan sonuçta oyun ekranını açarsa: skor değil, oynamadığı söyleniyor
+  const PP = await kisi(PELIN.eposta);
+  await git(PP, `sonuc/${E}`);
+  bekle('6: oynamayanın sonuç ekranında tahmin kartı yok', (await PP.locator('.tahmin-kart').count()) === 0);
+  await git(PP, `tahmin/${E}`);
+  bekle('6: oynamayana "Bu etkinlikte oynamadın"', await var_(PP, 'Bu etkinlikte oynamadın') && (await PP.locator('.tahmin-skor, .tahmin-satir').count()) === 0, (await metin(PP)).slice(0, 200));
+  await PP.getByRole('button', { name: 'Sonuçlara dön' }).click(); await PP.waitForTimeout(1500);
+  bekle('6: oynamadın ekranından sonuçlara dönülüyor', PP.url().includes(`#/sonuc/${E}`), PP.url());
 
   // ------------------------------------------------ 7. profil
   await git(P, 'profil');

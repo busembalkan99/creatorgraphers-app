@@ -45,12 +45,13 @@ await admin.from('wrapped_izlendi').insert(U.map(u => ({ etkinlik: E, uye: u.id 
 
 const b = await chromium.launch();
 const hatalar = [];
-async function kisi(eposta, paylasimVar = false) {
+async function kisi(eposta, paylasimVar = false, ek = null) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, acceptDownloads: true });
   if (paylasimVar) await ctx.addInitScript(() => {
     navigator.canShare = () => true;
     navigator.share = async d => { window.__paylasilan = d.files.map(f => ({ ad: f.name, tur: f.type, boyut: f.size })); };
   });
+  if (ek) await ctx.addInitScript(ek);
   const p = await ctx.newPage();
   p.on('pageerror', e => hatalar.push(`${eposta}: ${e}`));
   p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) hatalar.push(`${eposta}: ${m.text()}`); });
@@ -159,6 +160,76 @@ try {
     return [m.kartBasligi(1, true, false), m.kartBasligi(1, true, true), m.kartBasligi(3, true, false), m.kartBasligi(5, true, false), m.kartBasligi(4, false, false), m.kartBasligi(null, false, false)];
   });
   bekle('6: başlıklar: kazanan, ortak, üçüncü, beşinci, galeride', JSON.stringify(basliklar) === JSON.stringify(['Temanın karesi', 'Ortak birinci', 'Üçüncü', 'Beşinci', 'Galeride', 'Galeride']), JSON.stringify(basliklar));
+
+  // ------------------------------------------------ 7. hata yolları
+  // 7a: yükleme düşerse ekran sonsuza dek beklemiyor, hatayı söylüyor
+  const PH = await kisi(SELIN.eposta);
+  await PH.route('**/rest/v1/rpc/paylasim_seridi*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+  await ac(PH, `paylas/${E}`);
+  bekle('7a: yükleme hatasında hata kutusu, kart yok', (await PH.locator('.hata[role=alert]').count()) === 1 && (await PH.locator('.pk-kart').count()) === 0 && (await PH.locator('.yukleniyor, [aria-busy=true]').count()) === 0, (await metin(PH)).slice(0, 160));
+  await PH.unroute('**/rest/v1/rpc/paylasim_seridi*');
+  // 7b: paylaşım penceresi gerçekten hata verirse söylüyor; kişi kapattıysa sessiz
+  const PR = await kisi(SELIN.eposta, true, () => {
+    navigator.share = async () => { window.__cagri = (window.__cagri ?? 0) + 1; throw window.__paylasHatasi === 'iptal' ? new DOMException('kapatildi', 'AbortError') : new Error('olmadi'); };
+  });
+  await ac(PR, `paylas/${E}`);
+  await PR.evaluate(() => { window.__paylasHatasi = 'iptal'; });
+  await PR.getByRole('button', { name: 'Paylaş', exact: true }).click();
+  await PR.waitForFunction(() => window.__cagri === 1); await PR.waitForTimeout(300);
+  bekle('7b: pencereyi kapatmak hata sayılmıyor', (await PR.locator('.hata[role=alert]').count()) === 0, (await metin(PR)).slice(-160));
+  await PR.evaluate(() => { window.__paylasHatasi = 'hata'; });
+  await PR.getByRole('button', { name: 'Paylaş', exact: true }).click();
+  await PR.waitForFunction(() => window.__cagri === 2); await PR.waitForTimeout(300);
+  bekle('7b: paylaşım düşerse kaydetmeyi öneriyor', await var_(PR, 'Paylaşılamadı. Görseli kaydedip kendin paylaşabilirsin.'), (await metin(PR)).slice(-160));
+  bekle('7b: hata sonrası kart ekranda kalıyor', (await PR.locator('.pk-kart').count()) === 1);
+  // 7c: görsel üretilemezse söylüyor, indirme başlamıyor, paylaşım da çağrılmıyor
+  const PB = await kisi(SELIN.eposta, true, () => { HTMLCanvasElement.prototype.toBlob = function (cb) { window.__blob = (window.__blob ?? 0) + 1; cb(null); }; });
+  await ac(PB, `paylas/${E}`);
+  let indi = false;
+  PB.on('download', () => { indi = true; });
+  await PB.getByRole('button', { name: 'Görseli kaydet' }).click();
+  await PB.waitForFunction(() => window.__blob === 1); await PB.waitForTimeout(500);
+  bekle('7c: görsel yoksa hata, indirme yok', await var_(PB, 'Görsel hazırlanamadı. Tekrar dene.') && !indi, (await metin(PB)).slice(-160));
+  await PB.getByRole('button', { name: 'Paylaş', exact: true }).click();
+  await PB.waitForFunction(() => window.__blob === 2); await PB.waitForTimeout(500);
+  bekle('7c: görsel yoksa paylaşım penceresine bir şey gitmiyor', (await PB.evaluate(() => window.__paylasilan)) === undefined);
+
+  // ------------------------------------------------ 8. hangi kare paylaşılır, ortak birinci (ekran üzerinden)
+  // Sunucunun cevabı değiştirilerek birden çok karesi olan ve berabere kalan kişi kuruluyor.
+  const sahte = (p, degistir) => p.route('**/rest/v1/rpc/sonuc_kareleri*', async r => {
+    const cevap = await r.fetch();
+    r.fulfill({ response: cevap, json: degistir(await cevap.json()) });
+  });
+  // 8a: Elif'in (galeride) yanına çıkarılmış ama ortalaması yüksek bir kare ve sıralamada ikinci bir kare
+  const P8 = await kisi(ELIF.eposta);
+  await sahte(P8, l => {
+    const e = l.find(x => x.benim);
+    const cikan = { ...e, id: crypto.randomUUID(), ortalama: 9.9, cikarildi: true, sirali: true, sira: 1 };
+    const ikinci = { ...e, id: crypto.randomUUID(), ortalama: 5, sirali: true, sira: 2 };
+    return [...l, cikan, ikinci];
+  });
+  await ac(P8, `paylas/${E}`);
+  const v8 = await veri(P8);
+  bekle('8a: çıkarılan kare atlanıyor, sıralamaya giren galeridekinin önüne geçiyor', v8?.baslik === 'İkinci' && v8.sira === '02', JSON.stringify(v8 && { b: v8.baslik, s: v8.sira }));
+  // 8b: Selin ile Can birinciliği paylaşıyor
+  const P9 = await kisi(SELIN.eposta);
+  await sahte(P9, l => l.map(x => (x.sirali && x.sira === 2 ? { ...x, sira: 1 } : x)));
+  await ac(P9, `paylas/${E}`);
+  const v9 = await veri(P9);
+  bekle('8b: berabere birinci ekranda "Ortak birinci"', v9?.baslik === 'Ortak birinci' && v9.sira === '01', JSON.stringify(v9 && { b: v9.baslik, s: v9.sira }));
+  // 8c: seçim kuralı modülden, uç durumlarla
+  const secim = await P.evaluate(async () => {
+    const { paylasilacakKare: f } = await import('/src/ekranlar/Paylas.tsx');
+    const k = (id, o) => ({ id, benim: true, cikarildi: false, sirali: false, sira: null, ortalama: null, ...o });
+    return [
+      f([k('a', { sirali: true, sira: 3, ortalama: 8 }), k('b', { sirali: true, sira: 1, ortalama: 6 })])?.id,
+      f([k('a', { ortalama: 4 }), k('b', { ortalama: 7 }), k('c', { ortalama: null })])?.id,
+      f([k('a', { ortalama: 9, cikarildi: true }), k('b', { ortalama: 2 })])?.id,
+      f([k('a', { benim: false, sirali: true, sira: 1 })]),
+      f([k('a', { cikarildi: true })]),
+    ];
+  });
+  bekle('8c: en iyi sıra, sonra en yüksek ortalama, çıkarılan ve başkasınınki yok', JSON.stringify(secim) === JSON.stringify(['b', 'b', 'b', null, null]), JSON.stringify(secim));
 
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {

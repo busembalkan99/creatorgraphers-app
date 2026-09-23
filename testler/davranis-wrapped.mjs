@@ -223,7 +223,7 @@ try {
 
   // ------------------------------------------------ klavye ve geri kaydırma
   await ac(P, `wrapped/${E}`);
-  await P.locator('.wr').focus();
+  // Odak elle verilmiyor: Wrapped açılır açılmaz oklar çalışmalı
   await P.keyboard.press('ArrowRight'); await P.waitForTimeout(300);
   bekle('klavye: sağ ok ileri', (await kartAdi(P)) === 'tema');
   await P.keyboard.press('ArrowLeft'); await P.waitForTimeout(300);
@@ -299,6 +299,28 @@ try {
   const PM = await kisi(foto[4].eposta);
   await ac(PM, `wrapped/${E4}`); await kisiselKartaGit(PM);
   bekle('B: iki temada sıralamaya girdin', await var_(PM, 'İki temada sıralamaya girdin') && (await PM.locator('.kisi .no-kutu').textContent()) === '02', (await metin(PM)).slice(0, 220));
+
+  // ------------------------------------------------ kendiliğinden açılmada ağ hatası: ana ekran bozulmuyor, sonra yeniden deneniyor
+  // E4 en yeni sonuç, Yusuf onu izlemedi. İstek ilk girişte 500 dönüyor; sayfa YENİLENMEDEN
+  // tazelenince açılmalı (yenilemek bellekteki kümeyi sıfırlar, test boşa çıkardı).
+  {
+    const ctxQ = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const PQ = await ctxQ.newPage();
+    const qHata = [];
+    PQ.on('pageerror', e => qHata.push(String(e)));
+    await PQ.route('**/rest/v1/rpc/wrapped_ozeti*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+    await PQ.goto(APP + '#/etkinlikler');
+    await PQ.waitForFunction(() => window.__sb);
+    await PQ.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error; }, Y.eposta);
+    await PQ.waitForTimeout(2500);
+    bekle('ağ hatası: ana ekranda kalıyor', !PQ.url().includes('#/wrapped/') && (await PQ.locator('.ev').count()) > 0, PQ.url());
+    bekle('ağ hatası: yakalanmamış hata yok', qHata.length === 0, qHata.slice(0, 2).join(' | '));
+    await PQ.unroute('**/rest/v1/rpc/wrapped_ozeti*');
+    await PQ.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await PQ.waitForTimeout(2500);
+    bekle('ağ hatası: sonraki tazelemede yeniden deneyip açılıyor', PQ.url().includes(`#/wrapped/${E4}`), PQ.url());
+    await ctxQ.close();
+  }
 
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {

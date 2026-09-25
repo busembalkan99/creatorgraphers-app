@@ -1,0 +1,114 @@
+// Serbest etkinlik ve serbest temanın sezon ağırlığı (karar 116): sunucu kuralları.
+// Temiz veritabanı ister: sezon sayıları bütün etkinliklere bakıyor.
+import fs from 'node:fs';
+import { admin, istemci, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+await sifirla();
+const hata = r => r.error?.message ?? '';
+
+const A = await kullanici('kurucu@test.local', 'Ayşe Kaya');
+const anon = istemci();
+await A.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
+const K = {};
+for (const [a, ad, posta] of [['b', 'Barış Ak', 'baris@test.local'], ['c', 'Can Öz', 'can@test.local'],
+  ['d', 'Deniz Yılmaz', 'deniz@test.local'], ['z', 'Zeynep Ar', 'zeynep@test.local']]) {
+  const k = await kullanici(posta, ad);
+  await admin.from('uyeler').insert({ id: k.id, ad, eposta: posta });
+  K[a] = { ...k, ad };
+}
+
+const gun = n => new Date(Date.now() - n * 86400000).toISOString();
+const tarih = n => new Date(Date.now() - n * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
+async function etkinlik(gunSayisi, temalar, serbest = false) {
+  const e = (await admin.from('etkinlikler').insert({
+    bulusma_gunu: tarih(gunSayisi), yukleme_baslar: gun(gunSayisi), yukleme_biter: gun(gunSayisi - 1),
+    oylama_biter: gun(gunSayisi - 2), kuran: A.id, serbest,
+  }).select('id').single()).data;
+  const t = [];
+  for (const [i, [ad, bulusmada]] of temalar.entries())
+    t.push((await admin.from('temalar').insert({ etkinlik: e.id, ad, sira: i + 1, bulusmada }).select('id').single()).data);
+  return { id: e.id, temalar: t };
+}
+async function kare(etk, i, sahip, puan) {
+  const tema = etk.temalar[i].id;
+  const yol = `${etk.id}/${tema}/${crypto.randomUUID()}.jpg`;
+  await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const k = (await admin.from('kareler').insert({ tema, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
+  await admin.from('oylar').insert({ kare: k.id, veren: K.z.id, puan });
+  return k;
+}
+
+// E1: buluşma etkinliği, bir buluşma bir serbest tema. S1: serbest etkinlik (ekstra).
+const E1 = await etkinlik(10, [['Sokak', true], ['Portre', false]]);
+await kare(E1, 0, K.b, 8); await kare(E1, 1, K.b, 6);
+await kare(E1, 0, K.c, 7);
+const S1 = await etkinlik(5, [['Doku', false]], true);
+await kare(S1, 0, K.b, 9); await kare(S1, 0, K.d, 10);
+
+const sira = async (U, fn = 'siralama') => (await U.c.rpc(fn)).data ?? [];
+const satir = (l, ad) => l.find(x => x.ad === ad);
+
+// ---------------------------------------------- sezonun altı yeri yalnız buluşmalar
+const oz = ((await A.c.rpc('sezon_ozeti')).data ?? [])[0];
+bekle('serbest etkinlik sezonun altı yerinden birini kaplamıyor', Number(oz?.tamamlanan) === 1 && Number(oz?.toplam) === 6, JSON.stringify(oz));
+const mud = (await A.c.rpc('mudavim')).data ?? [];
+bekle('Müdavim penceresi yalnız buluşmalar', mud.length > 0 && mud.every(m => Number(m.pencere) === 1), JSON.stringify(mud));
+bekle('Müdavim serbest etkinliği saymıyor (Deniz yok)', !mud.some(m => m.ad === 'Deniz Yılmaz'), JSON.stringify(mud.map(m => m.ad)));
+const pD = ((await K.d.c.rpc('profil')).data ?? [])[0];
+bekle('seri serbest etkinliği saymıyor', Number(pD?.seri) === 0, JSON.stringify(pD));
+const pB = ((await K.b.c.rpc('profil')).data ?? [])[0];
+bekle('seri buluşmaları sayıyor', Number(pB?.seri) === 1, JSON.stringify(pB));
+
+// ---------------------------------------------- ağırlıklı sezon ortalaması
+// Barış: 8 (buluşma) + 6 (serbest tema) + 9 (serbest etkinlik) → (8 + 3 + 4,5) / 2 = 7,75 → 7,8
+const lB = await sira(K.b);
+bekle('serbest yarım ağırlık: kendi ortalaman 7,8 (düz ortalama 7,7 olurdu)', Number(satir(lB, 'Barış Ak')?.ortalama) === 7.8, JSON.stringify(satir(lB, 'Barış Ak')));
+const lC = await sira(K.c);
+bekle('yalnız buluşma karesi olanın ortalaması değişmiyor', Number(satir(lC, 'Can Öz')?.ortalama) === 7, JSON.stringify(satir(lC, 'Can Öz')));
+// Deniz yalnız serbest etkinlikte: eşik buluşmadan sayılıyor, sıralamaya giremiyor
+const lD = await sira(K.d);
+const d = satir(lD, 'Deniz Yılmaz');
+bekle('yalnız serbest etkinliğe katılan eşiği geçmiyor', d && d.esikte === false && d.sirali === false && d.sira == null, JSON.stringify(d));
+bekle('eşik için etkinlik sayısı yalnız buluşmalar', Number(satir(lB, 'Barış Ak')?.etkinlik_sayisi) === 1, JSON.stringify(satir(lB, 'Barış Ak')));
+// Üç kişi → round(3 / 2,5) = 1 kişi sıralı: Barış (7,8) Can'ın (7,0) önünde
+const lA = await sira(A);
+bekle('sıralı olan en yüksek ağırlıklı ortalama', lA.filter(x => x.sirali).map(x => x.ad).join() === 'Barış Ak', JSON.stringify(lA.map(x => [x.ad, x.sira, x.ortalama])));
+bekle('sıralama dışında kalanın puanı başkasına gizli (karar 52)', satir(lA, 'Can Öz')?.ortalama == null, JSON.stringify(satir(lA, 'Can Öz')));
+
+// ---------------------------------------------- Serbest tablosu
+// Barış: 6 ve 9 → 7,5; Deniz: 10. İki kişi → round(2 / 2,5) = 1 sıralı
+const sA = await sira(A, 'serbest_siralama');
+bekle('Serbest tablosu yalnız serbest kareler (Can yok)', sA.length === 2 && !satir(sA, 'Can Öz'), JSON.stringify(sA.map(x => x.ad)));
+bekle('Serbest tablosu: Deniz birinci, puanı görünür', satir(sA, 'Deniz Yılmaz')?.sira === 1 && Number(satir(sA, 'Deniz Yılmaz')?.ortalama) === 10, JSON.stringify(satir(sA, 'Deniz Yılmaz')));
+bekle('Serbest tablosu: sıralama dışının puanı başkasına gizli', satir(sA, 'Barış Ak')?.ortalama == null && satir(sA, 'Barış Ak')?.sirali === false, JSON.stringify(satir(sA, 'Barış Ak')));
+const sB = await sira(K.b, 'serbest_siralama');
+bekle('Serbest tablosu: kendi puanın sana açık (7,5)', Number(satir(sB, 'Barış Ak')?.ortalama) === 7.5, JSON.stringify(satir(sB, 'Barış Ak')));
+bekle('Serbest tablosu: kare sayısı', Number(satir(sB, 'Barış Ak')?.kare_sayisi) === 2);
+
+// ---------------------------------------------- yetkiler
+bekle('giriş yapmamış Serbest tablosunu çağıramıyor', !!(await anon.rpc('serbest_siralama')).error);
+bekle('gizli sezon listesi uygulamadan çağrılamıyor', !!(await A.c.schema('gizli').rpc('sezon_etkinlikleri')).error);
+const yabanci = await kullanici('yabanci@test.local', 'Yabancı');
+bekle('üye olmayan Serbest tablosunda bir şey görmüyor', ((await yabanci.c.rpc('serbest_siralama')).data ?? []).length === 0);
+
+// ---------------------------------------------- etkinlik kurma
+const temalar = [{ ad: 'Pencere', bulusmada: true }, { ad: 'Gölge', bulusmada: false }];
+const ileri = new Date(Date.now() + 86400000).toISOString();
+bekle('üye etkinlik kuramıyor', hata(await K.b.c.rpc('etkinlik_kur', { p_bulusma: tarih(-1), p_yukleme_baslar: ileri, p_yukleme_saat: 24, p_oylama_saat: 48, p_temalar: temalar })).includes('yetki_yok'));
+// Eski çağrı (serbest parametresi yok) çalışmaya devam ediyor, buluşma etkinliği kuruyor
+const r1 = await A.c.rpc('etkinlik_kur', { p_bulusma: tarih(-1), p_yukleme_baslar: ileri, p_yukleme_saat: 24, p_oylama_saat: 48, p_temalar: temalar });
+bekle('eski çağrı çalışıyor (serbest parametresi olmadan)', !r1.error && !!r1.data, hata(r1));
+const e1 = (await admin.from('etkinlikler').select('serbest').eq('id', r1.data).single()).data;
+const t1 = (await admin.from('temalar').select('ad, bulusmada').eq('etkinlik', r1.data).order('sira')).data ?? [];
+bekle('eski çağrı: buluşma etkinliği, temaların seçimi korunuyor', e1?.serbest === false && JSON.stringify(t1.map(t => t.bulusmada)) === '[true,false]', JSON.stringify([e1, t1]));
+await admin.from('etkinlikler').update({ iptal: true }).eq('id', r1.data);
+const r2 = await A.c.rpc('etkinlik_kur', { p_bulusma: tarih(-1), p_yukleme_baslar: ileri, p_yukleme_saat: 24, p_oylama_saat: 48, p_temalar: temalar, p_serbest: true });
+bekle('serbest etkinlik kuruluyor', !r2.error && !!r2.data, hata(r2));
+const e2 = (await admin.from('etkinlikler').select('serbest').eq('id', r2.data).single()).data;
+const t2 = (await admin.from('temalar').select('bulusmada').eq('etkinlik', r2.data)).data ?? [];
+bekle('serbest etkinlikte bütün temalar serbest (buluşmada seçilse de)', e2?.serbest === true && t2.length === 2 && t2.every(t => t.bulusmada === false), JSON.stringify([e2, t2]));
+bekle('iptal edilen etkinlik sezonu etkilemiyor', Number(((await A.c.rpc('sezon_ozeti')).data ?? [])[0]?.tamamlanan) === 1);
+bekle('etkinlik sütunu uygulamadan yazılamıyor', !!(await A.c.from('etkinlikler').update({ serbest: false }).eq('id', r2.data).select()).error
+  || ((await A.c.from('etkinlikler').update({ serbest: false }).eq('id', r2.data).select()).data ?? []).length === 0);
+bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('serbest').eq('id', r2.data).single()).data?.serbest === true);
+
+rapor();

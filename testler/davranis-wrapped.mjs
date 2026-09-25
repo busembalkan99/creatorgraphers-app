@@ -314,6 +314,33 @@ try {
   bekle('A: iki temayı kazanan metinde de iki tema', await var_(PB, 'İki temayı sen kazandın') && await var_(PB, 'Sis ve Duvar temalarının birincisi'), (await metin(PB)).slice(0, 220));
   await PB.screenshot({ path: `${SS}/wr-iki-kare.png` });
 
+  // Bir temayı tek başına kazandı, ötekinde ortak birinci: "İki temayı" değil. Bir de: bir temada
+  // ikinci, ötekinde sıralama dışı → ikinci karenin altında "galeride".
+  const E5 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const T5 = (await admin.from('temalar').insert([
+    { etkinlik: E5, ad: 'Kıyı', sira: 1, bulusmada: true }, { etkinlik: E5, ad: 'Çatı', sira: 2, bulusmada: false },
+  ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
+  const sahip5 = {};
+  for (const t of T5) for (const u of foto.slice(4, 9)) sahip5[await yukle(u, E5, t.id)] = { uye: u.id, tema: t.id };
+  await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).eq('id', E5);
+  const [X5, Z5, W5] = [foto[4].id, foto[5].id, foto[6].id];
+  const puan5 = ({ uye, tema }) => tema === T5[0].id
+    ? (uye === X5 ? 10 : uye === Z5 ? 8 : 3)
+    : (uye === X5 || uye === W5 ? 9 : 3);
+  for (const u of U.slice(0, 10)) for (const [k, v] of Object.entries(sahip5))
+    await u.c.from('oylar').insert({ kare: k, veren: u.id, puan: puan5(v) });
+  // Sonucu E4'ten önce açılıyor: kendiliğinden açılma testleri en yeni sonucu (E4) bekliyor
+  await admin.from('etkinlikler').update({ oylama_biter: saat(-0.5) }).eq('id', E5);
+  const PX = await kisi(foto[4].eposta);
+  await ac(PX, `wrapped/${E5}`); await kisiselKartaGit(PX);
+  bekle('A: bir temayı kazanıp ötekinde ortak birinci: "İki temayı" demiyor', await var_(PX, 'Temayı sen kazandın') && !(await var_(PX, 'İki temayı')), (await metin(PX)).slice(0, 220));
+  bekle('A: ortak birincilik ikinci karede "birinci" yazıyor', (await ikiKare(PX)).map(x => x.alt).sort().join('|') === 'Kıyı · birinci|Çatı · birinci', JSON.stringify(await ikiKare(PX)));
+  const PZ = await kisi(foto[5].eposta);
+  await ac(PZ, `wrapped/${E5}`); await kisiselKartaGit(PZ);
+  const mz = await ikiKare(PZ);
+  bekle('B: sıralamaya girmeyen ikinci kare "galeride"', mz.length === 2 && mz.map(x => x.alt).sort().join('|') === 'Kıyı · 02|Çatı · galeride', JSON.stringify(mz));
+  bekle('B: en iyi sonuç önde (sıralamaya giren solda)', mz[0]?.alt === 'Kıyı · 02', JSON.stringify(mz));
+
   // ------------------------------------------------ kendiliğinden açılmada ağ hatası: ana ekran bozulmuyor, sonra yeniden deneniyor
   // E4 en yeni sonuç, Yusuf onu izlemedi. İstek ilk girişte 500 dönüyor; sayfa YENİLENMEDEN
   // tazelenince açılmalı (yenilemek bellekteki kümeyi sıfırlar, test boşa çıkardı).

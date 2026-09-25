@@ -139,7 +139,7 @@ export function Siralama({ uye }: { uye: Uye }) {
               {s.url && (
                 <span className="kr">
                   <img src={s.url} alt="" />
-                  {s.kare_sayisi > 1 && <small>en iyisi</small>}
+                  {s.kare_sayisi > 1 && <small>en iyi karesi</small>}
                 </span>
               )}
               <span className="nm"><span>{s.ad}</span></span>

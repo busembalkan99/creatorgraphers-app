@@ -449,6 +449,36 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await p.waitForTimeout(600);
   const s2 = await yer();
   bekle('kare detayından dönünce galeri yerinde', s1 > 40 && Math.abs(s2 - s1) <= 2, `${s2} / ${s1}`);
+
+  // Telefonun geri hareketi (tarayıcı geri): Etkinlikler'e değil sonuçlara, yer ve tema korunarak
+  const sonucAdres = APP + '#/sonuc/' + ev[0].id;
+  const sekmeSayisi = await p.locator('.sekmeler button').count();
+  if (sekmeSayisi > 1) { await p.locator('.sekmeler button').nth(1).click(); await p.waitForTimeout(500); }
+  const secSekme = await p.locator('.sekmeler button.on').textContent().catch(() => null);
+  const s3 = await p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop) });
+  await p.locator('.izgara figure, .satir-kare, .kursu figure, .odul img').last().click(); await p.waitForTimeout(1000);
+  bekle('kare detayının kendi adresi var', /#\/sonuc\/[^/]+\/kare\/[^/]+$/.test(p.url()), p.url());
+  await p.goBack(); await p.waitForTimeout(1200);
+  bekle('geri hareketi detaydan sonuçlara dönüyor', p.url() === sonucAdres, p.url());
+  bekle('geri hareketinde seçili tema korunuyor', (await p.locator('.sekmeler button.on').textContent().catch(() => null)) === secSekme, `${secSekme} (${sekmeSayisi} tema)`);
+  const s4 = await yer();
+  bekle('geri hareketinde galeri yerinde', Math.abs(s4 - s3) <= 2, `${s4} / ${s3}`);
+  // Detaydaki düğme geçmişe fazladan sayfa eklemiyor: bir geri daha Etkinlikler'den önceki yere gider
+  await p.locator('.izgara figure, .satir-kare, .kursu figure, .odul img').last().click(); await p.waitForTimeout(1000);
+  await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await p.waitForTimeout(800);
+  const uzunluk = await p.evaluate(() => history.length);
+  await p.locator('.izgara figure, .satir-kare, .kursu figure, .odul img').last().click(); await p.waitForTimeout(800);
+  await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await p.waitForTimeout(800);
+  bekle('detay aç-kapa geçmişi büyütmüyor', (await p.evaluate(() => history.length)) === uzunluk && p.url() === sonucAdres, `${await p.evaluate(() => history.length)} / ${uzunluk}`);
+  // Bağlantıyla doğrudan açılan detay: düğme sonuçlara götürüyor, uygulamadan çıkmıyor
+  const kareAdres = await p.evaluate(async id => (await window.__sb.rpc('sonuc_kareleri', { p_etkinlik: id })).data[0].id, ev[0].id);
+  await p.goto(sonucAdres + '/kare/' + kareAdres); await p.reload(); await p.waitForTimeout(1800);
+  bekle('bağlantıyla açılan detay görünüyor', await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).isVisible());
+  await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await p.waitForTimeout(1200);
+  bekle('bağlantıyla açılan detaydan sonuçlara', p.url() === sonucAdres, p.url());
+  // Olmayan kare adresi: sonuç sayfası açılıyor, boş ekran değil
+  await p.goto(sonucAdres + '/kare/00000000-0000-0000-0000-000000000000'); await p.reload(); await p.waitForTimeout(1800);
+  bekle('olmayan kare adresinde sonuçlar açılıyor', (await p.locator('.sekmeler, .bos-tema').count()) > 0);
   await p.setViewportSize({ width: 390, height: 844 });
 }
 

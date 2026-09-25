@@ -107,7 +107,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
   text-transform:inherit;display:flex;align-items:center;gap:7px;cursor:pointer;min-height:44px}
 .geri .ic{width:14px;height:14px}
 .rb{height:4px;background:var(--ink);margin-top:6px;flex:0 0 auto}
-h2.t{font-size:34px;line-height:.86;letter-spacing:-.045em;word-spacing:.14em;text-transform:uppercase;margin-top:14px;
+/* Büyük harfli başlıklar 1: daha sıkısında Ş/Ç çengeli alt satırın İ noktasına ve Ğ şapkasına
+   değiyordu (2026-09-26, ölçüm: nokta 0,89em, çengel 0,21em). Yalnız rakamlı sayılar sıkı kalıyor. */
+h2.t{font-size:34px;line-height:1;letter-spacing:-.045em;word-spacing:.14em;text-transform:uppercase;margin-top:14px;
   font-variation-settings:"wdth" 70,"wght" 900;overflow-wrap:anywhere}
 h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .lede{font-size:13px;color:var(--dim);line-height:1.6;margin-top:10px;max-width:34ch}
@@ -121,7 +123,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .tepe + .sec,.tepe + .next{border-top:0;padding-top:0;margin-top:18px}
 /* h2: bolum basligi gorsel olarak degil anlamca da baslik olsun. Punto ve agirlik
    asagida yazili, tarayicinin h2 varsayilani gecerli degil. */
-.sec{margin-top:24px;border-top:4px solid var(--ink);padding-top:11px;padding-bottom:10px;
+/* 24 → 36: kalın çizgi üstteki içeriğe yapışık duruyordu (Buse, 2026-09-26, nefes turunun ilk adımı) */
+.sec{margin-top:36px;border-top:4px solid var(--ink);padding-top:11px;padding-bottom:10px;
   font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:baseline;flex:0 0 auto}
 .sec span{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:none;color:var(--soft);
   font-variant-numeric:tabular-nums}
@@ -145,7 +148,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 /* karşılama */
 .kapak{margin:14px calc(var(--pad) * -1) 0;position:relative}
 .kapak img{width:100%;height:min(360px,42dvh);object-fit:cover;display:block;filter:grayscale(1) contrast(1.15)}
-.marka{font-size:44px;line-height:.82;letter-spacing:-.05em;text-transform:uppercase;margin-top:18px;
+.marka{font-size:44px;line-height:1;letter-spacing:-.05em;text-transform:uppercase;margin-top:18px;
   font-variation-settings:"wdth" 64,"wght" 900}
 .alt-bilgi{margin-top:12px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.6}
 
@@ -194,7 +197,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .live .kick .dot::after{content:'';position:absolute;inset:0;border-radius:50%;background:var(--acc);
   animation:nabiz 1.4s cubic-bezier(.2,.6,.3,1) infinite}
 @keyframes nabiz{0%{transform:scale(1);opacity:.65}70%,100%{transform:scale(2.6);opacity:0}}
-.live h2{font-size:30px;line-height:.84;letter-spacing:-.035em;word-spacing:.12em;text-transform:uppercase;margin-top:7px;
+.live h2{font-size:30px;line-height:1;letter-spacing:-.035em;word-spacing:.12em;text-transform:uppercase;margin-top:7px;
   font-variation-settings:"wdth" 70,"wght" 900}
 .live .meta{display:flex;align-items:baseline;gap:9px;margin-top:10px;flex-wrap:wrap;
   font-size:11px;font-weight:800;letter-spacing:.04em;color:rgba(10,10,11,.62)}
@@ -452,7 +455,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 /* bitiş ekranı */
 .bitti{height:100%;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;gap:14px;
   padding:0 var(--pad)}
-.bitti h2{font-size:58px;line-height:.82;letter-spacing:-.06em;word-spacing:.12em;text-transform:uppercase;
+.bitti h2{font-size:58px;line-height:1;letter-spacing:-.06em;word-spacing:.12em;text-transform:uppercase;
   font-variation-settings:"wdth" 72,"wght" 900;overflow-wrap:anywhere}
 .bitti p{font-size:13px;color:var(--dim);line-height:1.6;letter-spacing:.02em;max-width:32ch}
 .bitti .eksikbas{border-top:4px solid var(--ink);padding-top:12px;margin-top:6px;font-size:13px;font-weight:900;
@@ -494,7 +497,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
    Sonuçlar (kararlar 10, 18, 19, 43, 68, 79). Kaynak: prototip v19.
    Ödül karesi kırpılmaz, kürsüde ve galeride kırpılır.
    ========================================================== */
-.bas h1{margin-top:18px;font-size:30px;line-height:.86;letter-spacing:-.035em;word-spacing:.1em;
+.bas h1{margin-top:18px;font-size:30px;line-height:1;letter-spacing:-.035em;word-spacing:.1em;
   text-transform:uppercase;font-variation-settings:"wdth" 70,"wght" 900}
 .bas .meta{display:flex;gap:9px;margin-top:14px;flex-wrap:wrap;font-size:11px;font-weight:800;
   letter-spacing:.04em;color:var(--soft)}
@@ -562,7 +565,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   overflow-wrap:anywhere;text-align:right}
 .bos-tema{margin-top:18px;border:1px dashed rgba(237,237,234,.3);padding:14px}
 .bos-tema b{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
-.bos-tema h3{margin-top:9px;font-size:22px;line-height:.9;letter-spacing:-.03em;word-spacing:.1em;text-transform:uppercase;
+.bos-tema h3{margin-top:9px;font-size:22px;line-height:1;letter-spacing:-.03em;word-spacing:.1em;text-transform:uppercase;
   font-variation-settings:"wdth" 70,"wght" 900}
 .bos-tema p{margin-top:10px;font-size:11px;line-height:1.6;color:var(--dim)}
 
@@ -572,7 +575,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 
 /* sezon künyesi */
 .seas{margin-top:14px;display:flex;align-items:baseline;gap:9px}
-.seas h2{font-size:26px;line-height:.86;letter-spacing:-.035em;word-spacing:.22em;text-transform:uppercase;
+.seas h2{font-size:26px;line-height:1;letter-spacing:-.035em;word-spacing:.22em;text-transform:uppercase;
   font-variation-settings:"wdth" 70,"wght" 900}
 .seas .of{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);
   font-variant-numeric:tabular-nums}
@@ -584,7 +587,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .mud{background:var(--ink);color:var(--paper);margin-top:14px;padding:11px var(--pad) 12px}
 .mud .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.6;display:flex}
 .mud .k span{margin-left:auto}
-.mud .big{font-size:26px;line-height:.9;letter-spacing:-.03em;word-spacing:.14em;text-transform:uppercase;margin-top:6px;
+.mud .big{font-size:26px;line-height:1;letter-spacing:-.03em;word-spacing:.14em;text-transform:uppercase;margin-top:6px;
   font-variation-settings:"wdth" 70,"wght" 900}
 .mud button{appearance:none;border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:5px 0}
 .mud .one{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em;word-spacing:.12em;margin-top:5px;
@@ -595,7 +598,9 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .mud .me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:2px;opacity:1}
 
 /* sıralı liste: kare eşlikli, etkinlik galerisiyle aynı kalıp */
-.row{border-top:1px solid var(--rule);min-height:48px;display:flex;align-items:center;gap:10px;
+/* flex:0 0 auto: Safari'de .sc içindeki düğme satır içeriğine göre büyümüyordu, altyazılı kare
+   alttaki satırın üstüne taşıyordu (2026-09-26, yalnız WebKit'te) */
+.row{flex:0 0 auto;border-top:1px solid var(--rule);min-height:48px;display:flex;align-items:center;gap:10px;
   padding:7px 0;cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;
   width:100%;text-align:left;color:inherit;font:inherit;appearance:none}
 .row .no{font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:var(--soft);width:15px;flex:0 0 auto;
@@ -608,9 +613,9 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .row.me{box-shadow:inset 3px 0 0 var(--oyla);padding-left:9px}
 /* Satırın iki yarısı ne olduğunu söylüyor: kare en iyisi, sayı bütün karelerin ortalaması */
 .row .kr{flex:0 0 auto;width:44px;display:flex;flex-direction:column;align-items:center}
-.row .kr small{display:block;margin-top:3px;font-size:9.5px;line-height:1.2;font-weight:700;letter-spacing:.04em;
-  color:var(--soft);white-space:nowrap}
-.row .av small{display:block;margin-top:3px;font-size:10px;line-height:1.3;font-weight:700;
+/* İki altyazı tek stil: sayfanın etiket stili sayısı sınırı (kabuk testi) */
+.row .kr small{width:44px;text-align:center}
+.row .kr small,.row .av small{display:block;margin-top:3px;font-size:10px;line-height:1.3;font-weight:700;
   letter-spacing:.06em;text-transform:none;color:var(--soft);font-variation-settings:normal}
 .row .av{text-align:right}
 
@@ -633,7 +638,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .empty span{display:block;font-size:11px;line-height:1.6;color:var(--soft);margin-top:6px;max-width:34ch}
 
 /* profil künyesi */
-.pname{font-size:29px;line-height:.86;letter-spacing:-.035em;word-spacing:.14em;text-transform:uppercase;margin-top:12px;
+.pname{font-size:29px;line-height:1;letter-spacing:-.035em;word-spacing:.14em;text-transform:uppercase;margin-top:12px;
   font-variation-settings:"wdth" 70,"wght" 900;overflow-wrap:anywhere}
 .since{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
   color:var(--soft);margin-top:8px;line-height:1.6}

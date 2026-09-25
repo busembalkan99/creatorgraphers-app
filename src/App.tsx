@@ -135,7 +135,10 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   // Alt ekranlarda (yükleme, yönetim) sekme çubuğu yok; geri bağlantısı var.
   let altEkran = true
   const temaId = yol.startsWith('oyla/') ? yol.slice(5) : null
-  const sonucId = yol.startsWith('sonuc/') ? yol.slice(6) : null
+  // sonuc/<etkinlik> ya da sonuc/<etkinlik>/kare/<kare>: kare detayı kendi adresinde, telefonun
+  // geri hareketi detaydan sonuçlara dönsün (Buse, 2026-09-26)
+  const [sonucId, sonucKareId] = yol.startsWith('sonuc/')
+    ? (([e, , k]) => [e, k ?? null])(yol.slice(6).split('/')) : [null, null]
   const wrappedId = yol.startsWith('wrapped/') ? yol.slice(8) : null
   const paylasId = yol.startsWith('paylas/') ? yol.slice(7) : null
   const tahminId = yol.startsWith('tahmin/') ? yol.slice(7) : null
@@ -156,7 +159,7 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
       ekran = <Wrapped etkinlikId={wrappedId!} />
       break
     case 'sonuc':
-      ekran = <Sonuc uye={uye} etkinlikId={sonucId!} />
+      ekran = <Sonuc uye={uye} etkinlikId={sonucId!} kareId={sonucKareId} />
       break
     case 'oyla':
       ekran = <Oylama uye={uye} />

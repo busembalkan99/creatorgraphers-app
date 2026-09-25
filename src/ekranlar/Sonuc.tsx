@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz } from '../lib/zaman'
-import { git } from '../lib/yol'
+import { geriGit, git } from '../lib/yol'
+import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Ikon } from '../bilesenler/Ikon'
 import { Buyutec } from '../bilesenler/Buyutec'
 import { CikarPenceresi } from '../bilesenler/Cikar'
@@ -68,25 +69,25 @@ async function sonucVerisi(etkinlikId: string) {
   }
 }
 
-export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
-  const [v, setV] = useState<{ etkinlik: Etkinlik | null; kareler: SonucKare[] } | null>(null)
-  const [hata, setHata] = useState<string | null>(null)
-  const [sekme, setSekme] = useState(0)
-  const [detay, setDetay] = useState<SonucKare | null>(null)
-  // Detaydan dönünce galeri kaldığın yerde kalsın (Buse, 2026-09-18)
-  const donus = useRef<number | null>(null)
-  const ac = (k: SonucKare) => {
-    donus.current = document.querySelector('.sc')?.scrollTop ?? null
-    setDetay(k)
-  }
-  useEffect(() => {
-    if (detay || donus.current == null) return
-    const sc = document.querySelector('.sc')
-    if (sc) sc.scrollTop = donus.current
-    donus.current = null
-  }, [detay])
+// Detay bu oturumda sonuç sayfasından mı açıldı? Öyleyse kapatmak tarayıcının geri adımı
+// (geçmişte fazladan sonuç sayfası birikmesin). Bağlantıyla doğrudan açıldıysa sonuçlara gidilir.
+let detayBuradan = false
 
-  const yenile = () => sonucVerisi(etkinlikId).then(setV).catch(x => setHata(hataMetni(x)))
+export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId: string; kareId?: string | null }) {
+  type Veri = { etkinlik: Etkinlik | null; kareler: SonucKare[] }
+  const anahtar = `${uye.id}:sonuc:${etkinlikId}`
+  // Detay kendi adresinde; sonuç sayfasına dönünce ekran yeniden kuruluyor. Veri ve seçili tema
+  // bellekten gelsin: ilk karede tam boyda çizilsin (kaldığın yere dönülebilsin), tema sekmesi korunsun.
+  const [v, setV] = useState<Veri | null>(() => bellektenAl<Veri>(anahtar) ?? null)
+  const [hata, setHata] = useState<string | null>(null)
+  const [sekme, setSekmeYerel] = useState(() => bellektenAl<number>(`${anahtar}:sekme`) ?? 0)
+  const setSekme = (i: number) => { bellegeYaz(`${anahtar}:sekme`, i); setSekmeYerel(i) }
+  const ac = (k: SonucKare) => { detayBuradan = true; git(`sonuc/${etkinlikId}/kare/${k.id}`) }
+  const kapat = () => {
+    if (detayBuradan) { detayBuradan = false; history.back() } else geriGit(`sonuc/${etkinlikId}`)
+  }
+
+  const yenile = () => sonucVerisi(etkinlikId).then(d => setV(bellegeYaz(anahtar, d))).catch(x => setHata(hataMetni(x)))
   useEffect(() => { yenile() }, [etkinlikId, uye.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (hata) return <div className="sc"><Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" /><Hata metin={hata} /></div>
@@ -119,10 +120,13 @@ export function Sonuc({ uye, etkinlikId }: { uye: Uye; etkinlikId: string }) {
   const liste = sirali.filter(k => k.sira != null && k.sira >= 4)
   const galeri = temaKareler.filter(k => !k.sirali)
 
-  // Detay seçili temadan açılıyor, o yüzden temanın oylanıp oylanmadığını taşıyabiliyor
+  // Detay adresten: temanın oylanıp oylanmadığı karenin kendi temasından hesaplanıyor
+  const detay = kareId ? v.kareler.find(k => k.id === kareId) ?? null : null
   if (detay) {
-    return <KareDetay kare={detay} temaOylanmadi={oylanmadi} yonetici={uye.rol !== 'uye'}
-      kapat={() => setDetay(null)} degisti={() => { setDetay(null); yenile() }} />
+    const detayTema = yarisan.filter(k => k.tema === detay.tema)
+    const detayOylanmadi = detayTema.length > 0 && !detayTema.some(k => k.sirali)
+    return <KareDetay kare={detay} temaOylanmadi={detayOylanmadi} yonetici={uye.rol !== 'uye'}
+      kapat={kapat} degisti={() => { yenile(); kapat() }} />
   }
 
   return (

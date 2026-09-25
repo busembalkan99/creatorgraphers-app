@@ -83,6 +83,9 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
   const [sekme, setSekmeYerel] = useState(() => bellektenAl<number>(`${anahtar}:sekme`) ?? 0)
   const setSekme = (i: number) => { bellegeYaz(`${anahtar}:sekme`, i); setSekmeYerel(i) }
   const ac = (k: SonucKare) => { detayBuradan = true; git(`sonuc/${etkinlikId}/kare/${k.id}`) }
+  // Sonuç sayfası göründüyse detaydan çıkılmış demektir (telefonun geri hareketi dahil): işaret
+  // eski kalmasın, yoksa sonradan başka yoldan açılan detay history.back() ile yanlış yere dönerdi.
+  useEffect(() => { if (!kareId) detayBuradan = false }, [kareId])
   const kapat = () => {
     if (detayBuradan) { detayBuradan = false; history.back() } else geriGit(`sonuc/${etkinlikId}`)
   }
@@ -177,7 +180,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {birinciler.length > 0 && (
             <div className="odul">
-              <span className="lab">Temanın karesi</span>
+              <span className="lab">Birinci</span>
               {birinciler.length > 1 && (
                 <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
               )}

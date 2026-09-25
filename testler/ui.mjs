@@ -1024,6 +1024,25 @@ await olc(B, '39-sonuc-uye');
   bekle('kendi profilinde kareler var', (await A.locator('.grid figure').count()) > 0);
   bekle('kendi profilinde ayarlar var', icerir(await metin(A), 'Kulüp afişi'));
   await olc(A, '46-kendi-profilin');
+
+  // Karar 112: gizlilik notu bir kez, kaç sayı varsa ona göre
+  const kacKez = t => (t.match(/yalnız sen görüyorsun/gi) ?? []).length;
+  bekle('profil: tahmin skoru yokken not tek ve tekil', kacKez(await metin(A)) === 1 && icerir(await metin(A), 'Bunu yalnız sen görüyorsun'), (await metin(A)).slice(0, 300));
+  await A.route('**/rest/v1/rpc/tahmin_profilim*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[{"bilen":3,"toplam":5}]' }));
+  await A.reload(); await A.waitForTimeout(2200);
+  bekle('profil: ortalama ve tahmin skoru varken not tek ve ikisini söylüyor', kacKez(await metin(A)) === 1 && icerir(await metin(A), 'Bu ikisini yalnız sen görüyorsun') && icerir(await metin(A), 'Tahmin oyununda 3 / 5 kareyi bildin'), (await metin(A)).slice(0, 300));
+  await A.unroute('**/rest/v1/rpc/tahmin_profilim*');
+
+  // Karar 113: profildeki kareye basınca karenin kendisi açılıyor, oradan etkinliğe ve geri profile
+  await A.goto(APP + '#/profil'); await A.reload(); await A.waitForTimeout(2200);
+  await A.locator('.grid figure').first().click(); await A.waitForTimeout(1800);
+  const kareAdresi = A.url();
+  bekle('profil: kareye basınca kare detayı açılıyor', /#\/sonuc\/[^/]+\/kare\/[^/]+$/.test(kareAdresi) && await A.getByRole('button', { name: 'Sonuçlara dön', exact: true }).isVisible(), kareAdresi);
+  await A.goBack(); await A.waitForTimeout(1500);
+  bekle('profil: detaydan geri hareketi profile dönüyor', A.url().endsWith('#/profil'), A.url());
+  await A.goForward(); await A.waitForTimeout(1500);
+  await A.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await A.waitForTimeout(1500);
+  bekle('profil: detaydaki düğme karenin etkinliğine götürüyor', A.url() === kareAdresi.replace(/\/kare\/[^/]+$/, ''), A.url());
 }
 
 // 16 · Üye çıkarma ve geri alma (karar 99)

@@ -178,7 +178,7 @@ function kartlariKur(
     ),
   })
 
-  // 2-4 · Temanın karesi, tema başına
+  // 2-4 · Temanın birincisi, tema başına (karar 111)
   for (const t of oylanan) {
     const w = kazananlar(t.id)
     const tek = temaKareleri(t.id).length === 1
@@ -189,7 +189,7 @@ function kartlariKur(
           <span className="w-etiket p1">{ay} / {t.ad} / 01</span>
           {w.length > 1 ? (
             <>
-              <div className="w-baslik p2">Ortak<br /><span className="vurgu">birinci</span></div>
+              <div className="w-baslik p2">{t.ad} temasında<br /><span className="vurgu">ortak birinci</span></div>
               <div className="w-alan p3 w-esit">
                 {w.slice(0, 2).map(k => <div key={k.id} className="cerceve"><Foto k={k} /></div>)}
               </div>
@@ -197,7 +197,7 @@ function kartlariKur(
             </>
           ) : (
             <>
-              <div className="w-baslik p2">Temanın<br /><span className="vurgu">karesi</span></div>
+              <div className="w-baslik p2">{t.ad} temasının<br /><span className="vurgu">birincisi</span></div>
               <div className="w-alan p3"><div className="cerceve" style={{ width: '100%' }}><div className="bant-yapis" /><Foto k={w[0]} /></div></div>
               <div className="alt-satir"><Ad ad={w[0].sahip_ad} className="p4" /><span className="puan-kutu p5">{puan(w[0].ortalama)}</span></div>
             </>
@@ -303,27 +303,56 @@ function kisiselKart({ ay, yil, temalar, kareler, yarisan, ozet }:
   const yarisanBenim = benim.filter(k => !k.cikarildi)
   const sirali = yarisanBenim.filter(k => k.sirali && k.sira != null).sort((a, b) => (a.sira! - b.sira!) || ((b.ortalama ?? 0) - (a.ortalama ?? 0)))
   const temaDolu = (t: string) => yarisan.some(k => k.tema === t && k.sirali)
-  const fotoKart = (k: SK, ust: ReactNode, satir: ReactNode, alt: ReactNode, sag: string, stil?: CSSProperties): Kart => ({
+  // Karar 114: iki temada yarışan karesi varsa kartta ikisi yan yana. Her temanın en iyisi;
+  // ikinci kare, gösterilen en iyi sonucun temasından başka temanın en iyisi.
+  const iyisi = (l: SK[]) => [...l].sort((a, b) =>
+    ((a.sirali && a.sira != null ? a.sira : 99) - (b.sirali && b.sira != null ? b.sira : 99))
+    || ((b.ortalama ?? -1) - (a.ortalama ?? -1)))[0] ?? null
+  const ikinciOf = (k: SK) => iyisi(yarisanBenim.filter(x => x.tema !== k.tema))
+  const sonucYaz = (x: SK) => (x.sirali && x.sira != null ? (x.sira === 1 ? 'birinci' : iki(x.sira)) : 'galeride')
+  const fotoKart = (k: SK, ust: ReactNode, satir: ReactNode, alt: ReactNode, sag: string, stil?: CSSProperties): Kart => {
+    const ikinci = stil ? null : ikinciOf(k)
+    return {
     ad: 'kisisel', sinif: 'k5', kisi: true, sag,
     govde: (
       <div className="w-ic">
-        <span className="w-etiket">Sen / {k.tema_ad}</span>
+        <span className="w-etiket">Sen / {ikinci ? ay : k.tema_ad}</span>
         <div className="w-baslik">{ust}</div>
         <div className="yarik" />
-        <div className="w-alan"><div className="cik"><div className="cerceve sari-golge" style={stil}><Foto k={k} /></div></div></div>
+        {ikinci ? (
+          <div className="w-alan w-esit iki-kare">
+            {[k, ikinci].map(x => (
+              <div key={x.id}>
+                <div className="cerceve sari-golge"><Foto k={x} /></div>
+                <div className="mono iki-kare-alt">{x.tema_ad} · {sonucYaz(x)}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="w-alan"><div className="cik"><div className="cerceve sari-golge" style={stil}><Foto k={k} /></div></div></div>
+        )}
         <div className="w-ad" style={{ marginTop: 20 }}>{satir}</div>
         <div className="alt-satir">{alt}</div>
       </div>
     ),
-  })
+    }
+  }
 
   // A · Temayı kazandın
   const kazandi = sirali.find(k => k.sira === 1)
   if (kazandi) {
     const ortak = yarisan.filter(k => k.tema === kazandi.tema && k.sirali && k.sira === 1).length > 1
+    // Karar 114 ile iki kare yan yana: iki temayı da kazandıysa metin de ikisini söylüyor
+    const ikinci = ikinciOf(kazandi)
+    const ikisi = !ortak && ikinci?.sirali && ikinci.sira === 1
+      && !yarisan.some(k => k.tema === ikinci.tema && k.id !== ikinci.id && k.sirali && k.sira === 1)
     return fotoKart(kazandi,
-      ortak ? <>Ortak<br /><span className="vurgu">birinci oldun</span></> : <>Temanın<br /><span className="vurgu">karesi senin</span></>,
-      ortak ? `${kazandi.tema_ad} temasında ortak birinci oldun` : `${kazandi.tema_ad} temasını sen kazandın`,
+      ortak ? <>Ortak<br /><span className="vurgu">birinci oldun</span></>
+        : ikisi ? <>İki temayı<br /><span className="vurgu">sen kazandın</span></>
+        : <>Temayı<br /><span className="vurgu">sen kazandın</span></>,
+      ortak ? `${kazandi.tema_ad} temasında ortak birinci oldun`
+        : ikisi ? `${kazandi.tema_ad} ve ${ikinci!.tema_ad} temalarının birincisi`
+        : `${kazandi.tema_ad} temasının birincisi`,
       <><span className="sari-etiket"><span className="mono">Ortalaman</span><b>{puan(kazandi.ortalama)}</b></span><span className="no-kutu">01</span></>,
       `${kazandi.oy_sayisi ?? 0} kişi puanladı`)
   }

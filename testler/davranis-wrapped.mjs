@@ -157,7 +157,8 @@ try {
   const PW = await kisi(W.eposta);
   await ac(PW, `wrapped/${E}`);
   bekle('A: kişisel karta ulaşıldı', await kisiselKartaGit(PW));
-  bekle('A: temanın karesi senin', await var_(PW, 'karesi senin') && await var_(PW, 'Sokak temasını sen kazandın') && (await PW.locator('.kisi .no-kutu').textContent()) === '01', (await metin(PW)).slice(0, 220));
+  bekle('A: temayı sen kazandın (karar 111)', await var_(PW, 'Temayı sen kazandın') && await var_(PW, 'Sokak temasının birincisi') && (await PW.locator('.kisi .no-kutu').textContent()) === '01', (await metin(PW)).slice(0, 220));
+  bekle('A: tek temada tek kare, yan yana yok', (await PW.locator('.kisi .iki-kare').count()) === 0);
   await olc(PW, '75-wrapped-A');
   // B · sıralamaya girdin (ikinci)
   const PR = await kisi(foto[1].eposta);
@@ -299,6 +300,19 @@ try {
   const PM = await kisi(foto[4].eposta);
   await ac(PM, `wrapped/${E4}`); await kisiselKartaGit(PM);
   bekle('B: iki temada sıralamaya girdin', await var_(PM, 'İki temada sıralamaya girdin') && (await PM.locator('.kisi .no-kutu').textContent()) === '02', (await metin(PM)).slice(0, 220));
+  // Karar 114: iki temanın karesi yan yana, altlarında tema ve sonuç
+  const ikiKare = async P2 => P2.locator('.kisi .iki-kare > div').evaluateAll(l => l.map(d => ({
+    alt: d.querySelector('.iki-kare-alt')?.textContent.trim(), foto: !!d.querySelector('img, .bos, .yer, [class*=foto]'),
+  })));
+  const m2 = await ikiKare(PM);
+  bekle('B: iki kare yan yana, her birinin altında tema ve sıra', m2.length === 2 && m2.map(x => x.alt).sort().join('|') === 'Duvar · 02|Sis · 02', JSON.stringify(m2));
+  bekle('B: iki karede etiket temayı değil ayı söylüyor', !(await var_(PM, 'Sen / Sis')) && !(await var_(PM, 'Sen / Duvar')));
+  const PB = await kisi(foto[8].eposta);
+  await ac(PB, `wrapped/${E4}`); await kisiselKartaGit(PB);
+  const m3 = await ikiKare(PB);
+  bekle('A: iki temayı kazanan: iki kare, ikisi de birinci', m3.length === 2 && m3.every(x => x.alt.endsWith('· birinci')), JSON.stringify(m3));
+  bekle('A: iki temayı kazanan metinde de iki tema', await var_(PB, 'İki temayı sen kazandın') && await var_(PB, 'Sis ve Duvar temalarının birincisi'), (await metin(PB)).slice(0, 220));
+  await PB.screenshot({ path: `${SS}/wr-iki-kare.png` });
 
   // ------------------------------------------------ kendiliğinden açılmada ağ hatası: ana ekran bozulmuyor, sonra yeniden deneniyor
   // E4 en yeni sonuç, Yusuf onu izlemedi. İstek ilk girişte 500 dönüyor; sayfa YENİLENMEDEN

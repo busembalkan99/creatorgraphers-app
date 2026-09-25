@@ -88,11 +88,9 @@ export function Profil({ uye, uyeDegisti, hedef }:
         <div><b>{k.kare_sayisi}</b><span>Kare</span></div>
         <div><b>{k.seri}</b><span>Seri</span></div>
       </div>
-      {benim && k.ortalama != null && (
-        <p className="veri">Ortalaman <b>{puanYaz(k.ortalama)}</b>. Yalnız sen görüyorsun.</p>
-      )}
-      {/* Karar 106: tahmin skoru sonuçlanmış etkinliklerden birikiyor, yalnız kişiye */}
-      {benim && <TahminSkoru />}
+      {/* Karar 106: tahmin skoru sonuçlanmış etkinliklerden birikiyor, yalnız kişiye.
+          Karar 112: gizlilik notu iki satırın altında bir kez. */}
+      {benim && <KisiselSayilar ortalama={k.ortalama} />}
 
       <h2 className="sec">Katkı</h2>
       {k.tam_set || Number(k.tema_sayisi) > 0 ? (
@@ -161,7 +159,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         <>
           <div className="grid">
             {v.kareler.map(kr => (
-              <figure key={kr.id} className={kr.sirali ? 'sirali' : ''} onClick={() => git(`sonuc/${kr.etkinlik}`)}>
+              <figure key={kr.id} className={kr.sirali ? 'sirali' : ''} onClick={() => git(`sonuc/${kr.etkinlik}/kare/${kr.id}`)}>
                 {kr.url && <img src={kr.url} alt={`${kr.tema_ad} · ${k.ad}`} />}
                 <figcaption>
                   <span>{kr.tema_ad}</span>
@@ -287,12 +285,21 @@ function asamaCumlesi(e: Etkinlik) {
   return `Oylama açık · ${kalanYaz(e.oylama_biter)} kaldı`
 }
 
-/** Tahmin oyununun birikmiş skoru. Sunucu yalnız sonuçlanmış etkinlikleri sayıyor (0014). */
-function TahminSkoru() {
+/** Yalnız kişinin gördüğü sayılar: ortalaması ve tahmin oyunu skoru (sunucu yalnız sonuçlanmış
+ *  etkinlikleri sayıyor, 0014). Gizlilik notu ikisinin altında bir kez (karar 112). */
+function KisiselSayilar({ ortalama }: { ortalama: number | null }) {
   const [t, setT] = useState<{ bilen: number; toplam: number } | null>(null)
   useEffect(() => {
     sb.rpc('tahmin_profilim').then(({ data }) => setT(((data ?? []) as { bilen: number; toplam: number }[])[0] ?? null))
   }, [])
-  if (!t || !t.toplam) return null
-  return <p className="veri">Tahmin oyununda <b>{t.bilen} / {t.toplam}</b> kareyi bildin. Yalnız sen görüyorsun.</p>
+  const tahmin = !!t && t.toplam > 0
+  const n = (ortalama != null ? 1 : 0) + (tahmin ? 1 : 0)
+  if (!n) return null
+  return (
+    <p className="veri">
+      {ortalama != null && <>Ortalaman <b>{puanYaz(ortalama)}</b>.<br /></>}
+      {tahmin && <>Tahmin oyununda <b>{t!.bilen} / {t!.toplam}</b> kareyi bildin.<br /></>}
+      {n === 2 ? 'Bu ikisini yalnız sen görüyorsun.' : 'Bunu yalnız sen görüyorsun.'}
+    </p>
+  )
 }

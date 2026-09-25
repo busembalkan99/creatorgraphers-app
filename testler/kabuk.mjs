@@ -479,6 +479,20 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
   // Olmayan kare adresi: sonuç sayfası açılıyor, boş ekran değil
   await p.goto(sonucAdres + '/kare/00000000-0000-0000-0000-000000000000'); await p.reload(); await p.waitForTimeout(1800);
   bekle('olmayan kare adresinde sonuçlar açılıyor', (await p.locator('.sekmeler, .bos-tema').count()) > 0);
+  // Detay sonuçlardan açılıp telefonun geri hareketiyle kapatılınca işaret sıfırlanmalı: sonra
+  // profilden açılan detayın düğmesi geçmişte geri gitmemeli, karenin etkinliğine gitmeli
+  await p.goto(sonucAdres); await p.reload(); await p.waitForTimeout(1800);
+  await p.locator('.izgara figure, .satir-kare, .kursu figure, .odul img').last().click(); await p.waitForTimeout(1000);
+  await p.goBack(); await p.waitForTimeout(1200);
+  await p.goto(APP + '#/profil'); await p.waitForTimeout(2000);
+  if (await p.locator('.grid figure').count()) {
+    await p.locator('.grid figure').first().click(); await p.waitForTimeout(1800);
+    const detayAdresi = p.url();
+    if (await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).count()) {
+      await p.getByRole('button', { name: 'Sonuçlara dön', exact: true }).click(); await p.waitForTimeout(1200);
+      bekle('geri hareketinden sonra profilden açılan detay etkinliğe dönüyor', p.url() === detayAdresi.replace(/\/kare\/[^/]+$/, ''), `${p.url()} / ${detayAdresi}`);
+    } else bekle('profil karesi sonuçlanmış etkinlikten (kontrol)', false, detayAdresi);
+  } else bekle('profilde kare var (kontrol)', false);
   await p.setViewportSize({ width: 390, height: 844 });
 }
 

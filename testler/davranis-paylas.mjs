@@ -83,7 +83,7 @@ try {
   bekle('1: seçim ekranı açılıyor', await var_(P, 'Kartını paylaş') && (await P.locator('.pk-kart').count()) === 1, (await metin(P)).slice(0, 120));
   bekle('1: ilk düzen dev puan, 1 / 4', (await duzen(P)) === 'dev' && await var_(P, '1 / 4'));
   const v1 = await veri(P);
-  bekle('1: kazanan için "Temanın karesi", sıra 01', v1.baslik === 'Temanın karesi' && v1.sira === '01', JSON.stringify(v1 && { b: v1.baslik, s: v1.sira }));
+  bekle('1: kazanan için "Tema birincisi", sıra 01', v1.baslik === 'Tema birincisi' && v1.sira === '01', JSON.stringify(v1 && { b: v1.baslik, s: v1.sira }));
   bekle('1: kaç kişi puanladı yazıyor', /^\d+ kişi puanladı$/.test(v1.alt), v1.alt);
   bekle('1: temadaki kare sayısı çıkarılan hariç (5)', v1.temaKare === 5, String(v1.temaKare));
   bekle('1: fotoğraf gerçekten çizildi (düz gri değil)', (await cesitlilik(P, 150, 700, 930, 1150)) > 8);
@@ -159,7 +159,7 @@ try {
     const m = await import('/src/lib/paylasimKarti.ts');
     return [m.kartBasligi(1, true, false), m.kartBasligi(1, true, true), m.kartBasligi(3, true, false), m.kartBasligi(5, true, false), m.kartBasligi(4, false, false), m.kartBasligi(null, false, false)];
   });
-  bekle('6: başlıklar: kazanan, ortak, üçüncü, beşinci, galeride', JSON.stringify(basliklar) === JSON.stringify(['Temanın karesi', 'Ortak birinci', 'Üçüncü', 'Beşinci', 'Galeride', 'Galeride']), JSON.stringify(basliklar));
+  bekle('6: başlıklar: kazanan, ortak, üçüncü, beşinci, galeride', JSON.stringify(basliklar) === JSON.stringify(['Tema birincisi', 'Ortak birinci', 'Üçüncü', 'Beşinci', 'Galeride', 'Galeride']), JSON.stringify(basliklar));
 
   // ------------------------------------------------ 7. hata yolları
   // 7a: yükleme düşerse ekran sonsuza dek beklemiyor, hatayı söylüyor

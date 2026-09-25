@@ -199,3 +199,7 @@
 .wr .w-yukleniyor{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font:700 11px/1 'Space Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:#e9e6dc}
 @media (prefers-reduced-motion:reduce){.wr .tel *{animation:none!important;opacity:1!important}}
+/* Karar 114: iki temanın karesi yan yana, altlarında tema ve sonuç */
+.wr .iki-kare{align-items:start;margin-top:4px}
+.wr .iki-kare .cerceve{margin-right:var(--golge)}
+.wr .iki-kare-alt{margin-top:calc(var(--golge) + 8px);font-size:11px;line-height:1.3;overflow-wrap:anywhere}

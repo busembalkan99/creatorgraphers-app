@@ -2,7 +2,7 @@
  * Paylaşım kartı (karar 104): dört düzen, 1080x1920 tuvale çiziliyor. Seçim ekranındaki önizleme
  * ve indirilen/paylaşılan PNG aynı tuvalden çıkıyor, yani görülen birebir paylaşılan.
  * Ölçüler .superpowers/.../paylasim-duzen.html'deki P1-P4'ten birebir.
- * Metin (M2 + M4): kazanan "Temanın karesi", eşit birinci "Ortak birinci", sıralamaya giren tek
+ * Metin (M2 + M4): kazanan "Tema birincisi" (karar 111), eşit birinci "Ortak birinci", sıralamaya giren tek
  * kelime sıra ("Üçüncü"), girmeyen "Galeride".
  */
 
@@ -19,7 +19,7 @@ export type KartVeri = {
   yil: string         // "2026"
   tema: string
   ad: string          // paylaşanın adı
-  baslik: string      // "Temanın karesi" | "Ortak birinci" | "Üçüncü" | "Galeride"
+  baslik: string      // "Tema birincisi" | "Ortak birinci" | "Üçüncü" | "Galeride"
   puan: string        // "8,4" ya da "—"
   alt: string         // "12 kişi puanladı" | "Puanı yalnız sen görüyorsun"
   sira: string        // "01" | "—"
@@ -300,6 +300,6 @@ export function kartCiz(duzen: Duzen, v: KartVeri): HTMLCanvasElement {
 const SIRA = ['', 'Birinci', 'İkinci', 'Üçüncü', 'Dördüncü', 'Beşinci']
 export function kartBasligi(sira: number | null, sirali: boolean, ortak: boolean) {
   if (!sirali || sira == null) return 'Galeride'
-  if (sira === 1) return ortak ? 'Ortak birinci' : 'Temanın karesi'
+  if (sira === 1) return ortak ? 'Ortak birinci' : 'Tema birincisi'
   return SIRA[sira] ?? `${sira}.`
 }

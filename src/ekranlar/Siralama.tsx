@@ -133,13 +133,16 @@ export function Siralama({ uye }: { uye: Uye }) {
           {sirali.map(s => (
             <button key={s.uye} className={`row ${s.benim ? 'me' : ''}`} onClick={() => git(`profil/${s.uye}`)}>
               <span className="no">{String(s.sira).padStart(2, '0')}</span>
-              {s.url && <img src={s.url} alt="" />}
               {/* Görsel kişinin en iyi karesi, sayı bütün karelerinin ortalaması (karar 53).
-                  İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu söylüyor. */}
-              <span className="nm">
-                <span>{s.ad}</span>
-                {s.url && s.kare_sayisi > 1 && <small>En yüksek puanlı karesi</small>}
-              </span>
+                  İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu
+                  söylüyor. Kareninki görselin altında, çünkü kareye ait (karar 110). */}
+              {s.url && (
+                <span className="kr">
+                  <img src={s.url} alt="" />
+                  {s.kare_sayisi > 1 && <small>en iyisi</small>}
+                </span>
+              )}
+              <span className="nm"><span>{s.ad}</span></span>
               <span className="av">
                 {puanYaz(s.ortalama)}
                 <small>{s.kare_sayisi > 1 ? `${s.kare_sayisi} kare ort.` : 'tek kare'}</small>

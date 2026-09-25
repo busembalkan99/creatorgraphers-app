@@ -971,19 +971,34 @@ await olc(B, '39-sonuc-uye');
     const veri = await A.evaluate(async () => (await window.__sb.rpc('siralama')).data.filter(x => x.sirali));
     const satirlar = await A.locator('.row').evaluateAll(l => l.map(r => ({
       ad: r.querySelector('.nm > span')?.textContent.trim(),
-      alt: r.querySelector('.nm small')?.textContent.trim() ?? null,
+      alt: r.querySelector('.kr small')?.textContent.trim() ?? null,
       sayiAlt: r.querySelector('.av small')?.textContent.trim() ?? null,
     })));
     const uyusmayan = satirlar.filter(r => {
       const v = veri.find(x => x.ad.toLocaleUpperCase('tr-TR') === r.ad.toLocaleUpperCase('tr-TR'));
       if (!v) return true;
       const n = Number(v.kare_sayisi);
-      return r.sayiAlt !== (n > 1 ? `${n} kare ort.` : 'tek kare') || r.alt !== (n > 1 && v.dosya ? 'En yüksek puanlı karesi' : null);
+      return r.sayiAlt !== (n > 1 ? `${n} kare ort.` : 'tek kare') || r.alt !== (n > 1 && v.dosya ? 'en iyisi' : null);
     });
     bekle('sıralı satır: sayının altında kaç karenin ortalaması olduğu yazıyor', satirlar.length > 0 && satirlar.every(r => r.sayiAlt), JSON.stringify(satirlar));
-    bekle('sıralı satır: altyazılar kare sayısına uyuyor, tek karede "en yüksek" yok', uyusmayan.length === 0, JSON.stringify({ uyusmayan, veri: veri.map(x => [x.ad, x.kare_sayisi]) }));
+    bekle('sıralı satır: altyazılar kare sayısına uyuyor, tek karede "en iyisi" yok', uyusmayan.length === 0, JSON.stringify({ uyusmayan, veri: veri.map(x => [x.ad, x.kare_sayisi]) }));
+    const kutu = await A.locator('.row .kr').first().evaluate(k => {
+      const im = k.querySelector('img').getBoundingClientRect(), y = k.querySelector('small')?.getBoundingClientRect();
+      return y && { altinda: y.top >= im.bottom, tasmiyor: y.width <= 48 };
+    });
+    bekle('sıralı satır: "en iyisi" görselin altında ve görsel genişliğini aşmıyor', !!kutu?.altinda && !!kutu?.tasmiyor, JSON.stringify(kutu));
     bekle('sıralı satır: en az bir satırda birden çok kare (kontrol)', veri.some(x => Number(x.kare_sayisi) > 1), JSON.stringify(veri.map(x => [x.ad, x.kare_sayisi])));
   }
+  // Ana ekran uygulamasında alt güvenli alan payı düğmenin yüksekliğine EKLENMELİ, içinden düşmemeli
+  // (Chromium payı taklit edemiyor; kural stil sayfasından okunuyor)
+  const sekmeKurali = await A.evaluate(() => {
+    for (const ss of document.styleSheets) {
+      let kurallar; try { kurallar = ss.cssRules } catch { continue }   // başka kaynaktan (yazı tipi) gelen sayfa okunamaz
+      for (const r of kurallar) if (r.selectorText === '.tabs button') return { min: r.style.minHeight, alt: r.style.paddingBottom };
+    }
+    return null;
+  });
+  bekle('alt menü: güvenli alan payı yüksekliğe ekleniyor', /calc\(52px \+ env\(safe-area-inset-bottom\)\)/.test(sekmeKurali?.min ?? '') && /env\(safe-area-inset-bottom\)/.test(sekmeKurali?.alt ?? ''), JSON.stringify(sekmeKurali));
   bekle('Müdavim şeridi açıldı', (await A.locator('.mud').count()) === 1);
   bekle('kendi satırın işaretli', (await A.locator('.row.me').count()) + (await A.locator('.unr .me').count()) > 0);
   await olc(A, '44-siralama-dolu');

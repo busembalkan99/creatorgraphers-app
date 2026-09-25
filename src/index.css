@@ -233,9 +233,11 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 /* sekmeler */
 .tabs{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--rule)}
 /* Guvenli alan payi kabin degil DUGMENIN icinde: pay kapta olunca secili sekmenin
-   dolgusu alt kenara inmiyor, altinda ayri bir siyah serit kaliyordu. */
+   dolgusu alt kenara inmiyor, altinda ayri bir siyah serit kaliyordu. Pay yukseklige
+   EKLENIYOR: border-box'ta 52px'in icinden dusulunce ana ekran uygulamasinda (pay ~34px)
+   simgeye 18px kaliyor, simge ve yazi yukari tasiyordu (2026-09-26). */
 .tabs button{appearance:none;border:0;background:none;cursor:pointer;padding-bottom:env(safe-area-inset-bottom);
-  min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  min-height:calc(52px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
   font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft);
   border-right:1px solid var(--rule)}
 .tabs button:last-child{border-right:0}
@@ -605,7 +607,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
 .row.me{box-shadow:inset 3px 0 0 var(--oyla);padding-left:9px}
 /* Satırın iki yarısı ne olduğunu söylüyor: kare en iyisi, sayı bütün karelerin ortalaması */
-.row .nm small,.row .av small{display:block;margin-top:3px;font-size:10px;line-height:1.3;font-weight:700;
+.row .kr{flex:0 0 auto;width:44px;display:flex;flex-direction:column;align-items:center}
+.row .kr small{display:block;margin-top:3px;font-size:9.5px;line-height:1.2;font-weight:700;letter-spacing:.04em;
+  color:var(--soft);white-space:nowrap}
+.row .av small{display:block;margin-top:3px;font-size:10px;line-height:1.3;font-weight:700;
   letter-spacing:.06em;text-transform:none;color:var(--soft);font-variation-settings:normal}
 .row .av{text-align:right}
 

@@ -95,8 +95,8 @@ const A = await oturum('kurucu@test.local');
   await ac(A, 'siralama');
   const ilk = A.locator('.row').first();
   bekle('tek kareli sıralı satır: sayının altında "tek kare"', (await ilk.locator('.av small').textContent())?.trim() === 'tek kare');
-  bekle('tek kareli sıralı satır: "en yüksek puanlı" yazmıyor', (await ilk.locator('.nm small').count()) === 0);
-  bekle('çok kareli satır: iki altyazı da duruyor', (await A.locator('.row').nth(1).locator('.nm small').textContent())?.trim() === 'En yüksek puanlı karesi'
+  bekle('tek kareli sıralı satır: "en iyisi" yazmıyor', (await ilk.locator('.kr small').count()) === 0);
+  bekle('çok kareli satır: iki altyazı da duruyor', (await A.locator('.row').nth(1).locator('.kr small').textContent())?.trim() === 'en iyisi'
     && /^\d+ kare ort\.$/.test((await A.locator('.row').nth(1).locator('.av small').textContent())?.trim() ?? ''));
   await A.unroute('**/rest/v1/rpc/siralama*');
 }

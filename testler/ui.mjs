@@ -966,13 +966,31 @@ await olc(B, '39-sonuc-uye');
   bekle('sıralı satırda kare görünüyor', (await A.locator('.row img').count()) === (await A.locator('.row').count()),
     `${await A.locator('.row img').count()} / ${await A.locator('.row').count()}`);
   bekle('sıralı satırda puan var', /\d,\d/.test(await yaz(A, '.row .av')), await yaz(A, '.row .av'));
+  // Görsel en iyi kare, sayı bütün karelerin ortalaması: satır ikisini de söylüyor
+  {
+    const veri = await A.evaluate(async () => (await window.__sb.rpc('siralama')).data.filter(x => x.sirali));
+    const satirlar = await A.locator('.row').evaluateAll(l => l.map(r => ({
+      ad: r.querySelector('.nm > span')?.textContent.trim(),
+      alt: r.querySelector('.nm small')?.textContent.trim() ?? null,
+      sayiAlt: r.querySelector('.av small')?.textContent.trim() ?? null,
+    })));
+    const uyusmayan = satirlar.filter(r => {
+      const v = veri.find(x => x.ad.toLocaleUpperCase('tr-TR') === r.ad.toLocaleUpperCase('tr-TR'));
+      if (!v) return true;
+      const n = Number(v.kare_sayisi);
+      return r.sayiAlt !== (n > 1 ? `${n} kare ort.` : 'tek kare') || r.alt !== (n > 1 && v.dosya ? 'En yüksek puanlı karesi' : null);
+    });
+    bekle('sıralı satır: sayının altında kaç karenin ortalaması olduğu yazıyor', satirlar.length > 0 && satirlar.every(r => r.sayiAlt), JSON.stringify(satirlar));
+    bekle('sıralı satır: altyazılar kare sayısına uyuyor, tek karede "en yüksek" yok', uyusmayan.length === 0, JSON.stringify({ uyusmayan, veri: veri.map(x => [x.ad, x.kare_sayisi]) }));
+    bekle('sıralı satır: en az bir satırda birden çok kare (kontrol)', veri.some(x => Number(x.kare_sayisi) > 1), JSON.stringify(veri.map(x => [x.ad, x.kare_sayisi])));
+  }
   bekle('Müdavim şeridi açıldı', (await A.locator('.mud').count()) === 1);
   bekle('kendi satırın işaretli', (await A.locator('.row.me').count()) + (await A.locator('.unr .me').count()) > 0);
   await olc(A, '44-siralama-dolu');
 
   // Sırasız blokta isim varsa oraya, yoksa sıralı satıra dokun
   const sirasiz = await A.locator('.unr .names button').count();
-  const hedefAd = sirasiz > 0 ? await yaz(A, '.unr .names button') : await yaz(A, '.row .nm');
+  const hedefAd = sirasiz > 0 ? await yaz(A, '.unr .names button') : await yaz(A, '.row .nm > span');
   await (sirasiz > 0 ? A.locator('.unr .names button').first() : A.locator('.row').first()).click();
   await A.waitForTimeout(2000);
   bekle('isimden profil açılıyor', icerir(await metin(A), hedefAd), `${hedefAd} | ${(await metin(A)).slice(0, 120)}`);

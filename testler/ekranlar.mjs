@@ -86,6 +86,19 @@ const A = await oturum('kurucu@test.local');
   await admin.from('oylar').insert(oylar);
   await ac(A, 'siralama');
   bekle('veri geri kondu: sıralı satırlar döndü', (await A.locator('.row').count()) > 0);
+
+  // Karar 110: tek karesi olan sıralı kişide sayı o karenin puanı; "en yüksek" yazmıyor
+  await A.route('**/rest/v1/rpc/siralama*', async r => {
+    const c = await r.fetch();
+    r.fulfill({ response: c, json: (await c.json()).map((x, i) => (i === 0 ? { ...x, kare_sayisi: 1 } : x)) });
+  });
+  await ac(A, 'siralama');
+  const ilk = A.locator('.row').first();
+  bekle('tek kareli sıralı satır: sayının altında "tek kare"', (await ilk.locator('.av small').textContent())?.trim() === 'tek kare');
+  bekle('tek kareli sıralı satır: "en yüksek puanlı" yazmıyor', (await ilk.locator('.nm small').count()) === 0);
+  bekle('çok kareli satır: iki altyazı da duruyor', (await A.locator('.row').nth(1).locator('.nm small').textContent())?.trim() === 'En yüksek puanlı karesi'
+    && /^\d+ kare ort\.$/.test((await A.locator('.row').nth(1).locator('.av small').textContent())?.trim() ?? ''));
+  await A.unroute('**/rest/v1/rpc/siralama*');
 }
 
 // ---------------------------------------------------------------- Üyeler: rozet, sayaç, yetki

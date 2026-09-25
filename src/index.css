@@ -604,6 +604,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .row .av{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
   font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
 .row.me{box-shadow:inset 3px 0 0 var(--oyla);padding-left:9px}
+/* Satırın iki yarısı ne olduğunu söylüyor: kare en iyisi, sayı bütün karelerin ortalaması */
+.row .nm small,.row .av small{display:block;margin-top:3px;font-size:10px;line-height:1.3;font-weight:700;
+  letter-spacing:.06em;text-transform:none;color:var(--soft);font-variation-settings:normal}
+.row .av{text-align:right}
 
 /* sırasız blok: düz metin akışı, satıra çevirmek sıralıymış gibi okutur */
 .unr{margin-top:16px;border-top:4px solid var(--ink);padding-top:11px}

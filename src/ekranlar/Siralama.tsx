@@ -134,8 +134,16 @@ export function Siralama({ uye }: { uye: Uye }) {
             <button key={s.uye} className={`row ${s.benim ? 'me' : ''}`} onClick={() => git(`profil/${s.uye}`)}>
               <span className="no">{String(s.sira).padStart(2, '0')}</span>
               {s.url && <img src={s.url} alt="" />}
-              <span className="nm">{s.ad}</span>
-              <span className="av">{puanYaz(s.ortalama)}</span>
+              {/* Görsel kişinin en iyi karesi, sayı bütün karelerinin ortalaması (karar 53).
+                  İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu söylüyor. */}
+              <span className="nm">
+                <span>{s.ad}</span>
+                {s.url && s.kare_sayisi > 1 && <small>En yüksek puanlı karesi</small>}
+              </span>
+              <span className="av">
+                {puanYaz(s.ortalama)}
+                <small>{s.kare_sayisi > 1 ? `${s.kare_sayisi} kare ort.` : 'tek kare'}</small>
+              </span>
             </button>
           ))}
 

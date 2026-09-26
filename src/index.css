@@ -858,10 +858,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kart-bas span{margin-left:auto;letter-spacing:.04em;text-transform:none}
 .kart{background:var(--kart);border-radius:var(--kart-r);padding:4px 16px;flex:0 0 auto}
 /* Sıralama satırları: her satır kendi kartı, aralarında 4px (Buse, 2026-09-26) */
-.satirlar{display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
-.satirlar .row{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}
-.satirlar .row.me{box-shadow:none;margin:0;padding-left:16px;background:rgba(12,110,74,.28)}
-.satirlar .row img{border-radius:var(--foto-r)}
+.satir-kartlari{display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
+.satir-kartlari .row{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}
+.satir-kartlari .row.me{box-shadow:none;margin:0;padding-left:16px;background:rgba(12,110,74,.28)}
+.satir-kartlari .row img{border-radius:var(--foto-r)}
 .kart-not{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.6;margin:0 0 10px}
 .bos-kart{padding:14px 16px;display:flex;flex-direction:column;gap:4px}
 .bos-kart + .bos-kart{margin-top:var(--s-ic)}
@@ -869,8 +869,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .bos-kart span{font-size:11px;color:var(--soft);line-height:1.5}
 .kart.isimler,.mud-kart .isimler{padding:10px 16px;font-size:12.5px;font-weight:900;text-transform:uppercase;line-height:2.8;color:var(--dim)}
 .kart.isimler button,.mud-kart .isimler button{appearance:none;border:0;background:none;font:inherit;color:inherit;cursor:pointer;margin-right:12px;padding:5px 0}
-/* Çipin boşluğu dokunma alanını küçültmesin: dikey 5px, satır yüksekliğiyle 45px (karar 58) */
-.kart.isimler button.me,.mud-kart .isimler button.me{background:var(--oyla);color:var(--ink);padding:5px 8px;border-radius:var(--cip-r)}
+/* Kendi adın: ince çip ismin kendisinde; dokunma alanı düğmenin dikey boşluğuyla 45px (karar 58) */
+.isimler .me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:var(--cip-r)}
 .mud-kart{padding:14px 16px}
 .mud-kart b{display:block;font-size:26px;line-height:1;text-transform:uppercase;font-variation-settings:"wdth" 70,"wght" 900}
 .mud-kart > span{display:block;font-size:11px;color:var(--soft);margin-top:6px}

@@ -135,6 +135,11 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   await ac('siralama');
   bekle('ekran: Serbest tablosu düşerse ana tablo duruyor', (await p.locator('.row[data-tablo=sezon]').count()) > 0 && (await p.locator('.row[data-tablo=serbest]').count()) === 0 && (await p.locator('.hata').count()) === 0, (await metin()).slice(0, 200));
   await p.unroute('**/rest/v1/rpc/serbest_siralama*');
+  // Serbest'te kare var ama hiçbiri sıralamaya girmedi: boş durum kartı
+  await p.route('**/rest/v1/rpc/serbest_siralama*', async r => { const c = await r.fetch(); r.fulfill({ response: c, json: (await c.json()).map(x => ({ ...x, sirali: false, sira: null, ortalama: null })) }); });
+  await ac('siralama');
+  bekle('ekran: Serbest temasında sıralı kimse yoksa boş durum kartı', (await p.locator('.bos-kart', { hasText: 'Henüz serbest kare yok' }).count()) === 1 && (await p.locator('.row[data-tablo=serbest]').count()) === 0);
+  await p.unroute('**/rest/v1/rpc/serbest_siralama*');
   await ac('etkinlikler');
   bekle('ekran: arşivde ekstra etkinlik "EK"', (await p.locator('.ev .no', { hasText: 'EK' }).count()) === 1);
   bekle('ekran: arşivde ay yanında " · ekstra"', (await p.locator('.ev .mo', { hasText: '· ekstra' }).count()) === 1);

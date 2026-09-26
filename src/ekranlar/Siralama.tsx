@@ -73,7 +73,6 @@ export function Siralama({ uye }: { uye: Uye }) {
       {s.url && (
         <span className="kr">
           <img src={s.url} alt="" />
-          {s.kare_sayisi > 1 && <small>en iyi karesi</small>}
         </span>
       )}
       <span className="nm"><span>{s.ad}</span></span>
@@ -130,7 +129,7 @@ export function Siralama({ uye }: { uye: Uye }) {
                   <span>Son etkinliklerin hepsine kare verenler.</span>
                   <div className="isimler">
                     {v.mudavim.map(m => (
-                      <button key={m.uye} className={m.benim ? 'me' : ''} onClick={() => git(`profil/${m.uye}`)}>{m.ad}</button>
+                      <button key={m.uye} onClick={() => git(`profil/${m.uye}`)}><span className={m.benim ? 'me' : undefined}>{m.ad}</span></button>
                     ))}
                   </div>
                 </div>
@@ -140,17 +139,19 @@ export function Siralama({ uye }: { uye: Uye }) {
           {(
             <>
               <div className="kart-bas">Sıralama<span>İlk {sirali.length}</span></div>
+              {/* Karar 110: kare kişinin en iyisi, puan bütün karelerinin ortalaması. Satırlarda değil, bir kez (Buse, 2026-09-26). */}
+              <p className="kart-not">Kare, kişinin en iyi karesi; puan, bütün karelerinin ortalaması.</p>
               {sirali.length === 0 ? (
                 <div className="kart bos-kart"><b>Sıralama henüz yok</b><span>Sezonda hiç puan verilmemiş.</span></div>
               ) : (
-                <div className="satirlar">{sirali.map(s => satirCiz(s))}</div>
+                <div className="satir-kartlari">{sirali.map(s => satirCiz(s))}</div>
               )}
               {sirasiz.length > 0 && (
                 <>
                   <div className="kart-bas">Sezonda kare veren diğer isimler</div>
                   <div className="kart isimler">
                 {sirasiz.map(s => (
-                  <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>{s.ad}</button>
+                  <button key={s.uye} onClick={() => git(`profil/${s.uye}`)}><span className={s.benim ? 'me' : undefined}>{s.ad}</span></button>
                 ))}
               </div>
                 </>
@@ -163,7 +164,7 @@ export function Siralama({ uye }: { uye: Uye }) {
               <div className="kart-bas">Serbest temalar<span>İlk {v.serbest.filter(x => x.sirali).length}</span></div>
               <p className="kart-not">Serbest temalardaki kareler. Sezon sıralamasına yarım ağırlıkla girer.</p>
               {v.serbest.some(x => x.sirali) ? (
-                <div className="satirlar">{v.serbest.filter(x => x.sirali).map(s => satirCiz(s, 'serbest'))}</div>
+                <div className="satir-kartlari">{v.serbest.filter(x => x.sirali).map(s => satirCiz(s, 'serbest'))}</div>
               ) : (
                 <div className="kart bos-kart"><b>Henüz serbest kare yok</b><span>Serbest temalı bir etkinlik sonuçlanınca burada.</span></div>
               )}
@@ -172,7 +173,7 @@ export function Siralama({ uye }: { uye: Uye }) {
                   <div className="kart-bas">Serbest temada kare veren diğer isimler</div>
                   <div className="kart isimler" data-tablo="serbest">
                 {v.serbest.filter(x => !x.sirali).map(s => (
-                  <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>{s.ad}</button>
+                  <button key={s.uye} onClick={() => git(`profil/${s.uye}`)}><span className={s.benim ? 'me' : undefined}>{s.ad}</span></button>
                 ))}
               </div>
                 </>

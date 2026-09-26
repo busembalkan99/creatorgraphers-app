@@ -978,15 +978,12 @@ await olc(B, '39-sonuc-uye');
       const v = veri.find(x => x.ad.toLocaleUpperCase('tr-TR') === r.ad.toLocaleUpperCase('tr-TR'));
       if (!v) return true;
       const n = Number(v.kare_sayisi);
-      return r.sayiAlt !== (n > 1 ? `${n} kare ort.` : 'tek kare') || r.alt !== (n > 1 && v.dosya ? 'en iyi karesi' : null);
+      return r.sayiAlt !== (n > 1 ? `${n} kare ort.` : 'tek kare') || r.alt !== null;
     });
     bekle('sıralı satır: sayının altında kaç karenin ortalaması olduğu yazıyor', satirlar.length > 0 && satirlar.every(r => r.sayiAlt), JSON.stringify(satirlar));
-    bekle('sıralı satır: altyazılar kare sayısına uyuyor, tek karede "en iyi karesi" yok', uyusmayan.length === 0, JSON.stringify({ uyusmayan, veri: veri.map(x => [x.ad, x.kare_sayisi]) }));
-    const kutu = await A.locator('.row .kr').first().evaluate(k => {
-      const im = k.querySelector('img').getBoundingClientRect(), y = k.querySelector('small')?.getBoundingClientRect();
-      return y && { altinda: y.top >= im.bottom, tasmiyor: y.width <= 48 };
-    });
-    bekle('sıralı satır: "en iyi karesi" görselin altında ve görsel genişliğini aşmıyor', !!kutu?.altinda && !!kutu?.tasmiyor, JSON.stringify(kutu));
+    bekle('sıralı satır: altyazı yalnız sayının altında, görselin altında yazı yok', uyusmayan.length === 0, JSON.stringify({ uyusmayan, veri: veri.map(x => [x.ad, x.kare_sayisi]) }));
+    // "en iyi karesi" satırlarda değil, Sıralama başlığının altında bir kez (Buse, 2026-09-26)
+    bekle('sıralama notu: kare en iyisi, puan ortalama, bir kez', (await A.locator('.kart-not', { hasText: 'en iyi karesi' }).count()) === 1, JSON.stringify(await A.locator('.kart-not').allTextContents()));
     bekle('sıralı satır: en az bir satırda birden çok kare (kontrol)', veri.some(x => Number(x.kare_sayisi) > 1), JSON.stringify(veri.map(x => [x.ad, x.kare_sayisi])));
   }
   // Ana ekran uygulamasında alt güvenli alan payı düğmenin yüksekliğine EKLENMELİ, içinden düşmemeli

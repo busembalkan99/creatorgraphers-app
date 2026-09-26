@@ -54,7 +54,7 @@ try {
   await ac('siralama', 'siralama');
   const sirali = await olc('sıralama', SECICI);
   bekle('sıralama: sıralı satır var (kontrol)', (await p.locator('.row').count()) > 0 && sirali > 0);
-  bekle('sıralama: altyazılı satır var (kontrol)', (await p.locator('.row .kr small').count()) > 0);
+  bekle('sıralama: altyazılı satır var (kontrol)', (await p.locator('.row .av small').count()) > 0);
 
   await ac('etkinlikler', 'etkinlikler');
   await olc('etkinlikler', SECICI);

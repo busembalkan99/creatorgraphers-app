@@ -16,14 +16,17 @@ try {
       await p.goto(APP + '#/' + yol); await p.reload(); await p.waitForTimeout(2500);
       const r = await p.evaluate(() => {
         const px = v => parseFloat(v) || 0;
-        const kartlar = [...document.querySelectorAll('.kart, .satirlar > *, .bos-kart, .mud-kart')];
+        const kartlar = [...document.querySelectorAll('.kart, .satir-kartlari > *, .bos-kart, .mud-kart')];
         const koseler = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomLeftRadius', 'borderBottomRightRadius'];
         const koseHatali = kartlar.filter(k => koseler.some(y => px(getComputedStyle(k)[y]) !== 8)).map(k => k.className);
         const bosluk = kartlar.filter(k => { const s = getComputedStyle(k); return px(s.paddingLeft) < 12 || px(s.paddingRight) < 12; }).map(k => k.className);
-        const foto = [...document.querySelectorAll('.kart img, .satirlar img')].filter(i => px(getComputedStyle(i).borderTopLeftRadius) !== 4).length;
+        const foto = [...document.querySelectorAll('.kart img, .satir-kartlari img')].filter(i => px(getComputedStyle(i).borderTopLeftRadius) !== 4).length;
         const kalin = [...document.querySelectorAll('.sc *')].filter(e => px(getComputedStyle(e).borderTopWidth) >= 2 && !e.closest('.kunye, .tabs, .prog, .sekmeler, .live')).map(e => e.className);
         const tasma = kartlar.filter(k => { const kb = k.getBoundingClientRect(); return [...k.querySelectorAll('*')].some(c => { const cb = c.getBoundingClientRect(); return cb.width > 0 && (cb.right > kb.right + 1 || cb.bottom > kb.bottom + 1); }); }).map(k => k.className);
-        return { sayi: kartlar.length, koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4) };
+        const dugme = [...document.querySelectorAll('.sc .btn')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;
+        // Kendi adının çipi ince (en çok 24px), dokunma alanı düğmede (en az 44px)
+        const cip = [...document.querySelectorAll('.isimler .me')].map(c => ({ c: Math.round(c.getBoundingClientRect().height), d: Math.round(c.closest('button').getBoundingClientRect().height) }));
+        return { sayi: kartlar.length, koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
       });
       const ad = `${yol} (${genislik}px)`;
       bekle(`${ad}: kart var (kontrol)`, r.sayi > 0, String(r.sayi));
@@ -32,6 +35,8 @@ try {
       bekle(`${ad}: fotoğraf köşeleri 4px`, r.foto === 0, String(r.foto));
       bekle(`${ad}: kalın çizgi kalmadı`, r.kalin.length === 0, r.kalin.join(' | '));
       bekle(`${ad}: kart içeriği taşmıyor`, r.tasma.length === 0, r.tasma.join(' | '));
+      bekle(`${ad}: düğme köşeleri 6px`, r.dugme === 0, String(r.dugme));
+      bekle(`${ad}: kendi adının çipi ince, dokunma alanı 44px`, r.cip.every(x => x.c <= 24 && x.d >= 44), JSON.stringify(r.cip));
     }
   }
 } finally {

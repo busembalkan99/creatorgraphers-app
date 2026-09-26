@@ -106,6 +106,9 @@ try {
   bekle('1: sonuç açıldıktan sonra ilk girişte Wrapped açılıyor', P.url().includes(`#/wrapped/${E}`), P.url());
   bekle('1: ilk kart açılış', (await kartAdi(P)) === 'acilis');
   const o = await ozet(A);
+  // Kart sisteminin satır sınıfı Wrapped'in açılış kartına sızmasın: satırlar birbirine değiyor
+  const aralik = await P.locator('.k1 .w-satir').evaluateAll(l => l.slice(1).map((x, i) => Math.round(x.getBoundingClientRect().top - l[i].getBoundingClientRect().bottom)));
+  bekle('1: açılış kartının satırları arasında boşluk yok', aralik.length === 2 && aralik.every(a => a === 0), JSON.stringify(aralik));
   const rulolar = await P.locator('.k1 .rulo').evaluateAll(l => l.map(r => r.firstElementChild.textContent));
   bekle('1: açılış sayıları sunucudan', JSON.stringify(rulolar) === JSON.stringify([String(o.kisi), String(o.kare), String(o.puan)]), `${JSON.stringify(rulolar)} / ${JSON.stringify(o)}`);
   bekle('1: çıkarılan kare sayılmıyor (8 kare, 8 kişi)', Number(o.kare) === 8 && Number(o.kisi) === 8, JSON.stringify(o));

@@ -35,7 +35,7 @@ export async function kartDenetle(p, ad, bekle) {
     const ipucusuz = [
       ...[...document.querySelectorAll('.satir-kartlari > .ev')].filter(e => !e.querySelector('.git')).map(() => 'ev'),
       ...[...document.querySelectorAll('.satir-kartlari > .row, .satir-kartlari > .satir-kare')].filter(e => !e.querySelector('.ileri')).map(e => e.className.split(' ')[0]),
-      ...[...document.querySelectorAll('.kursu figure, .izgara figure, .grid figure, .odul .kazanan')].filter(e => !e.querySelector('.buyut')).map(() => 'kare'),
+      ...[...document.querySelectorAll('.kursu figure, .izgara figure, .grid figure, .odul .kazanan, .vitrin .vt')].filter(e => !e.querySelector('.buyut')).map(() => 'kare'),
       ...[...document.querySelectorAll('.isimler button > span')].filter(e => getComputedStyle(e).backgroundColor === 'rgba(0, 0, 0, 0)').map(() => 'isim'),
     ];
     const dugme = [...document.querySelectorAll('.sc .btn, .sc .secim button, .sc .rolakt button')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;

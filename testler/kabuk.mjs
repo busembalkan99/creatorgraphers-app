@@ -131,9 +131,10 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
       gorunen: window.innerHeight,
       ilkSinif: (() => { const e = document.querySelector('.sc > *:not(.tepe)'); return e ? e.className : null })(),
       ilkCizgi: (() => { const e = document.querySelector('.sc > *:not(.tepe)'); return e ? getComputedStyle(e).borderTopWidth : null })(),
+      // Birinciler şeridi bilerek yana kayıyor: kartları taşma sayılmaz (şeridin kendisi sayılır)
       yatayTasma: [...document.querySelectorAll('.app *')].some(e => {
         const q = e.getBoundingClientRect();
-        return q.width && (q.right > window.innerWidth + 1 || q.left < -1);
+        return q.width && (q.right > window.innerWidth + 1 || q.left < -1) && !e.parentElement?.closest('.vitrin');
       }),
     };
   });
@@ -357,9 +358,10 @@ for (const yol of ['etkinlikler', 'siralama', 'profil']) {
     belgeKayar: document.documentElement.scrollHeight > document.documentElement.clientHeight,
     tabsAlt: Math.round(document.querySelector('.tabs').getBoundingClientRect().bottom),
     gorunen: window.innerHeight,
+    // Birinciler şeridi bilerek yana kayıyor: kartları taşma sayılmaz (şeridin kendisi sayılır)
     tasma: [...document.querySelectorAll('.app *')].some(e => {
       const q = e.getBoundingClientRect();
-      return q.width && (q.right > window.innerWidth + 1 || q.left < -1);
+      return q.width && (q.right > window.innerWidth + 1 || q.left < -1) && !e.parentElement?.closest('.vitrin');
     }),
   }));
   bekle(`${yol} (yatay): belge kaymıyor`, !r.belgeKayar, JSON.stringify(r));

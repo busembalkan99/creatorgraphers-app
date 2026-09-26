@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz, kalanYaz, saatEki, saatYaz } from '../lib/zaman'
+import { Vitrin } from './Vitrin'
 import { Ikon } from '../bilesenler/Ikon'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
@@ -132,14 +133,16 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
       {acik ? (
         <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} oyKalan={v.oyKalan} gelmedim={!!v.gelmedim} />
       ) : (
+        // Boş hâl ve eylemi tek kartta; "kurulmadı" yönetici diliydi (Buse, 2026-09-26)
         <div className="kart next">
           <span className="k">Sıradaki etkinlik</span>
-          <span className="u" style={{ marginLeft: 'auto' }}>henüz kurulmadı</span>
+          <span className="u" style={{ marginLeft: 'auto' }}>henüz planlanmadı</span>
+          {yonetici && <button className="btn" onClick={() => git('kur')}>Etkinliği kur</button>}
         </div>
       )}
-      {!acik && yonetici && (
-        <button className="btn" onClick={() => git('kur')}>Etkinliği kur</button>
-      )}
+
+      {/* Boş günler: son etkinliğin birincileri ve kişinin katıldığı son etkinlik (Buse, 2026-09-26) */}
+      <Vitrin uyeId={uye.id} etkinlikler={v.etkinlikler} temalar={v.temalar} benimTemalarim={v.benimTemalarim} />
 
       <h2 className="kart-bas">Geçmiş etkinlikler<span>{gecmis.length} etkinlik</span></h2>
       {gecmis.length === 0 && <div className="kart bos-kart"><b>Henüz geçmiş etkinlik yok</b><span>İlk etkinlik bitince burada duracak.</span></div>}

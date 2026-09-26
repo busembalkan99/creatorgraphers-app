@@ -49,7 +49,7 @@ export function Kur() {
       p_yukleme_baslar: yerelIso(baslangic),
       p_yukleme_saat: y,
       p_oylama_saat: o,
-      p_temalar: temalar.map((t, i) => ({ ad: temaAdlari()[i], bulusmada: serbest ? false : t.bulusmada })),
+      p_temalar: ((adlar) => temalar.map((t, i) => ({ ad: adlar[i], bulusmada: serbest ? false : t.bulusmada })))(temaAdlari()),
       p_serbest: serbest,
     })
     setGidiyor(false)

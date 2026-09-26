@@ -45,7 +45,7 @@ async function olc(p, ad) {
     a.playState !== 'running' || a.effect?.getComputedTiming().iterations === Infinity), null, { timeout: 3000 });
   const r = await p.evaluate(() => {
     const sc = document.querySelector('.sc');
-    const tasma = [...document.querySelectorAll('.app *')].filter(e => { const b = e.getBoundingClientRect(); return b.width && (b.right > window.innerWidth + 1 || b.left < -1) && !e.closest('.kapak, .vitrin'); }).map(e => e.className).slice(0, 3);
+    const tasma = [...document.querySelectorAll('.app *')].filter(e => { const b = e.getBoundingClientRect(); return b.width && (b.right > window.innerWidth + 1 || b.left < -1) && !e.closest('.kapak') && !e.parentElement?.closest('.vitrin'); }).map(e => e.className).slice(0, 3);
     const kucuk = [...document.querySelectorAll('.app button:not([disabled])')].filter(e => { const b = e.getBoundingClientRect(); return b.width && b.height < 44 && !e.classList.contains('k'); }).map(e => e.textContent.trim()).slice(0, 3);
     const karar = /karar\s*\d/i.test(document.querySelector('.app').innerText);
     return { tasma, kucuk, karar };

@@ -125,6 +125,25 @@ try {
   await admin.from('wrapped_izlendi').insert({ etkinlik: E2.id, uye: K.C.id });
   await git(C, 'siralama'); await git(C, 'etkinlikler');
   bekle('izlendikten sonra şerit ve kart görünüyor, eşitlikte Can birinci', (await C.locator('.vitrin .vt').count()) === 4 && /^1 ?Sıran ?8,0 ?Puanın/.test(await yazi(C, '.katildigin .vt-sayi')), await yazi(C, '.katildigin'));
+  // Sonuçtan sonra çıkarılan kare: şeritte yok, kişinin kartı çıkarılanı seçmiyor
+  const cik = await A.c.rpc('kare_cikar', { p_kare: sokakBaris.id, p_neden: 'Deneme' });
+  bekle('Sokak birincisi çıkarıldı (kontrol)', !cik.error, cik.error?.message ?? '');
+  await git(Z, 'siralama'); await git(Z, 'etkinlikler');
+  const serit = (await Z.locator('.vitrin .vt figcaption').allTextContents()).map(x => x.replace(/\s+/g, ' ').trim());
+  bekle('çıkarılan birinci şeritte yok, yeni birinci var', !serit.some(x => /Sokak.*Barış/.test(x)) && serit.some(x => /Sokak.*Can Öz/.test(x)), JSON.stringify(serit));
+  const Bp = await sayfa(K.B);
+  await git(Bp, 'etkinlikler');
+  bekle('katıldığın kartı çıkarılan kareyi seçmiyor (Gece karesi, 7,0)', /7,0 ?Puanın/.test(await yazi(Bp, '.katildigin .vt-sayi')) && !/9,0/.test(await yazi(Bp, '.katildigin .vt-sayi')), await yazi(Bp, '.katildigin'));
+
+  // Ekstra (serbest) etkinlik en yenisi olunca başlıklar ay değil "Ekstra etkinlik"
+  const E3 = await etkinlik(-1, ['Serbest']);
+  await admin.from('etkinlikler').update({ serbest: true }).eq('id', E3.id);
+  await kare(E3, E3.t[0], K.D, 7); await kare(E3, E3.t[0], K.E, 5);
+  await admin.from('wrapped_izlendi').insert([K.A, K.B, K.C, K.D, K.E, K.Z].map(u => ({ etkinlik: E3.id, uye: u.id })));
+  const Dp = await sayfa(K.D);
+  await git(Dp, 'etkinlikler');
+  bekle('ekstra etkinlikte şerit başlığı "Ekstra etkinlik birincileri"', (await yazi(Dp, 'h2.kart-bas:has(+ .vitrin)')).startsWith('Ekstra etkinlik birincileri'), await yazi(Dp, 'h2.kart-bas:has(+ .vitrin)'));
+  bekle('ekstra etkinlikte katıldığın başlığı "Ekstra etkinlik"', (await yazi(Dp, 'h2.kart-bas:has(+ .katildigin)')).endsWith('Ekstra etkinlik'), await yazi(Dp, 'h2.kart-bas:has(+ .katildigin)'));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {
   await b.close();

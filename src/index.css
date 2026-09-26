@@ -122,20 +122,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .veri b{color:var(--ink);font-weight:800}
 
 /* seviye-1 bölüm başlığı (karar 79) */
-/* Sayfanin ilk blogu kendi 4px cizgisini cizmiyor: kunyenin cizgisi zaten orada
-   ve ayni kalinlikta iki cizgi 14-24px arayla hata gibi duruyor. */
-.tepe + .sec,.tepe + .next{border-top:0;padding-top:0;margin-top:18px}
-/* h2: bolum basligi gorsel olarak degil anlamca da baslik olsun. Punto ve agirlik
-   asagida yazili, tarayicinin h2 varsayilani gecerli degil. */
-/* 24 → 36: kalın çizgi üstteki içeriğe yapışık duruyordu (Buse, 2026-09-26, nefes turunun ilk adımı) */
-.sec{margin-top:var(--s-bolum);border-top:4px solid var(--ink);padding-top:11px;padding-bottom:10px;
-  font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:baseline;flex:0 0 auto}
-/* Başlık hiyerarşisi (Buse, 2026-09-26): ana bölüm kalın çizgi + bölüm boşluğu; bir bölümün
-   alt parçası 2px çizgi + blok boşluğu; liste satırları 1px soluk. Üç kalınlık, üç düzey. */
-.sec.alt{margin-top:var(--s-blok);border-top-width:2px}
-.sec span{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:none;color:var(--soft);
-  font-variant-numeric:tabular-nums}
-.rb + .sec{border-top:0;padding-top:0;margin-top:16px}
+/* Sayfanın ilk bloğu künyenin hemen altında: arası 18px */
+.tepe + .next{margin-top:18px}
 .sart{font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);margin-top:-5px}
 
 /* düğmeler */
@@ -272,7 +260,6 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .k.secili .kk{outline:2px solid var(--ink);outline-offset:-2px}
 .k .ad{font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;margin-top:6px;overflow-wrap:anywhere}
 .k .d{font-size:10px;font-weight:700;color:var(--soft);margin-top:2px}
-.yuk-sec{margin-top:22px}
 
 .bos{margin-top:10px;width:100%;appearance:none;background:none;color:var(--dim);cursor:pointer;
   border:1px dashed rgba(237,237,234,.3);min-height:150px;display:flex;flex-direction:column;
@@ -594,19 +581,6 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .prog i{flex:1;height:4px;background:rgba(237,237,234,.14);display:block}
 .prog i.on{background:var(--ink)}
 
-/* Müdavim: ters çevrilmiş mürekkep şerit, çoğul ve tabansız (karar 55) */
-.mud{background:var(--ink);color:var(--paper);margin-top:var(--s-blok);padding:11px var(--pad) 12px}
-.mud .k{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;opacity:.6;display:flex}
-.mud .k span{margin-left:auto}
-.mud .big{font-size:26px;line-height:1;letter-spacing:-.03em;word-spacing:.14em;text-transform:uppercase;margin-top:6px;
-  font-variation-settings:"wdth" 70,"wght" 900}
-.mud button{appearance:none;border:0;background:none;font:inherit;color:inherit;cursor:pointer;padding:5px 0}
-.mud .one{font-size:17px;font-weight:900;text-transform:uppercase;letter-spacing:-.02em;word-spacing:.12em;margin-top:5px;
-  line-height:2.2;font-variation-settings:"wdth" 78,"wght" 900}
-/* 12,5px x 3,1 = 34px dokunma hedefi; isim nerede görünüyorsa dokunulabilir (karar 58) */
-.mud .list{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
-  margin-top:0;line-height:3.1;opacity:.78}
-.mud .me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:2px;opacity:1}
 
 /* sıralı liste: kare eşlikli, etkinlik galerisiyle aynı kalıp */
 /* flex:0 0 auto: Safari'de .sc içindeki düğme satır içeriğine göre büyümüyordu, altyazılı kare
@@ -631,23 +605,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   letter-spacing:.06em;text-transform:none;color:var(--soft);font-variation-settings:normal}
 .row .av{text-align:right}
 
-/* sırasız blok: düz metin akışı, satıra çevirmek sıralıymış gibi okutur */
-.unr{margin-top:var(--s-blok);border-top:2px solid var(--ink);padding-top:11px}
-.unr .hd{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
-  color:var(--soft);line-height:1.5}
-.unr .names{margin-top:0;font-size:12.5px;font-weight:900;text-transform:uppercase;
-  letter-spacing:.01em;color:var(--dim);line-height:2.8}
-/* Satır aralığı 2,8 (görünürde 35px) tasarımın kararı: 44px'e çıkarmak bloğu yeniden
-   liste gibi okutuyor. Dokunma alanı dikey dolguyla büyütülüyor; satır içi öğede dolgu
-   satır kutusunu büyütmediği için ritim aynı kalıyor, hedef 45px oluyor. */
-.unr .names button{appearance:none;border:0;background:none;font:inherit;color:inherit;
-  cursor:pointer;margin-right:9px;padding:5px 0}
-.unr .names button.me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:2px}
 
-/* kilitli ve boş bloklar: parça 1'deki kapalı künyeyle aynı kesikli dil */
-.empty{border:1px dashed rgba(237,237,234,.26);padding:15px 14px 16px;margin-top:12px}
-.empty b{display:block;font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em}
-.empty span{display:block;font-size:11px;line-height:1.6;color:var(--soft);margin-top:6px;max-width:34ch}
 
 /* profil künyesi */
 .pname{font-size:29px;line-height:1;letter-spacing:-.035em;word-spacing:.14em;text-transform:uppercase;margin-top:12px;
@@ -711,10 +669,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
    zaten değişiyor. */
 .btn,.act,.rolakt button,.deg,.izin,.kk,.onaykutu .btn,.geri{transition:transform .12s cubic-bezier(.32,.72,0,1)}
 .btn:active:not(:disabled),.act:active,.rolakt button:active:not(:disabled),.deg:active,.kk:active,.geri:active{transform:scale(.97)}
-.satir.acilir,.row,.ev,.satir-kare,.izin,.unr .names button,.mud button,.izgara figure,.grid figure,.kursu figure{
+.satir.acilir,.row,.ev,.satir-kare,.izin,.isimler button,.izgara figure,.grid figure,.kursu figure{
   transition:transform .12s cubic-bezier(.32,.72,0,1)}
 .satir.acilir:active,.row:active,.ev:active,.satir-kare:active,.izin:active{transform:scale(.985)}
-.unr .names button:active,.mud button:active,.izgara figure:active,.grid figure:active,.kursu figure:active{transform:scale(.97)}
+.isimler button:active,.izgara figure:active,.grid figure:active,.kursu figure:active{transform:scale(.97)}
 
 /* Açılan içerik: kısa ve sade, esneme ya da zıplama yok */
 @keyframes belir{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}

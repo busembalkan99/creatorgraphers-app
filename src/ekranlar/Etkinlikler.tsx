@@ -120,11 +120,13 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
       {gecmis.length === 0 && <p className="veri">İlk etkinlik bitince burada duracak.</p>}
       {gecmis.map((e, i) => {
         const tm = v.temalar.filter(t => t.etkinlik === e.id)
+        // Karar 116: numara yalnız buluşmaları sayıyor (sezonun altı yeri); ekstra etkinlik "EK"
+        const no = gecmis.slice(i).filter(x => !x.serbest).length
         return (
           <button className="ev" key={e.id} onClick={() => git(`sonuc/${e.id}`)}>
             <div className="top">
-              <span className="no">{String(gecmis.length - i).padStart(2, '0')}</span>
-              <span className="mo">{ayAdi(e.bulusma_gunu)}</span>
+              <span className="no">{e.serbest ? 'EK' : String(no).padStart(2, '0')}</span>
+              <span className="mo">{ayAdi(e.bulusma_gunu)}{e.serbest ? ' · ekstra' : ''}</span>
               <span className="mt">{tm.length} tema</span>
             </div>
             <div className="alt">{tm.map(t => t.ad).join(' · ')}{tm.length ? ' · ' : ''}sonuçlar</div>
@@ -169,7 +171,7 @@ function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; tema
 
   return (
     <div className="live" data-asama={a}>
-      <div className="kick">{ay} etkinliği <i><span className="dot" aria-hidden="true" />Canlı</i></div>
+      <div className="kick">{e.serbest ? `Ekstra etkinlik · ${ay}` : `${ay} etkinliği`} <i><span className="dot" aria-hidden="true" />Canlı</i></div>
       <h2>{yukleme ? <>Yükleme<br />açık</> : <>Oylama<br />açık</>}</h2>
       <div className="meta">
         <span>Kalan</span>{' '}

@@ -27,6 +27,7 @@ export interface Etkinlik {
   yukleme_biter: string
   oylama_biter: string
   iptal: boolean
+  serbest?: boolean   // karar 116: ekstra etkinlik, sezona sayılmaz
   yoklama_at?: string | null // karar 103: null ise yoklama alınmadı
 }
 

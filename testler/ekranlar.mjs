@@ -65,7 +65,7 @@ const A = await oturum('kurucu@test.local');
 {
   await ac(A, 'siralama');
   bekle('Müdavim çok kişilik: sayı yazıyor', (await A.locator('.mud .big').textContent())?.includes('2 kişi'));
-  bekle('sırasız blokta üç isim', (await A.locator('.unr .names button').count()) === 3);
+  bekle('sırasız blokta üç isim', (await A.locator('.unr:not([data-tablo=serbest]) .names button').count()) === 3);
 
   // Tek Müdavim: Barış'ın ilk etkinlikteki karesi geçici olarak kaldırılıyor
   const { data: bk } = await admin.from('kareler').select('*, temalar!inner(etkinlik, etkinlikler!inner(bulusma_gunu))').eq('sahip', baris.id);

@@ -155,6 +155,8 @@ function kartlariKur(
 ): Kart[] {
   const ay = ayAdi(e.bulusma_gunu)
   const yil = e.bulusma_gunu.slice(0, 4)
+  // Karar 116: ekstra etkinliğin açılışı kendini söylüyor
+  const etkinlikAdi = e.serbest ? `Ekstra etkinlik · ${ay}` : `${ay} etkinliği`
   const yarisan = kareler.filter(k => !k.cikarildi)
   const temaKareleri = (t: string) => yarisan.filter(k => k.tema === t)
   const kazananlar = (t: string) => temaKareleri(t).filter(k => k.sirali && k.sira === 1)
@@ -167,7 +169,7 @@ function kartlariKur(
     ad: 'acilis', sinif: 'k1', sag: `${ay} · ${yil}`,
     govde: (
       <div className="w-ic">
-        <span className="w-etiket e1">{ay} etkinliği / Bitti</span>
+        <span className="w-etiket e1">{etkinlikAdi} / Bitti</span>
         <div className="w-baslik e2">Sonuçlar<br /><span className="vurgu">geldi</span></div>
         <div className="satirlar">
           <div className="w-satir s1"><span className="mono">Kişi<br />katıldı</span><Rulo n={ozet.kisi} cls="" /></div>
@@ -282,7 +284,7 @@ function kartlariKur(
     ad: 'kapanis', sinif: 'k6', sag: `${ay} · ${yil}`,
     govde: (
       <div className="w-ic">
-        <span className="w-etiket">{ay} etkinliği</span>
+        <span className="w-etiket">{etkinlikAdi}</span>
         <div className="w-baslik" style={{ fontSize: 48 }}>Sıradaki<br />etkinlikte<br /><span className="vurgu">görüşürüz</span></div>
         <div className="muhur">Bitti</div>
         <div className="dugmeler">

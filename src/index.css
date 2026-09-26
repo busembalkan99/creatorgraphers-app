@@ -130,6 +130,9 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 /* 24 → 36: kalın çizgi üstteki içeriğe yapışık duruyordu (Buse, 2026-09-26, nefes turunun ilk adımı) */
 .sec{margin-top:var(--s-bolum);border-top:4px solid var(--ink);padding-top:11px;padding-bottom:10px;
   font-size:13px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;display:flex;align-items:baseline;flex:0 0 auto}
+/* Başlık hiyerarşisi (Buse, 2026-09-26): ana bölüm kalın çizgi + bölüm boşluğu; bir bölümün
+   alt parçası 2px çizgi + blok boşluğu; liste satırları 1px soluk. Üç kalınlık, üç düzey. */
+.sec.alt{margin-top:var(--s-blok);border-top-width:2px}
 .sec span{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:none;color:var(--soft);
   font-variant-numeric:tabular-nums}
 .rb + .sec{border-top:0;padding-top:0;margin-top:16px}
@@ -162,7 +165,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .hesap b{display:block;font-size:12.5px;font-weight:900;letter-spacing:.01em;margin-top:5px;overflow-wrap:anywhere}
 
 /* form */
-.alan{margin-top:18px}
+/* Form alanları ayrı bloklar (nefes, 2026-09-26): açıklama bir alttaki etikete yapışmasın */
+.alan{margin-top:var(--s-blok)}
 /* 16px tipografi olcegimizin disinda ve bilerek: iOS, 16'dan kucuk bir alana
    dokununca sayfayi zorla yakinlastiriyor ve geri dondurmuyor. Olcegin ucuncu
    istisnasi (digerleri: odul seridinde 15px, arsiv kunyesinde 11px). */
@@ -600,7 +604,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   line-height:2.2;font-variation-settings:"wdth" 78,"wght" 900}
 /* 12,5px x 3,1 = 34px dokunma hedefi; isim nerede görünüyorsa dokunulabilir (karar 58) */
 .mud .list{font-size:12.5px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;
-  margin-top:9px;line-height:3.1;opacity:.78}
+  margin-top:0;line-height:3.1;opacity:.78}
 .mud .me{background:var(--oyla);color:var(--ink);padding:2px 6px;border-radius:2px;opacity:1}
 
 /* sıralı liste: kare eşlikli, etkinlik galerisiyle aynı kalıp */
@@ -616,7 +620,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   line-height:1.2;overflow-wrap:anywhere;min-width:0}
 .row .av{margin-left:auto;font-size:17px;letter-spacing:-.02em;flex:0 0 auto;
   font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
-.row.me{box-shadow:inset 3px 0 0 var(--oyla);padding-left:9px}
+/* Seçili satırın çizgisi sayfa kenar boşluğunda: içerik diğer satırlarla aynı hizada kalsın */
+.row.me{box-shadow:inset 3px 0 0 var(--oyla);margin-left:-12px;padding-left:12px}
 /* Satırın iki yarısı ne olduğunu söylüyor: kare en iyisi, sayı bütün karelerin ortalaması */
 .row .kr{flex:0 0 auto;width:44px;display:flex;flex-direction:column;align-items:center}
 /* İki altyazı tek stil: sayfanın etiket stili sayısı sınırı (kabuk testi) */
@@ -626,10 +631,10 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .row .av{text-align:right}
 
 /* sırasız blok: düz metin akışı, satıra çevirmek sıralıymış gibi okutur */
-.unr{margin-top:var(--s-bolum);border-top:4px solid var(--ink);padding-top:11px}
+.unr{margin-top:var(--s-blok);border-top:2px solid var(--ink);padding-top:11px}
 .unr .hd{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
   color:var(--soft);line-height:1.5}
-.unr .names{margin-top:10px;font-size:12.5px;font-weight:900;text-transform:uppercase;
+.unr .names{margin-top:0;font-size:12.5px;font-weight:900;text-transform:uppercase;
   letter-spacing:.01em;color:var(--dim);line-height:2.8}
 /* Satır aralığı 2,8 (görünürde 35px) tasarımın kararı: 44px'e çıkarmak bloğu yeniden
    liste gibi okutuyor. Dokunma alanı dikey dolguyla büyütülüyor; satır içi öğede dolgu

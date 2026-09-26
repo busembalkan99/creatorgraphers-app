@@ -969,7 +969,7 @@ await olc(B, '39-sonuc-uye');
   // Görsel en iyi kare, sayı bütün karelerin ortalaması: satır ikisini de söylüyor
   {
     const veri = await A.evaluate(async () => (await window.__sb.rpc('siralama')).data.filter(x => x.sirali));
-    const satirlar = await A.locator('.row').evaluateAll(l => l.map(r => ({
+    const satirlar = await A.locator('.row[data-tablo=sezon]').evaluateAll(l => l.map(r => ({
       ad: r.querySelector('.nm > span')?.textContent.trim(),
       alt: r.querySelector('.kr small')?.textContent.trim() ?? null,
       sayiAlt: r.querySelector('.av small')?.textContent.trim() ?? null,

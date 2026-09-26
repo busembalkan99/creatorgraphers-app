@@ -120,7 +120,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
           <span>Doğru bildin</span>
         </div>
         <p className="veri" style={{ marginTop: 12 }}>Bu skoru yalnız sen görüyorsun.</p>
-        <h2 className="sec">Kareler kimindi<span>{sonuc.length} kare</span></h2>
+        <h2 className="sec alt">Kareler kimindi<span>{sonuc.length} kare</span></h2>
         {sonuc.map(x => (
           <div key={x.sira} className={`tahmin-satir ${x.dogru ? 'dogru' : ''}`}>
             {x.url ? <img src={x.url} alt="" /> : <div className="yer" />}

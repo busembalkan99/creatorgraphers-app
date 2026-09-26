@@ -111,4 +111,48 @@ bekle('etkinlik sütunu uygulamadan yazılamıyor', !!(await A.c.from('etkinlikl
   || ((await A.c.from('etkinlikler').update({ serbest: false }).eq('id', r2.data).select()).data ?? []).length === 0);
 bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('serbest').eq('id', r2.data).single()).data?.serbest === true);
 
+
+// ---------------------------------------------- ekran
+{
+  const { chromium } = await import('/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs');
+  const APP = 'http://localhost:5180/';
+  const b = await chromium.launch();
+  const p = await (await b.newContext({ viewport: { width: 390, height: 1400 }, isMobile: true })).newPage();
+  const hatalar = []; p.on('pageerror', e => hatalar.push(String(e)));
+  await p.goto(APP); await p.waitForFunction(() => window.__sb);
+  await p.evaluate(async () => { const r = await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); if (r.error) throw r.error; });
+  const ac = async y => { await p.goto(APP + '#/' + y); await p.reload(); await p.waitForTimeout(2200); };
+  // Bu dosya Wrapped'in kendiliğinden açılmasını sınamıyor
+  await admin.from('wrapped_izlendi').insert([E1.id, S1.id].map(e => ({ etkinlik: e, uye: A.id })));
+  const metin = async () => (await p.locator('.app').innerText()).replace(/\s+/g, ' ');
+
+  await ac('siralama');
+  bekle('ekran: Serbest tablosu görünüyor', (await metin()).includes('SERBEST · EKSTRA') || (await metin()).includes('Serbest · ekstra'), (await metin()).slice(0, 300));
+  bekle('ekran: sezon ilerlemesi serbest etkinliği saymıyor', (await metin()).includes('1 / 6 etkinlik'));
+  await ac('etkinlikler');
+  bekle('ekran: arşivde ekstra etkinlik "EK"', (await p.locator('.ev .no', { hasText: 'EK' }).count()) === 1);
+  bekle('ekran: arşiv numarası yalnız buluşmaları sayıyor', (await p.locator('.ev .no').allTextContents()).map(x => x.trim()).sort().join() === '01,EK', JSON.stringify(await p.locator('.ev .no').allTextContents()));
+  await ac(`wrapped/${S1.id}`);
+  bekle('ekran: ekstra etkinliğin açılışı söylüyor', (await metin()).toLocaleLowerCase('tr-TR').includes('ekstra etkinlik · eylül'), (await metin()).slice(0, 160));
+  await ac(`sonuc/${S1.id}`);
+  bekle('ekran: ekstra etkinliğin sayfası söylüyor', (await metin()).toLocaleLowerCase('tr-TR').includes('ekstra etkinlik'), (await metin()).slice(0, 160));
+
+  // Kurulum: önce açık etkinliği iptal et, sonra ekrandan serbest etkinlik kur
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', r2.data);
+  await ac('kur');
+  bekle('ekran: buluşma türünde temaların çekim şartı seçilebiliyor', (await p.getByRole('group', { name: 'Çekim şartı' }).count()) === 1);
+  await p.getByRole('button', { name: 'Serbest · ekstra' }).click();
+  bekle('ekran: serbest türde çekim şartı seçimi yok', (await p.getByRole('group', { name: 'Çekim şartı' }).count()) === 0);
+  bekle('ekran: serbest tür ne demek olduğunu söylüyor', (await metin()).includes('Sezonun altı etkinliğine sayılmaz'));
+  await p.locator('#bg').fill(tarih(-2));
+  await p.locator('#yb').fill(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 16));
+  await p.locator('#t0').fill('Işık');
+  await p.getByRole('button', { name: 'Etkinliği kur' }).click(); await p.waitForTimeout(2000);
+  const yeni = (await admin.from('etkinlikler').select('id, serbest').eq('iptal', false).order('olusturma', { ascending: false }).limit(1)).data?.[0];
+  const yeniT = yeni ? (await admin.from('temalar').select('ad, bulusmada').eq('etkinlik', yeni.id)).data : [];
+  bekle('ekran: kurulan etkinlik serbest, teması serbest', yeni?.serbest === true && yeniT?.length === 1 && yeniT[0].bulusmada === false && yeniT[0].ad === 'Işık', JSON.stringify([yeni, yeniT]));
+  bekle('ekran: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
+  await b.close();
+}
+
 rapor();

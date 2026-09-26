@@ -136,7 +136,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
     <div className="sc">
       <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" />
       <div className="bas">
-        <h1>{ayAdi(v.etkinlik.bulusma_gunu)}<br />etkinliği</h1>
+        <h1>{v.etkinlik.serbest ? <>Ekstra<br />etkinlik</> : <>{ayAdi(v.etkinlik.bulusma_gunu)}<br />etkinliği</>}</h1>
         <div className="meta">
           <span>{gunYaz(v.etkinlik.bulusma_gunu, false)}</span>
           <span>· {temalar.length} tema</span>
@@ -227,7 +227,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {galeri.length > 0 && (
             <>
-              <h2 className="sec">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></h2>
+              <h2 className="sec alt">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></h2>
               <div className="izgara">
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => ac(k)}>
@@ -245,7 +245,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {cikanlar.length > 0 && (
             <>
-              <h2 className="sec">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></h2>
+              <h2 className="sec alt">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></h2>
               <div className="izgara">
                 {cikanlar.map(k => (
                   <figure key={k.id} className="cikti" onClick={() => ac(k)}>

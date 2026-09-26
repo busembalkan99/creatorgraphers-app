@@ -221,7 +221,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
       {yonetici && (
         <>
-          <h2 className="sec">Yönetim</h2>
+          <h2 className="sec alt">Yönetim</h2>
           {bekleyen !== null && bekleyen > 0 && (
             <button className="satir" onClick={() => git('uyeler')}>
               <div className="tx"><b>{bekleyen} katılma isteği</b><span>Onaylaman ya da reddetmen bekleniyor</span></div>

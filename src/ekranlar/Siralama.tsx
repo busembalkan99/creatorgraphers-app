@@ -26,16 +26,19 @@ interface Mudavim { uye: string; ad: string; benim: boolean; katilim: number; pe
 const puanYaz = (n: number | null) => (n == null ? '' : n.toFixed(1).replace('.', ','))
 
 async function siralamaVerisi() {
-  const [o, s, m] = await sor(Promise.all([
+  const [o, s, m, sr] = await sor(Promise.all([
     sb.rpc('sezon_ozeti'),
     sb.rpc('siralama'),
     sb.rpc('mudavim'),
+    sb.rpc('serbest_siralama'),
   ]))
   if (o.error) throw o.error
   if (s.error) throw s.error
   if (m.error) throw m.error
+  // Karar 116: serbest temalar ayrı tabloda. Sunucuda fonksiyon yoksa (göç kurulmadan) tablo çıkmaz.
   const liste = ((s.data ?? []) as Satir[])
-  const yollar = liste.map(x => x.dosya).filter((x): x is string => !!x)
+  const serbest = sr.error ? [] : ((sr.data ?? []) as Satir[])
+  const yollar = [...liste, ...serbest].map(x => x.dosya).filter((x): x is string => !!x)
   const imza = yollar.length
     ? (await sor(sb.storage.from('kareler').createSignedUrls(yollar, 3600))).data ?? []
     : []
@@ -43,6 +46,7 @@ async function siralamaVerisi() {
   return {
     ozet: ((o.data ?? [])[0] ?? null) as Ozet | null,
     liste: liste.map(x => ({ ...x, url: x.dosya ? url.get(x.dosya) ?? null : null })),
+    serbest: serbest.map(x => ({ ...x, url: x.dosya ? url.get(x.dosya) ?? null : null })),
     mudavim: (m.data ?? []) as Mudavim[],
   }
 }
@@ -60,6 +64,25 @@ export function Siralama({ uye }: { uye: Uye }) {
   // Veri gelirken de künye yerinde kalsın: sekme değiştirince başlık yanıp sönmesin
   if (!v) return <div className="sc"><Kunye sol="Creatorgraphers" sag="Sıralama" /><Yukleniyor /></div>
 
+  const satirCiz = (s: Satir, tablo: 'sezon' | 'serbest' = 'sezon') => (
+    <button key={s.uye} className={`row ${s.benim ? 'me' : ''}`} data-tablo={tablo} onClick={() => git(`profil/${s.uye}`)}>
+      <span className="no">{String(s.sira).padStart(2, '0')}</span>
+      {/* Görsel kişinin en iyi karesi, sayı bütün karelerinin ortalaması (karar 53).
+          İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu
+          söylüyor. Kareninki görselin altında, çünkü kareye ait (karar 110). */}
+      {s.url && (
+        <span className="kr">
+          <img src={s.url} alt="" />
+          {s.kare_sayisi > 1 && <small>en iyi karesi</small>}
+        </span>
+      )}
+      <span className="nm"><span>{s.ad}</span></span>
+      <span className="av">
+        {puanYaz(s.ortalama)}
+        <small>{s.kare_sayisi > 1 ? `${s.kare_sayisi} kare ort.` : 'tek kare'}</small>
+      </span>
+    </button>
+  )
   const ozet = v.ozet
   const sirali = v.liste.filter(x => x.sirali)
   const sirasiz = v.liste.filter(x => !x.sirali)
@@ -130,25 +153,7 @@ export function Siralama({ uye }: { uye: Uye }) {
               <span>Sezonda hiç puan verilmemiş.</span>
             </div>
           )}
-          {sirali.map(s => (
-            <button key={s.uye} className={`row ${s.benim ? 'me' : ''}`} onClick={() => git(`profil/${s.uye}`)}>
-              <span className="no">{String(s.sira).padStart(2, '0')}</span>
-              {/* Görsel kişinin en iyi karesi, sayı bütün karelerinin ortalaması (karar 53).
-                  İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu
-                  söylüyor. Kareninki görselin altında, çünkü kareye ait (karar 110). */}
-              {s.url && (
-                <span className="kr">
-                  <img src={s.url} alt="" />
-                  {s.kare_sayisi > 1 && <small>en iyi karesi</small>}
-                </span>
-              )}
-              <span className="nm"><span>{s.ad}</span></span>
-              <span className="av">
-                {puanYaz(s.ortalama)}
-                <small>{s.kare_sayisi > 1 ? `${s.kare_sayisi} kare ort.` : 'tek kare'}</small>
-              </span>
-            </button>
-          ))}
+          {sirali.map(s => satirCiz(s))}
 
           {sirasiz.length > 0 && (
             <div className="unr">
@@ -161,6 +166,25 @@ export function Siralama({ uye }: { uye: Uye }) {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Karar 116: serbest temalar ayrı kategori. Aynı görünürlük sözleşmesi (karar 52). */}
+          {v.serbest.length > 0 && (
+            <>
+              <h2 className="sec">Serbest · ekstra<span>İlk {v.serbest.filter(x => x.sirali).length}</span></h2>
+              <p className="veri" style={{ marginTop: 0, marginBottom: 12 }}>Serbest temalardaki kareler. Sezon sıralamasına yarım ağırlıkla girer.</p>
+              {v.serbest.filter(x => x.sirali).map(s => satirCiz(s, 'serbest'))}
+              {v.serbest.some(x => !x.sirali) && (
+                <div className="unr" data-tablo="serbest">
+                  <div className="hd">Serbest temada kare veren diğer isimler</div>
+                  <div className="names">
+                    {v.serbest.filter(x => !x.sirali).map(s => (
+                      <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>{s.ad}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

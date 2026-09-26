@@ -24,6 +24,8 @@ export function Kur() {
   const [yukSaat, setYukSaat] = useState('48')
   const [oySaat, setOySaat] = useState('72')
   const [temalar, setTemalar] = useState<TemaGirdi[]>([{ ad: '', bulusmada: true }])
+  // Karar 116: serbest (ekstra) etkinlik. Bütün temaları serbest, sezonun altı etkinliğine sayılmaz.
+  const [serbest, setSerbest] = useState(false)
   const [hata, setHata] = useState<string | null>(null)
   const [gidiyor, setGidiyor] = useState(false)
 
@@ -42,7 +44,8 @@ export function Kur() {
       p_yukleme_baslar: yerelIso(baslangic),
       p_yukleme_saat: y,
       p_oylama_saat: o,
-      p_temalar: temalar.map(t => ({ ad: t.ad.trim(), bulusmada: t.bulusmada })),
+      p_temalar: temalar.map(t => ({ ad: t.ad.trim(), bulusmada: serbest ? false : t.bulusmada })),
+      p_serbest: serbest,
     })
     setGidiyor(false)
     if (error) return setHata(hataMetni(error))
@@ -57,9 +60,20 @@ export function Kur() {
       <h2 className="sec">Yeni etkinlik</h2>
 
       <div className="alan" style={{ marginTop: 4 }}>
+        <span className="lab">Etkinlik türü</span>
+        <div className="secim" role="group" aria-label="Etkinlik türü">
+          <button className={!serbest ? 'on' : ''} aria-pressed={!serbest} onClick={() => setSerbest(false)}>Buluşma</button>
+          <button className={serbest ? 'on' : ''} aria-pressed={serbest} onClick={() => setSerbest(true)}>Serbest · ekstra</button>
+        </div>
+        {serbest && (
+          <div className="ipucu">Sezonun altı etkinliğine sayılmaz, seriyi etkilemez. Bütün temalar serbest: çekim tarihine bakılmaz. Kareler sezon ortalamasına yarım ağırlıkla girer, Sıralama'da ayrı Serbest tablosunda da yer alır. Yoklama yine alınır.</div>
+        )}
+      </div>
+
+      <div className="alan">
         <label className="lab" htmlFor="bg">Buluşma günü</label>
         <input id="bg" type="date" value={bulusma} onChange={e => setBulusma(e.target.value)} />
-        {bulusma && <div className="ipucu">{gunYaz(bulusma)}. Buluşma temalarında bu günün kareleri geçerli.</div>}
+        {bulusma && <div className="ipucu">{gunYaz(bulusma)}. {serbest ? 'Etkinliğin tarihi bu gün olarak görünür.' : 'Buluşma temalarında bu günün kareleri geçerli.'}</div>}
       </div>
 
       <div className="alan">
@@ -82,7 +96,7 @@ export function Kur() {
         <div className="ipucu">Oylama yüklemeden kısa. Bilerek seçtiysen sorun yok.</div>
       )}
 
-      <h2 className="sec">Temalar<span>{temalar.length} / 3</span></h2>
+      <h2 className="sec alt">Temalar<span>{temalar.length} / 3</span></h2>
       {temalar.map((t, i) => (
         <div className="tema-kur" key={i}>
           <div className="alan">
@@ -91,10 +105,10 @@ export function Kur() {
               autoCapitalize="words" autoCorrect="off" spellCheck={false} enterKeyHint="done"
               onChange={e => tema(i, { ad: e.target.value })} />
           </div>
-          <div className="secim" role="group" aria-label="Çekim şartı">
+          {!serbest && <div className="secim" role="group" aria-label="Çekim şartı">
             <button className={t.bulusmada ? 'on' : ''} aria-pressed={t.bulusmada} onClick={() => tema(i, { bulusmada: true })}>Buluşmada</button>
             <button className={!t.bulusmada ? 'on' : ''} aria-pressed={!t.bulusmada} onClick={() => tema(i, { bulusmada: false })}>Serbest</button>
-          </div>
+          </div>}
           {temalar.length > 1 && (
             <button className="sil" onClick={() => setTemalar(l => l.filter((_, j) => j !== i))}>Temayı çıkar</button>
           )}

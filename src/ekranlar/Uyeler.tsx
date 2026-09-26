@@ -96,10 +96,10 @@ export function Uyeler({ ben }: { ben: Uye }) {
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Üyeler" />
       <Hata metin={hata} />
-      <h2 className="sec">Katılma istekleri<span>{bekleyen} bekliyor</span></h2>
+      <h2 className="kart-bas">Katılma istekleri<span>{bekleyen} bekliyor</span></h2>
       {istekler.length === 0 && <p className="veri">Bekleyen istek yok.</p>}
       {istekler.map(r => (
-        <div className="istek" key={r.id}>
+        <div className="kart istek" key={r.id}>
           <div className="ust"><b>{r.ad}</b>{!r.sonuc && <span className="rozet bekliyor">Bekliyor</span>}</div>
           <div className="mail">{r.eposta}</div>
           {r.cikarilmis && (
@@ -129,8 +129,8 @@ export function Uyeler({ ben }: { ben: Uye }) {
         </div>
       ))}
 
-      <h2 className="sec">Üyeler<span>{icerideki} üye</span></h2>
-      {uyeler.map(u => {
+      <h2 className="kart-bas">Üyeler<span>{icerideki} üye</span></h2>
+      <div className="satir-kartlari">{uyeler.map(u => {
         const disarda = !!u.cikarildi_at
         const aksiyonVar = (kurucu && u.rol !== 'kurucu' && !disarda) || cikarabilirMi(u) || disarda
         const satirIci = (
@@ -146,7 +146,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
           </>
         )
         return (
-          <div key={u.id} className={disarda ? 'cikarilmis' : ''}>
+          <div key={u.id} className={`uye ${disarda ? 'cikarilmis' : ''}`}>
             {aksiyonVar ? (
               <button className="satir acilir" aria-expanded={acik === u.id}
                 onClick={() => { setCikarilacak(null); setAcik(acik === u.id ? null : u.id) }}>
@@ -185,7 +185,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
             )}
           </div>
         )
-      })}
+      })}</div>
       {kurucu && <p className="veri">Yöneticiyi yalnız kurucu ekler ve çıkarır.</p>}
     </div>
   )

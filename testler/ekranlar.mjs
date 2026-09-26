@@ -111,7 +111,7 @@ const A = await oturum('kurucu@test.local');
   // Çıkarılan üye sayılmıyor: hem Üyeler sayacı hem Etkinlikler başlığı
   await A.evaluate(async id => window.__sb.rpc('uye_cikar', { p_uye: id, p_cikar: true }), zeynep.id);
   await ac(A, 'uyeler');
-  const sayac = await A.evaluate(() => [...document.querySelectorAll('h2.sec')].find(h => h.textContent.startsWith('Üyeler'))?.querySelector('span')?.textContent);
+  const sayac = await A.evaluate(() => [...document.querySelectorAll('h2.kart-bas')].find(h => h.textContent.startsWith('Üyeler'))?.querySelector('span')?.textContent);
   bekle('üyeler sayacı çıkarılanı saymıyor', sayac === '5 üye', sayac);
   await ac(A, 'etkinlikler');
   bekle('etkinlikler başlığı çıkarılanı saymıyor', (await A.locator('.mast .r').textContent())?.trim() === '5 üye', await A.locator('.mast .r').textContent());

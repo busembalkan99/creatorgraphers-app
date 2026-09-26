@@ -75,10 +75,10 @@ export function Asama() {
   return (
     <div className="sc" data-asama={a === 'oylama' ? 'oylama' : 'yukleme'}>
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
-      <h2 className="sec">{ay} etkinliği<span>{gunYaz(e.bulusma_gunu, false)}</span></h2>
+      <h2 className="kart-bas">{ay} etkinliği<span>{gunYaz(e.bulusma_gunu, false)}</span></h2>
       <p className="veri" style={{ marginTop: 0 }}><b>{durum}</b></p>
 
-      <div className="ozet" style={{ marginTop: 12 }}>
+      <div className="kart ozet">
         {temalar.map(t => (
           <div key={t.id}>
             <span className="k">{t.bulusmada ? 'Buluşma' : 'Serbest'}</span>
@@ -97,7 +97,7 @@ export function Asama() {
         </div>
       )}
       {soru === 'oylama' && (
-        <div className="kutu">
+        <div className="kart kutu">
           <div className="bas"><span>Oylama şimdi açılsın mı?</span></div>
           <p>Yükleme kapanır, {toplam} kareyle oylama başlar. Geri alınamaz.</p>
           <div className="akt">
@@ -138,9 +138,9 @@ export function Asama() {
 
       {(a === 'baslamadi' || a === 'yukleme') && (
         <>
-          <h2 className="sec alt">Etkinliği iptal et</h2>
+          <h2 className="kart-bas">Etkinliği iptal et</h2>
           {soru === 'iptal' ? (
-            <div className="kutu" style={{ marginTop: 0 }}>
+            <div className="kart kutu" style={{ marginTop: 0 }}>
               <div className="bas"><span>{ay} etkinliği iptal edilsin mi?</span></div>
               <p>{toplam > 0 ? `Yüklenen ${toplam} kare silinir. ` : ''}Geri alınamaz.</p>
               <div className="akt">
@@ -194,7 +194,7 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
   if (bugunTr() < e.bulusma_gunu) {
     return (
       <>
-        <h2 className="sec alt">Yoklama</h2>
+        <h2 className="kart-bas">Yoklama</h2>
         <p className="veri" style={{ marginTop: 0 }}>Buluşma günü açılır.</p>
       </>
     )
@@ -227,10 +227,10 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
 
   return (
     <div className="yoklama">
-      <h2 className="sec alt">Yoklama{alindi && secim === null && <span>{gelen} / {liste?.length ?? 0} geldi</span>}</h2>
+      <h2 className="kart-bas">Yoklama{alindi && secim === null && <span>{gelen} / {liste?.length ?? 0} geldi</span>}</h2>
       {secim !== null ? (
         <>
-          {(liste ?? []).map(x => {
+          <div className="satir-kartlari">{(liste ?? []).map(x => {
             const on = secim.has(x.uye)
             return (
               <button key={x.uye} className="izin" aria-pressed={on} onClick={() => {
@@ -242,7 +242,7 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
                 <span><b>{x.ad}</b></span>
               </button>
             )
-          })}
+          })}</div>
           {/* Alt alta: yarım genişlikte "Yoklamayı kaydet" iki satıra bölünüyordu */}
           <button className="btn" disabled={gidiyor} onClick={kaydet}>Yoklamayı kaydet</button>
           <button className="btn ik" onClick={() => setSecim(null)}>Vazgeç</button>
@@ -263,7 +263,7 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
         </>
       )}
       {secim === null && !kilitli && gelmeyen && gelmeyen.kare > 0 && (
-        <div className="kutu">
+        <div className="kart kutu">
           <div className="bas"><span>Gelmeyen {gelmeyen.kisi} kişi {gelmeyen.kare} kare yüklemiş</span></div>
           <p>Yoklamadan önce yüklenmişler. Çıkarırsan sahipleri nedenini görür, geri alabilirsin.</p>
           <button className="btn" onClick={gelmeyenleriCikar}>Karelerini çıkar</button>
@@ -302,14 +302,14 @@ function OyIlerlemesi({ e, surum }: { e: Etkinlik; surum: number }) {
 
   return (
     <>
-      <h2 className="sec alt">Oy veren{sayilan > 0 && <span>{veren} / {sayilan} kişi</span>}</h2>
+      <h2 className="kart-bas">Oy veren{sayilan > 0 && <span>{veren} / {sayilan} kişi</span>}</h2>
       {/* Hata varken "okunuyor" demeye devam etmesin: ikisi bir arada duruyordu */}
       {hata ? null : liste === null ? (
         <p className="veri" style={{ marginTop: 0 }}>Okunuyor.</p>
       ) : liste.length === 0 ? (
         <p className="veri" style={{ marginTop: 0 }}>Kulüpte üye yok.</p>
       ) : (
-        <div className="ozet" style={{ marginTop: 12 }}>
+        <div className="kart ozet">
           {(liste ?? []).map(x => (
             <div key={x.uye}>
               <span className="v">{x.ad}</span>
@@ -357,14 +357,14 @@ function Cikarilanlar({ e, surum, degisti }: { e: Etkinlik; surum: number; degis
   if (!liste.length && !hata) return null
   return (
     <>
-      <h2 className="sec alt">Yarışmadan çıkarılanlar<span>{liste.length} kare</span></h2>
-      {liste.map(x => (
+      <h2 className="kart-bas">Yarışmadan çıkarılanlar<span>{liste.length} kare</span></h2>
+      <div className="satir-kartlari">{liste.map(x => (
         <div className="cikan" key={x.id}>
           {x.url ? <img src={x.url} alt="" /> : <div className="yer" style={{ width: 52, height: 52 }} />}
           <div className="tx"><b>{x.tema_ad}</b><span>{x.neden}</span></div>
           <button className="btn ik" onClick={() => geriAl(x.id)}>Geri al</button>
         </div>
-      ))}
+      ))}</div>
       <Hata metin={hata} />
     </>
   )

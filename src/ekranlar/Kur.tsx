@@ -62,7 +62,7 @@ export function Kur() {
   return (
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
-      <h2 className="sec">Yeni etkinlik</h2>
+      <h2 className="kart-bas">Yeni etkinlik</h2>
 
       <div className="alan" style={{ marginTop: 4 }}>
         <span className="lab">Etkinlik türü</span>
@@ -101,9 +101,9 @@ export function Kur() {
         <div className="ipucu">Oylama yüklemeden kısa. Bilerek seçtiysen sorun yok.</div>
       )}
 
-      <h2 className="sec alt">Temalar<span>{temalar.length} / 3</span></h2>
+      <h2 className="kart-bas">Temalar<span>{temalar.length} / 3</span></h2>
       {temalar.map((t, i) => (
-        <div className="tema-kur" key={i}>
+        <div className="kart tema-kur" key={i}>
           <div className="alan">
             <label className="lab" htmlFor={`t${i}`}>Tema {i + 1}</label>
             <input id={`t${i}`} value={t.ad} maxLength={40} placeholder={serbest ? 'BOŞ BIRAKIRSAN: SERBEST' : 'ÖRNEK: SOKAK'}

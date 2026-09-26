@@ -324,8 +324,8 @@ bekle('oylamada iptal bölümü yok', !icerir(await metin(A), 'İptali başlat')
 // Karar 105: sonuçlar açılana kadar kaç kişinin oy verdiği hiçbir yerde görünmüyordu
 {
   // Liste sunucudan geliyor, bölüm başlığı ondan önce basılıyor
-  await A.locator('.sec', { hasText: 'Oy veren' }).locator('span').waitFor({ timeout: 8000 }).catch(() => {});
-  const bas = await A.locator('.sec', { hasText: 'Oy veren' }).innerText();
+  await A.locator('h2.kart-bas', { hasText: 'Oy veren' }).locator('span').waitFor({ timeout: 8000 }).catch(() => {});
+  const bas = await A.locator('h2.kart-bas', { hasText: 'Oy veren' }).innerText();
   const liste = await A.locator('.ozet').last().innerText();
   bekle('aşamada oy veren sayısı var', icerir(bas, '0 / 2 kişi'), bas);
   // İki kare de Selin'in: oylayacak karesi yok. Ayrı bir durumla gösterilmiyor, çünkü
@@ -620,7 +620,7 @@ bekle('liste gelene kadar okunuyor yazıyor', icerir(await metin(A), 'Okunuyor')
 await A.waitForTimeout(2500);
 await A.unroute('**/rest/v1/rpc/oylama_ilerlemesi*');
 {
-  const bas = await A.locator('.sec', { hasText: 'Oy veren' }).innerText();
+  const bas = await A.locator('h2.kart-bas', { hasText: 'Oy veren' }).innerText();
   const liste = await A.locator('.ozet').last().innerText();
   bekle('oy veren sayısı artıyor', icerir(bas, '1 / 3 kişi'), bas);
   bekle('bitiren Bitirdi diye görünüyor', liste.includes('Ayşe Kaya') && liste.includes('Bitirdi'), liste);
@@ -1062,7 +1062,7 @@ await olc(B, '39-sonuc-uye');
   bekle('geri al düğmesi var', (await A.getByRole('button', { name: 'Geri al', exact: true }).count()) === 1);
   // Önceki hâli ilk .sec'i ("Katılma istekleri") okuyordu, sayacı hiç ölçmüyordu
   {
-    const sayac = await A.evaluate(() => [...document.querySelectorAll('h2.sec')].find(h => h.textContent.startsWith('Üyeler'))?.querySelector('span')?.textContent);
+    const sayac = await A.evaluate(() => [...document.querySelectorAll('h2.kart-bas')].find(h => h.textContent.startsWith('Üyeler'))?.querySelector('span')?.textContent);
     const iceride = await A.evaluate(() => [...document.querySelectorAll('.satir')].filter(e => !e.closest('.cikarilmis')).length);
     bekle('üye sayacı çıkarılanı saymıyor', sayac === `${iceride} üye`, `${sayac} / ${iceride}`);
   }

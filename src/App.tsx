@@ -6,10 +6,11 @@ import { git, sekmeGit, sonYon, useYol } from './lib/yol'
 import { geriAlinacak } from './lib/kaydirma'
 import { Ikon } from './bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from './bilesenler/Kunye'
+import { bellegeYaz, bellektenAl } from './lib/onbellek'
 import { Cikarildin, Hosgeldin, Kapak, UyeDegil } from './ekranlar/Giris'
 import { Etkinlikler } from './ekranlar/Etkinlikler'
 import { Yukleme } from './ekranlar/Yukleme'
-import { Profil } from './ekranlar/Profil'
+import { Profil, profilVerisi, tahminVerisi } from './ekranlar/Profil'
 import { Uyeler } from './ekranlar/Uyeler'
 import { Kur } from './ekranlar/Kur'
 import { Asama } from './ekranlar/Asama'
@@ -18,7 +19,7 @@ import { Sonuc } from './ekranlar/Sonuc'
 import { Wrapped } from './ekranlar/Wrapped'
 import { Paylas } from './ekranlar/Paylas'
 import { Tahmin } from './ekranlar/Tahmin'
-import { Siralama } from './ekranlar/Siralama'
+import { Siralama, siralamaVerisi } from './ekranlar/Siralama'
 
 export default function App() {
   if (ayarEksik) return <AyarEksik />
@@ -105,6 +106,20 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   // geri dönüşte önceki sayfa soldan belirir, sekmeler arası hareket yok).
   const yon = sonYon()
   const sarmal = useRef<HTMLDivElement>(null)
+
+  // Sekmeler önceden: açılış ekranı oturduktan sonra Sıralama ve Profil sessizce yükleniyor,
+  // ilk açılışta yükleniyor çizgisi ve boş ekran görünmüyor (Buse, 2026-09-27)
+  useEffect(() => {
+    const z = window.setTimeout(() => {
+      const hazirla = <T,>(anahtar: string, oku: () => Promise<T>, sar: (d: T) => unknown = d => d) => {
+        if (!bellektenAl(anahtar)) oku().then(d => bellegeYaz(anahtar, sar(d))).catch(() => {})
+      }
+      hazirla(`${uye.id}:siralama`, siralamaVerisi)
+      hazirla(`${uye.id}:profil:`, () => profilVerisi(undefined))
+      hazirla(`${uye.id}:tahmin`, tahminVerisi, t => ({ t }))
+    }, 800)
+    return () => window.clearTimeout(z)
+  }, [uye.id])
 
   // Geri dönülüyorsa bırakılan yere BOYAMADAN ÖNCE dön. Sekme verisi bellekte olduğu için
   // ekran genelde ilk karede tam boyunda (onbellek.ts); o zaman zıplama yok. Değilse ekran

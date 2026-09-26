@@ -5,6 +5,7 @@ import { asama, ayAdi } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
 import { izlenmemisWrapped } from './Wrapped'
+import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 
 /**
  * Ana ekranın boş günleri (Buse, 2026-09-26; ideations/creatorgraphers/2026-09-26_bos-ana-sayfa.md).
@@ -63,16 +64,43 @@ async function oku(etkinlikler: Etkinlik[], temalar: Tema[], benimTemalarim: Set
 export function Vitrin({ uyeId, etkinlikler, temalar, benimTemalarim }: {
   uyeId: string; etkinlikler: Etkinlik[]; temalar: Tema[]; benimTemalarim: Set<string>
 }) {
-  const [v, setV] = useState<Veri | null>(null)
+  // Bellekten: geri dönüşte ilk karede tam boyuyla (boş ekran ve zıplama yok, Buse 2026-09-27)
+  const bellekAnahtari = `${uyeId}:vitrin`
+  const [v, setV] = useState<Veri | null>(() => bellektenAl<Veri>(bellekAnahtari) ?? null)
+  // Yer tutucunun yerini alan içerik yumuşak beliriyor; bellekten gelen zaten yerinde, beliremiyor
+  const [yeni, setYeni] = useState(false)
+  const [yuklenemedi, setYuklenemedi] = useState(false)
   // Dakikalık tazelemede yalnız sonuçlanan etkinlikler ya da kişinin kareleri değişince yeniden okunuyor
   const anahtar = [uyeId, ...etkinlikler.filter(e => !e.iptal && asama(e) === 'sonuc').map(e => e.id), ...[...benimTemalarim].sort()].join(',')
   useEffect(() => {
     let iptal = false
-    sor(oku(etkinlikler, temalar, benimTemalarim)).then(d => { if (!iptal) setV(d) }).catch(() => { if (!iptal) setV(null) })
+    sor(oku(etkinlikler, temalar, benimTemalarim))
+      .then(d => { if (iptal) return; setYeni(!bellektenAl(bellekAnahtari)); setV(bellegeYaz(bellekAnahtari, d)) })
+      .catch(() => { if (!iptal) { setV(null); setYuklenemedi(true) } })
     return () => { iptal = true }
   }, [anahtar]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!v) return null
+  // Veri gelene kadar yer tutucular: liste gelecek bölümlerin yerini baştan biliyor, aşağı itilmiyor.
+  // Yalnız gösterilecek bir şey varken: sonuçlanmış etkinlik (şerit), onda kişinin karesi (kart).
+  const bitmis = etkinlikler.filter(e => !e.iptal && asama(e) === 'sonuc')
+    .sort((a, b) => Date.parse(b.oylama_biter) - Date.parse(a.oylama_biter))
+  if (!v) {
+    if (yuklenemedi || !bitmis.length) return null
+    const benimVar = bitmis.some(e => temalar.some(t => t.etkinlik === e.id && benimTemalarim.has(t.id)))
+    const son = bitmis[0]
+    return (
+      <>
+        <h2 className="kart-bas">{son.serbest ? 'Ekstra etkinlik' : ayAdi(son.bulusma_gunu)} birincileri</h2>
+        <div className="vitrin" aria-hidden="true"><div className="vt yer-kart" /><div className="vt yer-kart" /></div>
+        {benimVar && (
+          <>
+            <h2 className="kart-bas">Katıldığın son etkinlik</h2>
+            <div className="kart katildigin yer-kart" aria-hidden="true" />
+          </>
+        )}
+      </>
+    )
+  }
   const { birinciler: b, katildigin: k } = v
   return (
     <>
@@ -81,7 +109,7 @@ export function Vitrin({ uyeId, etkinlikler, temalar, benimTemalarim }: {
           <h2 className="kart-bas">{b.baslik}<span>{b.temaSayisi} tema</span></h2>
           <div className="vitrin">
             {b.kareler.map(x => (
-              <figure key={x.id} className="vt" onClick={() => git(`sonuc/${b.e.id}/kare/${x.id}`)}>
+              <figure key={x.id} className={`vt ${yeni ? 'belir' : ''}`} onClick={() => git(`sonuc/${b.e.id}/kare/${x.id}`)}>
                 <span className="buyut"><Ikon ad="buyut" /></span>
                 {x.url ? <img src={x.url} alt={`${x.tema_ad} temasının birincisi`} /> : <div className="yer" />}
                 <figcaption><b>{x.tema_ad}</b><span>{x.sahip_ad}</span><i>{puanYaz(x.ortalama)}</i></figcaption>
@@ -93,7 +121,7 @@ export function Vitrin({ uyeId, etkinlikler, temalar, benimTemalarim }: {
       {k && (
         <>
           <h2 className="kart-bas">Katıldığın son etkinlik<span>{k.ay}</span></h2>
-          <button className="kart katildigin" onClick={() => git(`sonuc/${k.e.id}`)}>
+          <button className={`kart katildigin ${yeni ? 'belir' : ''}`} onClick={() => git(`sonuc/${k.e.id}`)}>
             {k.kare.url ? <img src={k.kare.url} alt="" /> : <span className="yer" />}
             <div className="vt-sayi">
               {k.kare.sirali && <div><b>{k.kare.sira}</b><span>Sıran</span></div>}

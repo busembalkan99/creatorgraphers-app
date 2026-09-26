@@ -26,7 +26,7 @@ interface Mudavim { uye: string; ad: string; benim: boolean; katilim: number; pe
 
 const puanYaz = (n: number | null) => (n == null ? '' : n.toFixed(1).replace('.', ','))
 
-async function siralamaVerisi() {
+export async function siralamaVerisi() {
   const [o, s, m, sr] = await sor(Promise.all([
     sb.rpc('sezon_ozeti'),
     sb.rpc('siralama'),

@@ -53,7 +53,7 @@ async function sayfa(k, izle = false) {
   const ctx = await b.newContext({ ...devices['iPhone 14'] });
   if (izle) await ctx.addInitScript(() => {
     window.__ifsa = false; window.__degisim = 0;
-    const bas = () => new MutationObserver(() => { window.__degisim++; if (!location.hash.startsWith('#/wrapped') && document.querySelector('.vitrin, .katildigin')) window.__ifsa = true; })
+    const bas = () => new MutationObserver(() => { window.__degisim++; if (!location.hash.startsWith('#/wrapped') && [...document.querySelectorAll('.vitrin .vt:not(.yer-kart) figcaption, .katildigin:not(.yer-kart)')].some(x => /Sokak|Portre|Gece|8,0/.test(x.textContent))) window.__ifsa = true; })
       .observe(document.documentElement, { childList: true, subtree: true });
     if (document.documentElement) bas(); else document.addEventListener('DOMContentLoaded', bas, { once: true });
   });
@@ -121,7 +121,7 @@ try {
   await C.goto(APP + '#/etkinlikler'); await C.reload(); await C.waitForTimeout(4000);
   bekle('wrapped kendiliğinden açıldı (kontrol)', (await C.evaluate(() => location.hash)).startsWith('#/wrapped/'));
   bekle('ana ekran çizildi (kontrol)', (await C.evaluate(() => window.__degisim)) > 0);
-  bekle('wrapped izlenmeden şerit ve katıldığın kartı hiç görünmedi', !(await C.evaluate(() => window.__ifsa)));
+  bekle('wrapped izlenmeden o etkinliğin birincileri ve kişinin kartı hiç görünmedi (yer tutucu içerik taşımıyor)', !(await C.evaluate(() => window.__ifsa)));
   await admin.from('wrapped_izlendi').insert({ etkinlik: E2.id, uye: K.C.id });
   await git(C, 'siralama'); await git(C, 'etkinlikler');
   bekle('izlendikten sonra şerit ve kart görünüyor, eşitlikte Can birinci', (await C.locator('.vitrin .vt').count()) === 4 && /^1 ?Sıran ?8,0 ?Puanın/.test(await yazi(C, '.katildigin .vt-sayi')), await yazi(C, '.katildigin'));

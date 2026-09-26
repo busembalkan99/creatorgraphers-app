@@ -30,7 +30,7 @@ interface Tarif { tur: 'odak' | 'diyafram' | 'isik'; etiket: string | null; dege
 
 const puanYaz = (n: number | null) => (n == null ? '' : n.toFixed(1).replace('.', ','))
 
-async function profilVerisi(hedef: string | undefined) {
+export async function profilVerisi(hedef: string | undefined) {
   const arg = hedef ? { p_uye: hedef } : {}
   const [p, k, t] = await sor(Promise.all([
     sb.rpc('profil', arg),
@@ -91,7 +91,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         {/* Karar 106: tahmin skoru sonuçlanmış etkinliklerden birikiyor, yalnız kişiye.
             Karar 112: gizlilik notu iki satırın altında bir kez. Vurgu: kişinin kendi sayıları
             sayılar kartında, aynı boyda (Buse, 2026-09-26). */}
-        {benim && <KisiselSayilar ortalama={k.ortalama} />}
+        {benim && <KisiselSayilar ortalama={k.ortalama} uyeId={uye.id} />}
       </div>
 
       <h2 className="kart-bas">Katkı</h2>
@@ -185,8 +185,11 @@ export function Profil({ uye, uyeDegisti, hedef }:
 
 /** Ayarlar ve yönetim yalnız kendi profilinde (karar 58, 83). */
 function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }) {
-  const [bekleyen, setBekleyen] = useState<number | null>(null)
-  const [acik, setAcik] = useState<Etkinlik | null | undefined>(undefined)
+  // Bellekten: yönetim satırları ilk karede yerinde, "Çıkış yap" sonradan aşağı itilmiyor (Buse, 2026-09-27)
+  const anahtar = `${uye.id}:ayarlar`
+  const bellekte = bellektenAl<{ bekleyen: number; acik: Etkinlik | null }>(anahtar)
+  const [bekleyen, setBekleyen] = useState<number | null>(bellekte?.bekleyen ?? null)
+  const [acik, setAcik] = useState<Etkinlik | null | undefined>(bellekte ? bellekte.acik : undefined)
   const [hata, setHata] = useState<string | null>(null)
   const yonetici = uye.rol !== 'uye'
 
@@ -199,8 +202,9 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
       ]))
       if (b.error) throw b.error
       if (e.error) throw e.error
-      setBekleyen((b.data ?? []).length)
-      setAcik(acikEtkinlik((e.data ?? []) as Etkinlik[]) ?? null)
+      const d = bellegeYaz(anahtar, { bekleyen: (b.data ?? []).length, acik: acikEtkinlik((e.data ?? []) as Etkinlik[]) ?? null })
+      setBekleyen(d.bekleyen)
+      setAcik(d.acik)
     })().catch(x => setHata(hataMetni(x)))
   }, [yonetici])
 
@@ -294,18 +298,29 @@ function asamaCumlesi(e: Etkinlik) {
 
 /** Yalnız kişinin gördüğü sayılar: ortalaması ve tahmin oyunu skoru (sunucu yalnız sonuçlanmış
  *  etkinlikleri sayıyor, 0014). Gizlilik notu ikisinin altında bir kez (karar 112). */
-function KisiselSayilar({ ortalama }: { ortalama: number | null }) {
-  const [t, setT] = useState<{ bilen: number; toplam: number } | null>(null)
+type TahminSkoru = { bilen: number; toplam: number } | null
+export async function tahminVerisi(): Promise<TahminSkoru> {
+  const { data, error } = await sb.rpc('tahmin_profilim')
+  if (error) throw error
+  return ((data ?? []) as { bilen: number; toplam: number }[])[0] ?? null
+}
+
+function KisiselSayilar({ ortalama, uyeId }: { ortalama: number | null; uyeId: string }) {
+  // Bellekten: ikinci açılışta skor ilk karede yerinde, "Çıkış yap" aşağı itilmiyor (Buse, 2026-09-27)
+  const anahtar = `${uyeId}:tahmin`
+  const [t, setT] = useState<TahminSkoru>(() => bellektenAl<{ t: TahminSkoru }>(anahtar)?.t ?? null)
+  const [yeni, setYeni] = useState(false)
   useEffect(() => {
-    sb.rpc('tahmin_profilim').then(({ data }) => setT(((data ?? []) as { bilen: number; toplam: number }[])[0] ?? null))
-  }, [])
+    const bellekte = !!bellektenAl(anahtar)
+    tahminVerisi().then(d => { bellegeYaz(anahtar, { t: d }); if (!bellekte) setYeni(true); setT(d) }).catch(() => {})
+  }, [anahtar])
   const tahmin = !!t && t.toplam > 0
   const n = (ortalama != null ? 1 : 0) + (tahmin ? 1 : 0)
   if (!n) return null
   return (
     <div className="kisisel">
       {ortalama != null && <div><b>{puanYaz(ortalama)}</b><span>Ortalaman</span></div>}
-      {tahmin && <div><b>{t!.bilen}/{t!.toplam}</b><span>Tahminde bildin</span></div>}
+      {tahmin && <div className={yeni ? 'belir' : undefined}><b>{t!.bilen}/{t!.toplam}</b><span>Tahminde bildin</span></div>}
       <p>{n === 2 ? 'Bu ikisini yalnız sen görüyorsun.' : 'Bunu yalnız sen görüyorsun.'}</p>
     </div>
   )

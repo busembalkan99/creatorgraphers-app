@@ -974,3 +974,8 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 .vt-sayi p{flex:1 0 100%;margin-top:8px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
 /* Sayılı satırlarda olduğu gibi yalnız ok: dar ekranda sayılar yan yana kalsın */
 .katildigin .ileri{margin-left:auto}
+
+/* Geç gelen içerik (Buse, 2026-09-27): yer tutucu gerçeğiyle aynı boyda, liste itilmiyor; gelen yumuşak beliriyor */
+.vt.yer-kart{height:231px;cursor:default}
+.katildigin.yer-kart{height:88px;background:var(--kart);cursor:default}
+.belir{animation:belir .18s cubic-bezier(.32,.72,0,1)}

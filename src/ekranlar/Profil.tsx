@@ -92,7 +92,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
           Karar 112: gizlilik notu iki satırın altında bir kez. */}
       {benim && <KisiselSayilar ortalama={k.ortalama} />}
 
-      <div className="kart-bas">Katkı</div>
+      <h2 className="kart-bas">Katkı</h2>
       {k.tam_set || Number(k.tema_sayisi) > 0 ? (
         <div className="kart badges">
           {k.tam_set && (
@@ -115,7 +115,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </div>
       )}
 
-      <div className="kart-bas">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></div>
+      <h2 className="kart-bas">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></h2>
       {v.tarif.length === 0 ? (
         <div className="kart bos-kart">
           <b>Çekim tarifi</b>
@@ -149,7 +149,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </div>
       )}
 
-      <div className="kart-bas">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></div>
+      <h2 className="kart-bas">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></h2>
       {bos ? (
         <div className="kart bos-kart">
           <b>Henüz kare yok</b>
@@ -213,7 +213,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
   return (
     <>
-      <div className="kart-bas">Ayarlar<span>{uye.eposta}</span></div>
+      <h2 className="kart-bas">Ayarlar<span>{uye.eposta}</span></h2>
       <div className="satir-kartlari">
         <button className="izin" onClick={afis} aria-pressed={uye.afis_izni}>
           <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
@@ -223,7 +223,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
       {yonetici && (
         <>
-          <div className="kart-bas">Yönetim</div>
+          <h2 className="kart-bas">Yönetim</h2>
           <div className="satir-kartlari">
             {bekleyen !== null && bekleyen > 0 && (
               <button className="satir" onClick={() => git('uyeler')}>

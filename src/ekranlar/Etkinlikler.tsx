@@ -107,7 +107,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
       {acik ? (
         <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} oyKalan={v.oyKalan} gelmedim={!!v.gelmedim} />
       ) : (
-        <div className="next">
+        <div className="kart next">
           <span className="k">Sıradaki etkinlik</span>
           <span className="u" style={{ marginLeft: 'auto' }}>henüz kurulmadı</span>
         </div>
@@ -116,9 +116,9 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
         <button className="btn ik" onClick={() => git('kur')}>Etkinliği kur</button>
       )}
 
-      <h2 className="sec">Geçmiş etkinlikler<span>{gecmis.length} etkinlik</span></h2>
+      <h2 className="kart-bas">Geçmiş etkinlikler<span>{gecmis.length} etkinlik</span></h2>
       {gecmis.length === 0 && <p className="veri">İlk etkinlik bitince burada duracak.</p>}
-      {gecmis.map((e, i) => {
+      {gecmis.length > 0 && <div className="satir-kartlari">{gecmis.map((e, i) => {
         const tm = v.temalar.filter(t => t.etkinlik === e.id)
         // Karar 116: numara yalnız buluşmaları sayıyor (sezonun altı yeri); ekstra etkinlik "EK"
         const no = gecmis.slice(i).filter(x => !x.serbest).length
@@ -132,7 +132,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
             <div className="alt">{tm.map(t => t.ad).join(' · ')}{tm.length ? ' · ' : ''}sonuçlar</div>
           </button>
         )
-      })}
+      })}</div>}
     </div>
   )
 }

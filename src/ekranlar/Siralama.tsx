@@ -104,7 +104,7 @@ export function Siralama({ uye }: { uye: Uye }) {
       {!acik ? (
         <>
           {/* Karar 34: kilitli kalır, gizlenmez */}
-          <div className="kart-bas">Sezon sıralaması</div>
+          <h2 className="kart-bas">Sezon sıralaması</h2>
           <div className="kart bos-kart">
             <b>İlk sonuçlarla açılıyor</b>
             <span>İlk etkinliğin oylaması kapanınca sıralama burada başlıyor.</span>
@@ -122,7 +122,7 @@ export function Siralama({ uye }: { uye: Uye }) {
         <>
           {v.mudavim.length > 0 && (
             <>
-              <div className="kart-bas">Müdavim<span>{v.mudavim.length ? `Son ${v.mudavim[0].pencere} etkinlik` : ''}</span></div>
+              <h2 className="kart-bas">Müdavim<span>{v.mudavim.length ? `Son ${v.mudavim[0].pencere} etkinlik` : ''}</span></h2>
               {(
                 <div className="kart mud-kart">
                   <b>{v.mudavim.length === 1 ? 'Tek kişi' : `${v.mudavim.length} kişi`}</b>
@@ -138,7 +138,7 @@ export function Siralama({ uye }: { uye: Uye }) {
           )}
           {(
             <>
-              <div className="kart-bas">Sıralama<span>İlk {sirali.length}</span></div>
+              <h2 className="kart-bas">Sıralama<span>İlk {sirali.length}</span></h2>
               {/* Karar 110: kare kişinin en iyisi, puan bütün karelerinin ortalaması. Satırlarda değil, bir kez (Buse, 2026-09-26). */}
               <p className="kart-not">Kare, kişinin en iyi karesi; puan, bütün karelerinin ortalaması.</p>
               {sirali.length === 0 ? (
@@ -148,7 +148,7 @@ export function Siralama({ uye }: { uye: Uye }) {
               )}
               {sirasiz.length > 0 && (
                 <>
-                  <div className="kart-bas">Sezonda kare veren diğer isimler</div>
+                  <h2 className="kart-bas">Sezonda kare veren diğer isimler</h2>
                   <div className="kart isimler">
                 {sirasiz.map(s => (
                   <button key={s.uye} onClick={() => git(`profil/${s.uye}`)}><span className={s.benim ? 'me' : undefined}>{s.ad}</span></button>
@@ -161,7 +161,7 @@ export function Siralama({ uye }: { uye: Uye }) {
 
           {v.serbest.length > 0 && (
             <>
-              <div className="kart-bas">Serbest temalar<span>İlk {v.serbest.filter(x => x.sirali).length}</span></div>
+              <h2 className="kart-bas">Serbest temalar<span>İlk {v.serbest.filter(x => x.sirali).length}</span></h2>
               <p className="kart-not">Serbest temalardaki kareler. Sezon sıralamasına yarım ağırlıkla girer.</p>
               {v.serbest.some(x => x.sirali) ? (
                 <div className="satir-kartlari">{v.serbest.filter(x => x.sirali).map(s => satirCiz(s, 'serbest'))}</div>
@@ -170,7 +170,7 @@ export function Siralama({ uye }: { uye: Uye }) {
               )}
               {v.serbest.some(x => !x.sirali) && (
                 <>
-                  <div className="kart-bas">Serbest temada kare veren diğer isimler</div>
+                  <h2 className="kart-bas">Serbest temada kare veren diğer isimler</h2>
                   <div className="kart isimler" data-tablo="serbest">
                 {v.serbest.filter(x => !x.sirali).map(s => (
                   <button key={s.uye} onClick={() => git(`profil/${s.uye}`)}><span className={s.benim ? 'me' : undefined}>{s.ad}</span></button>

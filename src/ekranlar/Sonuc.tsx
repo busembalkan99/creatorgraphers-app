@@ -180,7 +180,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {birinciler.length > 0 && (
             <div className="odul">
-              <div className="kart-bas">Birinci</div>
+              <h2 className="kart-bas">Birinci</h2>
               {birinciler.length > 1 && (
                 <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
               )}
@@ -231,7 +231,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {galeri.length > 0 && (
             <>
-              <div className="kart-bas">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></div>
+              <h2 className="kart-bas">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></h2>
               <div className="izgara">
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => ac(k)}>
@@ -249,7 +249,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {cikanlar.length > 0 && (
             <>
-              <div className="kart-bas">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></div>
+              <h2 className="kart-bas">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></h2>
               <div className="izgara">
                 {cikanlar.map(k => (
                   <figure key={k.id} className="cikti" onClick={() => ac(k)}>

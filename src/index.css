@@ -894,3 +894,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .satir-kartlari .satir,.satir-kartlari .izin{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}
 .grid img{border-radius:var(--foto-r)}
 .satir-kartlari .satir .deg{border-radius:6px}
+/* Etkinlikler: canlı kart kendi renginde, köşesi kart köşesi; sıradaki etkinlik kartı; geçmiş etkinlikler satır kartları */
+.live{border-radius:var(--kart-r)}
+.live .act{border-radius:6px}
+.kart.next{border:0;padding:14px 16px}
+.satir-kartlari .ev{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}

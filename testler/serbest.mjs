@@ -127,6 +127,7 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   const metin = async () => (await p.locator('.app').innerText()).replace(/\s+/g, ' ');
 
   await ac('siralama');
+  bekle('ekran: Serbest tablosunda sırasız isimler ve "İlk 1"', (await p.locator('.unr[data-tablo=serbest] .names button').allTextContents()).join() === 'Barış Ak' && (await p.locator('h2.sec', { hasText: 'Serbest' }).textContent()).includes('İlk 1'), JSON.stringify(await p.locator('.unr[data-tablo=serbest] .names button').allTextContents()));
   bekle('ekran: Serbest tablosu görünüyor', (await metin()).includes('SERBEST · EKSTRA') || (await metin()).includes('Serbest · ekstra'), (await metin()).slice(0, 300));
   bekle('ekran: sezon ilerlemesi serbest etkinliği saymıyor', (await metin()).includes('1 / 6 etkinlik'));
   // Serbest tablosu hata verirse ana tablo yine görünüyor, Serbest bölümü sessizce yok
@@ -148,15 +149,27 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   bekle('ekran: buluşma türünde temaların çekim şartı seçilebiliyor', (await p.getByRole('group', { name: 'Çekim şartı' }).count()) === 1);
   await p.getByRole('button', { name: 'Serbest · ekstra' }).click();
   bekle('ekran: serbest türde çekim şartı seçimi yok', (await p.getByRole('group', { name: 'Çekim şartı' }).count()) === 0);
+  await p.getByRole('button', { name: 'Buluşma', exact: true }).click();
+  bekle('ekran: buluşmaya dönünce çekim şartı seçimi geri geliyor, açıklama gidiyor', (await p.getByRole('group', { name: 'Çekim şartı' }).count()) === 1 && !(await metin()).includes('Sezonun altı etkinliğine sayılmaz'));
+  await p.getByRole('button', { name: 'Serbest · ekstra' }).click();
   bekle('ekran: serbest tür ne demek olduğunu söylüyor', (await metin()).includes('Sezonun altı etkinliğine sayılmaz'));
   await p.locator('#bg').fill(tarih(-2));
+  bekle('ekran: serbest türde tarih ipucu', (await metin()).includes('Etkinliğin tarihi bu gün olarak görünür'));
   await p.locator('#yb').fill(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 16));
   await p.locator('#t0').fill('Işık');
   await p.getByRole('button', { name: 'Etkinliği kur' }).click(); await p.waitForTimeout(2000);
   const yeni = (await admin.from('etkinlikler').select('id, serbest').eq('iptal', false).order('olusturma', { ascending: false }).limit(1)).data?.[0];
   const yeniT = yeni ? (await admin.from('temalar').select('ad, bulusmada').eq('etkinlik', yeni.id)).data : [];
+  await ac('etkinlikler');
+  bekle('ekran: canlı kart "Ekstra etkinlik · ay" diyor', ((await p.locator('.live .kick').textContent()) ?? '').startsWith('Ekstra etkinlik · '), await p.locator('.live .kick').textContent().catch(() => ''));
   bekle('ekran: kurulan etkinlik serbest, teması serbest', yeni?.serbest === true && yeniT?.length === 1 && yeniT[0].bulusmada === false && yeniT[0].ad === 'Işık', JSON.stringify([yeni, yeniT]));
   bekle('ekran: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
+  // Boş p_serbest buluşma sayılıyor
+  if (yeni) await admin.from('etkinlikler').update({ iptal: true }).eq('id', yeni.id);
+  const r3 = await A.c.rpc('etkinlik_kur', { p_bulusma: tarih(-3), p_yukleme_baslar: ileri, p_yukleme_saat: 24, p_oylama_saat: 48, p_temalar: temalar, p_serbest: null });
+  const e3 = r3.data ? (await admin.from('etkinlikler').select('serbest').eq('id', r3.data).single()).data : null;
+  bekle('boş serbest parametresi buluşma etkinliği kuruyor', !r3.error && e3?.serbest === false, hata(r3) || JSON.stringify(e3));
+  if (r3.data) await admin.from('etkinlikler').update({ iptal: true }).eq('id', r3.data);
   await b.close();
 }
 

@@ -140,13 +140,15 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
 function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: { kalan: number; toplam: number } | null; gelmedim: boolean }) {
   const a = asama(e)
   const ay = ayAdi(e.bulusma_gunu)
+  // Karar 116: ekstra etkinlik her hâlde kendini söylüyor (başlamadı, yükleme, oylama)
+  const etiket = e.serbest ? `Ekstra etkinlik · ${ay}` : `${ay} etkinliği`
   const tamam = temalar.filter(t => benim.has(t.id)).length
   const ilkBos = temalar.find(t => !benim.has(t.id))
 
   if (a === 'baslamadi') {
     return (
       <div className="live" data-asama="yukleme">
-        <div className="kick">{ay} etkinliği</div>
+        <div className="kick">{etiket}</div>
         <h2>Buluşma<br />{gunYaz(e.bulusma_gunu, false)}</h2>
         {/* Tek cümle olarak okunsun: "Yükleme 19 Eylül 16.00'da açılıyor" */}
         {/* Aradaki {' '}: flex boşluğu yalnız görünüşte ayırıyor, metinde kelimeler
@@ -171,7 +173,7 @@ function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; tema
 
   return (
     <div className="live" data-asama={a}>
-      <div className="kick">{e.serbest ? `Ekstra etkinlik · ${ay}` : `${ay} etkinliği`} <i><span className="dot" aria-hidden="true" />Canlı</i></div>
+      <div className="kick">{etiket} <i><span className="dot" aria-hidden="true" />Canlı</i></div>
       <h2>{yukleme ? <>Yükleme<br />açık</> : <>Oylama<br />açık</>}</h2>
       <div className="meta">
         <span>Kalan</span>{' '}

@@ -211,7 +211,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
     )
   } else if (d.onay && d.kare) {
     govde = (
-      <div className="ret">
+      <div className="kart ret">
         <div className="ust">
           {d.kare.url && <img src={d.kare.url} alt="" />}
           <div className="baslik">
@@ -228,7 +228,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
     const r = d.ret
     const yilFarkli = r.cekimGunu && r.cekimGunu.slice(0, 4) !== e.bulusma_gunu.slice(0, 4)
     govde = (
-      <div className="ret" role="alert">
+      <div className="kart ret" role="alert">
         <div className="ust">
           <img className="soluk" src={r.onizleme} alt="" onError={x => (x.currentTarget.style.visibility = 'hidden')} />
           <div className="baslik">
@@ -326,7 +326,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         })}
       </div>
 
-      <div className="sec yuk-sec">{t.ad}</div>
+      <h2 className="kart-bas">{t.ad}</h2>
       <div className="sart">{sart}</div>
       {govde}
       <Hata metin={d.hata} />
@@ -334,7 +334,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         sonraki ? (
           <button className="btn" onClick={() => setSec(temalar.indexOf(sonraki))}>{sonraki.ad} temasına geç</button>
         ) : (
-          <div className="kutu">
+          <div className="kart kutu">
             <div className="bas"><span>{temalar.length > 1 ? 'Kareler yüklendi' : 'Karen yüklendi'}</span></div>
             <p>Yükleme kapanana kadar değiştirebilirsin.</p>
             <button className="btn" onClick={() => geriGit('etkinlikler')}>Etkinliklere dön</button>
@@ -342,10 +342,12 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         )
       )}
 
-      <button className="izin" onClick={afis} aria-pressed={uye.afis_izni}>
-        <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
-        <span><b>Kulüp afişi</b><span>Kazanırsam karem kulüp afişinde kullanılabilir.</span></span>
-      </button>
+      <div className="satir-kartlari afis">
+        <button className="izin" onClick={afis} aria-pressed={uye.afis_izni}>
+          <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
+          <span><b>Kulüp afişi</b><span>Kazanırsam karem kulüp afişinde kullanılabilir.</span></span>
+        </button>
+      </div>
 
       <input
         ref={dosyaGir}

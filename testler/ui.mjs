@@ -1,6 +1,7 @@
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import exifr from '../node_modules/exifr/dist/full.esm.mjs';
 import { admin, sifirla, bekle, rapor } from './ortak.mjs';
+import { kartDenetle } from './kartDenetim.mjs';
 const APP = 'http://localhost:5180/';
 const SS = '/tmp/cgapp/ss';
 import fs from 'node:fs'; fs.mkdirSync(SS, { recursive: true });
@@ -35,6 +36,8 @@ const metin = p => p.locator('.app').innerText();
 const icerir = (a, b) => a.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR').includes(b.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR'));
 const yaz = (p, sec, i = 0) => p.evaluate(([s, j]) => (document.querySelectorAll(s)[j]?.textContent ?? '').trim(), [sec, i]);
 const bekleMetin = (p, t) => p.getByText(t, { exact: false }).first().waitFor({ timeout: 8000 }).then(() => true, () => false);
+// Kart sistemi (karar 118): Yükleme ve Giriş durumları da kart denetiminden geçiyor
+const KART_DENETIMI = ['05-bekliyor', '08-ret', '11-hosgeldin', '17-yukleme-bos', '18-ret-gun', '19-ret-tarihsiz', '20-yuklendi', '21-degistirme-ret', '22-kaldir-onay', '23-iki-tema', '26-yukleme-kapali'];
 async function olc(p, ad) {
   // Sayfa geçişi sürerken ekran yandan kayıyor; ölçüm oturmuş ekranda yapılsın.
   // Sonsuz dönen yükleme çubuğu beklenmez.
@@ -48,6 +51,7 @@ async function olc(p, ad) {
     return { tasma, kucuk, karar };
   });
   bekle(`${ad}: taşma yok`, r.tasma.length === 0, JSON.stringify(r.tasma));
+  if (KART_DENETIMI.includes(ad)) await kartDenetle(p, ad, bekle);
   bekle(`${ad}: 44px altı düğme yok`, r.kucuk.length === 0, JSON.stringify(r.kucuk));
   bekle(`${ad}: karar numarası yok`, !r.karar);
   await p.screenshot({ path: `${SS}/${ad}.png`, fullPage: false });

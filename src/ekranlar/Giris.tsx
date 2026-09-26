@@ -154,11 +154,11 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
         <div className="sc">
           <Kunye sol="Creatorgraphers" sag="Giriş" />
           <h2 className="t">İsteğin<br />yöneticide</h2>
-          <div className="kutu">
+          <div className="kart kutu">
             <div className="bas"><Ikon ad="saat" /><span>Onay bekleniyor</span></div>
             <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
           </div>
-          <h2 className="sec">Gönderdiğin</h2>
+          <h2 className="kart-bas">Gönderdiğin</h2>
           <Ozet istek={d.istek} />
           <div className="bosluk" />
           <button className="link" onClick={baskaHesap}>Başka hesapla gir</button>
@@ -169,11 +169,11 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
         <div className="sc">
           <Kunye sol="Creatorgraphers" sag="Giriş" />
           <h2 className="t">İsteğin<br />kabul<br />edilmedi</h2>
-          <div className="kutu">
+          <div className="kart kutu">
             <div className="bas"><Ikon ad="info" /><span>Bu hesapla kulübe giremiyorsun</span></div>
             <p>Yanlışlık varsa notuna yaz, tekrar iste.</p>
           </div>
-          <h2 className="sec">Gönderdiğin</h2>
+          <h2 className="kart-bas">Gönderdiğin</h2>
           <Ozet istek={d.istek} />
           <div className="bosluk" />
           <button className="btn" onClick={() => setD({ tip: 'istek', tekrar: true, ad: d.istek.ad })}>Tekrar istek bırak</button>
@@ -185,7 +185,7 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
 
 function Ozet({ istek }: { istek: Istek }) {
   return (
-    <div className="ozet">
+    <div className="kart ozet">
       <div><span className="k">Ad</span><span className="v">{istek.ad}</span></div>
       <div><span className="k">Hesap</span><span className="v">{istek.eposta}</span></div>
       <div><span className="k">Not</span><span className="v">{istek.notu || 'Not bırakmadın'}</span></div>
@@ -288,13 +288,15 @@ export function Hosgeldin({ ad, devam }: { ad: string; devam: () => void }) {
       <Kunye sol="Creatorgraphers" />
       <h2 className="t">Hoş geldin,<br />{ad.split(' ')[0]}</h2>
       <p className="lede">İsteğin onaylandı. Kulüp şöyle işliyor:</p>
-      <h2 className="sec">Bir etkinlik</h2>
+      <h2 className="kart-bas">Bir etkinlik</h2>
+      <div className="satir-kartlari">
       <div className="adim"><span className="no">01</span><span><b>Buluşup çekiyoruz</b>
         <span>Her temaya bir kare yüklüyorsun. Bazı temalar buluşma günü çekiliyor.</span></span></div>
       <div className="adim"><span className="no">02</span><span><b>İsimsiz oyluyoruz</b>
         <span>Her kareye 1 ile 10 arası puan. Kimin çektiği sonuçlara kadar gizli.</span></span></div>
       <div className="adim"><span className="no">03</span><span><b>Sonuçlar açılıyor</b>
         <span>Kazanan kareler ve galeri. Kendi ortalamanı sadece sen görüyorsun.</span></span></div>
+      </div>
       <div className="bosluk" />
       <button className="btn" onClick={devam}>Etkinliklere geç</button>
     </div>

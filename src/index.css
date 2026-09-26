@@ -965,3 +965,15 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kart.tahmin-teklif .kilit-ic p{font-size:11px;line-height:1.6;color:var(--dim);margin-top:6px;max-width:none}
 .kart.tahmin-teklif .btn{margin-top:16px}
 .satir-kartlari > .tahmin-satir .tik{border-radius:50%}
+
+/* Yükleme ve Giriş (kart sistemi): kesik çizgili kutular kart, fotoğraf yuvaları 4px, adımlar satır kartı */
+.kk{border-radius:var(--foto-r);overflow:hidden}
+.kk.b{border:0;background:var(--kart)}
+.k.secili .kk{outline-offset:0}
+button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
+.yuk{border:0;background:var(--kart);border-radius:var(--kart-r)}
+.kart.ret{border:0;padding:14px 16px}
+.kart.ret img{border-radius:var(--foto-r)}
+.dolu img,.dolu .yer{border-radius:var(--foto-r)}
+.satir-kartlari.afis{margin-top:var(--s-blok)}
+.satir-kartlari > .adim{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px}

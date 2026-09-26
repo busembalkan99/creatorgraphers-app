@@ -158,7 +158,8 @@ function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; tema
           <b>{saatYaz(e.yukleme_baslar)}'{saatEki(e.yukleme_baslar)}</b>{' '}
           <span>açılıyor</span>
         </div>
-        <div className="temalar">{temalar.map(t => `${t.ad}${t.bulusmada ? '' : ' (serbest)'}`).join(' · ')}</div>
+        {/* Ekstra etkinlikte bütün temalar serbest: ek her temada tekrar ediyordu (Buse, 2026-09-26) */}
+        <div className="temalar">{temalar.map(t => `${t.ad}${t.bulusmada || e.serbest ? '' : ' (serbest)'}`).join(' · ')}</div>
         <button className="act" onClick={() => git('yukle')}>Temalara bak</button>
       </div>
     )

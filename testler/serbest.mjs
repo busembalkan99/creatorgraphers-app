@@ -166,6 +166,10 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   const yeni = (await admin.from('etkinlikler').select('id, serbest').eq('iptal', false).order('olusturma', { ascending: false }).limit(1)).data?.[0];
   const yeniT = yeni ? (await admin.from('temalar').select('ad, bulusmada').eq('etkinlik', yeni.id)).data : [];
   await ac('etkinlikler');
+  bekle('ekran: serbest etkinlikte tema adlarının yanında "(serbest)" eki yok', !((await p.locator('.live .temalar').textContent().catch(() => '')) ?? '').includes('(serbest)') && ((await p.locator('.live .temalar').textContent().catch(() => '')) ?? '').includes('Işık'), await p.locator('.live .temalar').textContent().catch(() => ''));
+  await ac('asama');
+  bekle('ekran: yönetimdeki grup mesajında da "(serbest)" eki yok', !((await p.locator('.mesaj p').textContent().catch(() => '')) ?? '').includes('(serbest)') && ((await p.locator('.mesaj p').textContent().catch(() => '')) ?? '').includes('Işık') && ((await p.locator('.mesaj p').textContent().catch(() => '')) ?? '').startsWith('Ekstra etkinlik:'), await p.locator('.mesaj p').textContent().catch(() => ''));
+  await ac('etkinlikler');
   bekle('ekran: canlı kart "Ekstra etkinlik · ay" diyor', ((await p.locator('.live .kick').textContent()) ?? '').startsWith('Ekstra etkinlik · '), await p.locator('.live .kick').textContent().catch(() => ''));
   bekle('ekran: kurulan etkinlik serbest, temaları serbest; boş adlar "Serbest", "Serbest 2" oluyor', yeni?.serbest === true && yeniT?.length === 3 && yeniT.every(t => t.bulusmada === false) && yeniT.map(t => t.ad).sort().join() === 'Işık,Serbest,Serbest 2', JSON.stringify([yeni, yeniT]));
   bekle('ekran: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));

@@ -61,11 +61,11 @@ export function Asama() {
   const ay = ayAdi(e.bulusma_gunu)
   const toplam = Object.values(sayilar).reduce((x, y) => x + y, 0)
   const link = window.location.origin + import.meta.env.BASE_URL
-  const temaListesi = temalar.map(t => `${t.ad}${t.bulusmada ? '' : ' (serbest)'}`).join(', ')
+  const temaListesi = temalar.map(t => `${t.ad}${t.bulusmada || e.serbest ? '' : ' (serbest)'}`).join(', ')
   const mesaj =
     a === 'oylama'
-      ? `${ay} etkinliğinin oylaması açıldı. Her kareye puan vermeyi unutmayın.\nSon oy: ${saatYaz(e.oylama_biter)}\n${link}`
-      : `${ay} etkinliği: buluşma ${gunYaz(e.bulusma_gunu)}.\nTemalar: ${temaListesi}\nYükleme açılışı: ${saatYaz(e.yukleme_baslar)}\nSon yükleme: ${saatYaz(e.yukleme_biter)}\n${link}`
+      ? `${e.serbest ? 'Ekstra etkinliğin' : `${ay} etkinliğinin`} oylaması açıldı. Her kareye puan vermeyi unutmayın.\nSon oy: ${saatYaz(e.oylama_biter)}\n${link}`
+      : `${e.serbest ? 'Ekstra etkinlik' : `${ay} etkinliği`}: buluşma ${gunYaz(e.bulusma_gunu)}.\nTemalar: ${temaListesi}\nYükleme açılışı: ${saatYaz(e.yukleme_baslar)}\nSon yükleme: ${saatYaz(e.yukleme_biter)}\n${link}`
 
   const durum =
     a === 'baslamadi' ? `Yükleme açılışı ${saatYaz(e.yukleme_baslar)}`

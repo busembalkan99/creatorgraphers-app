@@ -948,3 +948,11 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kur-ozet > span:first-child{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
 .kur-ozet b{font-size:17px;letter-spacing:-.02em;font-variation-settings:"wdth" 72,"wght" 900}
 .kur-ozet > span:last-child{font-size:11px;color:var(--soft);line-height:1.5}
+
+/* Oylama ve Tahmin (kart sistemi): tema satırları ve "kareler kimindi" satır kartları, tahmin kartı ve teklif kartta */
+.satir-kartlari > .tema-satir{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}
+.tahmin-kart{background:var(--kart);box-shadow:none;border-radius:var(--kart-r);padding:14px 16px}
+.kart.tahmin-teklif{border-top:0;padding:14px 16px}
+.satir-kartlari > .tahmin-satir{background:var(--kart);border-radius:var(--kart-r);border-bottom:0;padding:12px 16px}
+.satir-kartlari > .tahmin-satir img,.satir-kartlari > .tahmin-satir .yer{border-radius:var(--foto-r)}
+.satir-kartlari > .tahmin-satir .tik{border-radius:6px}

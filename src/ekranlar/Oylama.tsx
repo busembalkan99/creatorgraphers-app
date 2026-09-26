@@ -100,8 +100,8 @@ export function Oylama({ uye }: { uye: Uye }) {
           <span className="git">{tahmin.gonderildi ? 'Bak' : tahmin.basladi ? 'Devam et' : 'Oyna'}<Ikon ad="sag" /></span>
         </button>
       )}
-      <h2 className="sec">Temalar<span>{v.durum.length} tema</span></h2>
-      {v.durum.map(t => {
+      <h2 className="kart-bas">Temalar<span>{v.durum.length} tema</span></h2>
+      <div className="satir-kartlari">{v.durum.map(t => {
         const kalan = t.toplam - t.puanladigim
         const oran = t.toplam ? (t.puanladigim / t.toplam) * 100 : 100
         return (
@@ -134,7 +134,7 @@ export function Oylama({ uye }: { uye: Uye }) {
             </div>
           </button>
         )
-      })}
+      })}</div>
       <p className="veri">Kimin çektiği sonuçlara kadar gizli. Kendi karen listede yok.</p>
     </div>
   )

@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { kartDenetle } from './kartDenetim.mjs';
 
 const APP = 'http://localhost:5180/';
 const SS = '/tmp/cgapp/ss';
@@ -63,6 +64,7 @@ async function kisi(eposta) {
 const git = async (p, yol) => { await p.goto(APP + '#/' + yol); await p.reload(); await p.waitForTimeout(1400); };
 const metin = p => p.locator('.app').innerText().then(t => t.replace(/\s+/g, ' '));
 const var_ = async (p, t) => (await metin(p)).toLocaleLowerCase('tr-TR').includes(t.toLocaleLowerCase('tr-TR'));
+const KART_DENETIMI = ['60-tahmin-kart', '61-tahmin-teklif', '64-tahmin-gonderildi', '66-tahmin-sonuc'];
 async function olc(p, ad) {
   const r = await p.evaluate(() => {
     const tasma = [...document.querySelectorAll('.app *')].filter(e => { const b = e.getBoundingClientRect(); return b.width && (b.right > window.innerWidth + 1 || b.left < -1); }).map(e => e.className).slice(0, 3);
@@ -71,6 +73,8 @@ async function olc(p, ad) {
   });
   bekle(`${ad}: taşma yok`, r.tasma.length === 0, JSON.stringify(r.tasma));
   bekle(`${ad}: 44px altı düğme yok`, r.kucuk.length === 0, JSON.stringify(r.kucuk));
+  // Kart sistemi (karar 118): oylama listesi, teklif, gönderildi ve sonuç ekranları
+  if (KART_DENETIMI.includes(ad)) await kartDenetle(p, ad, bekle);
   await p.screenshot({ path: `${SS}/${ad}.png` });
 }
 
@@ -189,6 +193,7 @@ try {
   const dogruSayisi = vt.filter(x => x.cevap && x.cevap === sahibi[x.kare]).length;
   await git(P, `sonuc/${E}`);
   bekle('6: sonuç ekranında tahmin kartı', (await P.locator('.tahmin-kart').count()) === 1);
+  await kartDenetle(P, '6-sonuc-tahmin-karti', bekle);
   bekle('6: kart skoru söylüyor', (await P.locator('.tahmin-kart b').textContent()).includes(`${dogruSayisi}/6`), await P.locator('.tahmin-kart b').textContent());
   await P.locator('.tahmin-kart').click(); await P.waitForTimeout(1500);
   bekle('6: skor gerçek cevaplardan', (await P.locator('.tahmin-skor b').textContent()) === `${dogruSayisi}/6`, await P.locator('.tahmin-skor b').textContent());

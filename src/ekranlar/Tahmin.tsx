@@ -120,8 +120,8 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
           <span>Doğru bildin</span>
         </div>
         <p className="veri" style={{ marginTop: 12 }}>Bu skoru yalnız sen görüyorsun.</p>
-        <h2 className="sec alt">Kareler kimindi<span>{sonuc.length} kare</span></h2>
-        {sonuc.map(x => (
+        <h2 className="kart-bas">Kareler kimindi<span>{sonuc.length} kare</span></h2>
+        <div className="satir-kartlari">{sonuc.map(x => (
           <div key={x.sira} className={`tahmin-satir ${x.dogru ? 'dogru' : ''}`}>
             {x.url ? <img src={x.url} alt="" /> : <div className="yer" />}
             <div className="tx">
@@ -132,7 +132,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
             {/* Doğruda tik; yanlışta hiçbir işaret yok, kırmızı da yok (spec 4. bölüm) */}
             {x.dogru && <span className="tik"><Ikon ad="tik" /></span>}
           </div>
-        ))}
+        ))}</div>
         <button className="btn ik" onClick={() => git(`sonuc/${etkinlikId}`)}>Sonuçlara dön</button>
       </div>
     )
@@ -159,11 +159,11 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
         <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
         <h2 className="t orta">Oyların<br />tamam</h2>
         <p className="lede">Sonuçlar {kalanYaz(e.oylama_biter)} sonra açılıyor. O zamana kadar isteğe bağlı bir oyun var.</p>
-        <div className="tahmin-teklif">
+        <div className="kart tahmin-teklif">
           <span className="lab">Kim çekti · isteğe bağlı</span>
           <p>Birkaç kare seçiliyor. Her karede adaylar arasından kimin çektiğini tahmin ediyorsun. Skorun yalnız sana görünür.</p>
         </div>
-        <div className="kutu">
+        <div className="kart kutu">
           <div className="bas"><Ikon ad="kilit" /><span>Başlarsan puanların kilitlenir</span></div>
           <p>Tahmin etmek “bu kareyi kim çekti” diye düşünmeni istiyor. Puanların açık kalırsa o düşünce oylamana sızar. Bu yüzden oyun başladığı anda bu etkinlikte verdiğin puanlar değiştirilemez.</p>
         </div>
@@ -186,7 +186,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
         <p className="lede">
           {isim} kareye isim verdin{gecilen ? `, ${gecilen} kareyi geçtin` : ''}. Doğru cevaplar sonuçlarla birlikte açılıyor.
         </p>
-        <div className="kutu">
+        <div className="kart kutu">
           <div className="bas"><Ikon ad="kilit" /><span>Puanların kilitli</span></div>
           <p>Bu etkinlikte verdiğin puanlar artık değiştirilemiyor. Sonuçlar açılınca kaç bildiğini burada göreceksin.</p>
         </div>

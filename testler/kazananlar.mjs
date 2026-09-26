@@ -101,6 +101,23 @@ try {
   bekle('kazananlar okunamazsa liste açık, satırlar tema adıyla', satirlar.length === 2 && satirlar.every(x => !x.includes(':')) && satirlar.some(x => x.includes('Su · Gece')), JSON.stringify(satirlar));
   await P.unroute('**/rest/v1/rpc/sonuc_kareleri*');
 
+  // Boş cevap saklanmıyor: telefon saati ileriyken sunucu henüz "sonuç" demiyor; sonraki tazelemede geliyor
+  await P.route('**/rest/v1/rpc/sonuc_kareleri*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+  await git(P, 'siralama'); await git(P, 'etkinlikler'); await P.waitForTimeout(1500);
+  bekle('boş cevapta kazanan yok (kontrol)', (await alt(P)).every(x => !x.includes(':')), JSON.stringify(await alt(P)));
+  await P.unroute('**/rest/v1/rpc/sonuc_kareleri*');
+  await P.evaluate(() => document.dispatchEvent(new Event('visibilitychange'))); await P.waitForTimeout(2000);
+  bekle('boş cevap saklanmadı, tazelemede kazananlar geldi', (await alt(P)).some(x => x.includes('Su: Barış Ak')), JSON.stringify(await alt(P)));
+
+  // Wrapped durumu okunamazsa (hata ya da istek düşerse) o etkinliğin kazananı gizli kalıyor, diğerleri görünüyor
+  for (const [ad, cevap] of [['hata', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' })], ['istek düştü', r => r.abort()]]) {
+    await P.route('**/rest/v1/rpc/wrapped_ozeti*', cevap);
+    await git(P, 'siralama'); await git(P, 'etkinlikler'); await P.waitForTimeout(1500);
+    const l = await alt(P);
+    bekle(`wrapped durumu okunamazsa (${ad}) o etkinliğin kazananı gizli, eskiler görünüyor`, !l.some(x => x.includes('Deniz')) && l.some(x => x.includes('Su: Barış Ak')), JSON.stringify(l));
+    await P.unroute('**/rest/v1/rpc/wrapped_ozeti*');
+  }
+
   // Sıralamaya girmeyen: kendi puanını yalnız kendi görüyor (karar 38, 52)
   const C = await sayfa(K.C);
   await git(C, `sonuc/${E1.id}`);

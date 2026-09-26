@@ -20,6 +20,11 @@ node testler/wrapped.mjs                      # sonuç açılışının sayılar
 node testler/davranis-wrapped.mjs             # Wrapped ekranda: kart kümesi, gezinme, kişisel kartın altı durumu
 node testler/paylasim.mjs                     # paylaşım kartının kontakt şeridi: afiş izni, sunucu kuralları
 node testler/davranis-paylas.mjs              # paylaşım ekranı: dört düzen, indirilen PNG, kimde düğme var
+node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon ağırlığı, Serbest tablosu, ekranlar
+node testler/kazananlar.mjs                   # arşivdeki kazanan adları, Wrapped'den önce gizli; senin karen / senin yerin kartları
+node testler/webkit.mjs                       # iPhone motorunda taşma ve üst üste binme (siralama.mjs'den sonra)
+node testler/kart.mjs                         # kart sistemi denetimi, 390 ve 320px (siralama.mjs'den sonra; karar 118, 119)
+node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 
 `ui.mjs` ve `exifjpeg.mjs` Playwright'ı `~/.local/playwright-mcp` altından alıyor.
@@ -32,3 +37,7 @@ geçişinin yönü, geri dönünce hiçbir karede başa dönülmemesi (her kared
 bellek doluyken ve boşken), bellekteki verinin başka üyeye sızmaması, sayfa
 yakınlaştırmasının kapalı olması. Fotoğraf büyütecinin jestleri `ui.mjs` içinde. Bu dosya gözle yakalanan kusurlar yüzünden var;
 her kontrolün kusur konunca gerçekten kaldığı denendi.
+
+`kartDenetim.mjs` kart sisteminin ekrandan bağımsız denetimi (köşe, iç boşluk, çizgi kalıntısı,
+başlık, nefes, taşma). `kart.mjs` ekran ekran, `ui.mjs` Yükleme ve Giriş durumlarında,
+`davranis-tahmin.mjs` oylama ve tahmin durumlarında çağırıyor.

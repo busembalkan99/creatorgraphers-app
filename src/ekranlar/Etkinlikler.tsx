@@ -5,7 +5,7 @@ import { asama, ayAdi, gunYaz, kalanYaz, saatEki, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
-import { wrappedGerekirseAc } from './Wrapped'
+import { izlenmemisWrapped, wrappedGerekirseAc } from './Wrapped'
 
 /**
  * Ana ekran: etkinlikler arşivi (karar 44). Prototip: v16.
@@ -19,24 +19,26 @@ interface Veri {
   uyeSayisi: number
   oyKalan: { kalan: number; toplam: number } | null   // oylama açıkken kaç kare kaldı
   gelmedim: boolean   // karar 103: açık etkinlikte yoklama alındı ve adım yok
-  kazananlar: Map<string, string[]>   // tema → birinci(ler)in adı, sonuçlanmış etkinliklerde
 }
 
-// Sonuç açıldıktan sonra birinci değişmiyor: dakikalık tazelemede her etkinliği yeniden
-// sormamak için etkinlik başına bir kez okunuyor. Okunamazsa satır tema adlarıyla kalıyor.
+// Kazanan adları (karar 119). Liste beklemesin diye ayrı ve sonradan okunuyor. Dakikalık
+// tazelemede etkinlik başına bir kez; ekran her açılışta belleği boşaltıyor, çünkü yönetici
+// sonuçtan sonra kare çıkarıp geri alabiliyor. Boş cevap saklanmıyor (telefon saati sunucudan
+// ileriyse sunucu henüz "sonuç" demiyor). Okunamazsa satır tema adlarıyla kalıyor.
 const kazananBellek = new Map<string, Map<string, string[]>>()
 async function kazananlariOku(etkinlikler: Etkinlik[]) {
-  const eksik = etkinlikler.filter(e => !e.iptal && asama(e) === 'sonuc' && !kazananBellek.has(e.id))
+  const saklanan = await izlenmemisWrapped(etkinlikler, asama).catch(() => null)
+  const eksik = etkinlikler.filter(e => !e.iptal && asama(e) === 'sonuc' && e.id !== saklanan && !kazananBellek.has(e.id))
   await Promise.all(eksik.map(async e => {
     const { data, error } = await sb.rpc('sonuc_kareleri', { p_etkinlik: e.id })
-    if (error) return
+    if (error || !data?.length) return
     const m = new Map<string, string[]>()
     for (const k of (data ?? []) as { tema: string; sahip_ad: string; sira: number | null; sirali: boolean; cikarildi: boolean }[])
       if (k.sirali && k.sira === 1 && !k.cikarildi) m.set(k.tema, [...(m.get(k.tema) ?? []), k.sahip_ad])
     kazananBellek.set(e.id, m)
   }))
   const hepsi = new Map<string, string[]>()
-  for (const m of kazananBellek.values()) for (const [t, adlar] of m) hepsi.set(t, adlar)
+  for (const [eid, m] of kazananBellek) if (eid !== saklanan) for (const [t, adlar] of m) hepsi.set(t, adlar)
   return hepsi
 }
 
@@ -71,11 +73,9 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
     const ben = ((y.data ?? []) as { alindi: boolean; geldim: boolean }[])[0]
     gelmedim = !!ben?.alindi && !ben.geldim
   }
-  const kazananlar = await sor(kazananlariOku(etkinlikler)).catch(() => new Map<string, string[]>())
   return {
     etkinlikler,
     gelmedim,
-    kazananlar,
     temalar: (t.data ?? []) as Tema[],
     benimTemalarim: new Set((k.data ?? []).map(r => r.tema as string)),
     uyeSayisi: Number(u.data ?? 0),
@@ -90,8 +90,10 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   const [v, setV] = useState<Veri | null>(() => bellektenAl<Veri>(`${uye.id}:etkinlikler`) ?? null)
   const [hata, setHata] = useState<string | null>(null)
   const [, setTik] = useState(0)
+  const [kazananlar, setKazananlar] = useState<Map<string, string[]>>(() => new Map())
 
   useEffect(() => {
+    kazananBellek.clear()
     // Yalnız ilk yükleme hata ekranı açar. Arka plandaki yenilemenin hatası
     // yutulur: zayıf bağlantıda tek kopuk dakika çalışan ekranı hata ekranına
     // çevirip orada bırakıyordu. Başarılı yenileme önceki hatayı da temizler.
@@ -99,6 +101,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
     const yukle = () => etkinlikVerisi(uye.id)
       .then(d => {
         setV(bellegeYaz(`${uye.id}:etkinlikler`, d)); setHata(null)
+        sor(kazananlariOku(d.etkinlikler)).then(setKazananlar).catch(() => {})
         // Karar 39: sonuç açıldıktan sonraki ilk girişte Wrapped kendiliğinden açılır, bir kez
         // Ağ hatası ana ekranı etkilemesin: bir sonraki tazelemede yeniden denenir
         wrappedGerekirseAc(d.etkinlikler, asama).catch(() => {})
@@ -153,7 +156,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
             {/* Vurgu: arşiv kimin kazandığını da söylüyor (Buse, 2026-09-26) */}
             <div className="alt">
               {tm.map((t, j) => {
-                const kaz = v.kazananlar.get(t.id)
+                const kaz = kazananlar.get(t.id)
                 return <span key={t.id}>{j ? ' · ' : ''}{t.ad}{kaz?.length ? <>: <b>{kaz.join(', ')}</b></> : null}</span>
               })}{tm.length ? ' · ' : ''}sonuçlar
             </div>

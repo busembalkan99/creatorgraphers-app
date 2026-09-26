@@ -45,11 +45,27 @@ const bakilan = new Set<string>()
  * (izlendi kaydı sunucuda). Yalnız son yedi günde sonuçlanan etkinlik: bu özellik yayına
  * girdiğinde eski etkinlikler için açılmasın.
  */
-export async function wrappedGerekirseAc(etkinlikler: Etkinlik[], asamaBul: (e: Etkinlik) => string) {
+/** Wrapped'in kendiliğinden açılabileceği etkinlik: son yedi günde sonuçlanan en yenisi. */
+function wrappedAdayi(etkinlikler: Etkinlik[], asamaBul: (e: Etkinlik) => string) {
   const yedi = Date.now() - 7 * 86400000
-  const e = etkinlikler
+  return etkinlikler
     .filter(x => !x.iptal && asamaBul(x) === 'sonuc' && Date.parse(x.oylama_biter) > yedi)
     .sort((a, b) => Date.parse(b.oylama_biter) - Date.parse(a.oylama_biter))[0]
+}
+
+/** Kişinin henüz izlemediği Wrapped'in etkinliği (yoksa null). Ana ekran bu etkinliğin
+ *  kazananını Wrapped'den önce göstermiyor: açılışın sürprizi (karar 39). */
+export async function izlenmemisWrapped(etkinlikler: Etkinlik[], asamaBul: (e: Etkinlik) => string) {
+  const e = wrappedAdayi(etkinlikler, asamaBul)
+  if (!e) return null
+  const { data, error } = await sb.rpc('wrapped_ozeti', { p_etkinlik: e.id })
+  if (error) return e.id   // bilinmiyorsa göstermemek güvenli taraf
+  const o = ((data ?? []) as Ozet[])[0]
+  return o && !o.izlendi && Number(o.kare) > 0 ? e.id : null
+}
+
+export async function wrappedGerekirseAc(etkinlikler: Etkinlik[], asamaBul: (e: Etkinlik) => string) {
+  const e = wrappedAdayi(etkinlikler, asamaBul)
   if (!e || bakilan.has(e.id)) return
   bakilan.add(e.id)
   const { data, error } = await sb.rpc('wrapped_ozeti', { p_etkinlik: e.id })

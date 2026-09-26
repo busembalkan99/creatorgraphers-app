@@ -48,7 +48,7 @@ const ac = async (yol, dosya) => {
   await p.goto(APP + '#/' + yol); await p.reload(); await p.waitForTimeout(2500);
   await p.screenshot({ path: `${SS}/wk-${dosya}.png`, fullPage: true });
 };
-const SECICI = '.row, .ev, .satir-kare, .tema-satir, .kursu figure, .izgara figure, .grid figure, .tabs button, .btn, .mud, .tahmin-kart';
+const SECICI = '.row, .ev, .satir-kare, .tema-satir, .kursu figure, .izgara figure, .grid figure, .tabs button, .btn, .mud, .mud-kart, .kart, .tahmin-kart';
 
 try {
   await ac('siralama', 'siralama');

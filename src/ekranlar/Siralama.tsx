@@ -102,90 +102,84 @@ export function Siralama({ uye }: { uye: Uye }) {
         ))}
       </div>
 
-      {/* Karar 55: Müdavim sonuçlarla birlikte açılıyor */}
-      {v.mudavim.length > 0 && (
-        <div className="mud">
-          <div className="k">Müdavim<span>Son {v.mudavim[0].pencere} etkinlik</span></div>
-          {v.mudavim.length === 1 ? (
-            <div className="one">
-              <button onClick={() => git(`profil/${v.mudavim[0].uye}`)}>
-                <span className={v.mudavim[0].benim ? 'me' : ''}>{v.mudavim[0].ad}</span>
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="big">{v.mudavim.length} kişi</div>
-              <div className="list">
-                {v.mudavim.map(m => (
-                  <button key={m.uye} onClick={() => git(`profil/${m.uye}`)} style={{ marginRight: 9 }}>
-                    <span className={m.benim ? 'me' : ''}>{m.ad}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       {!acik ? (
         <>
           {/* Karar 34: kilitli kalır, gizlenmez */}
-          <h2 className="sec">Sezon sıralaması</h2>
-          <div className="empty" style={{ marginTop: 0 }}>
+          <div className="kart-bas">Sezon sıralaması</div>
+          <div className="kart bos-kart">
             <b>İlk sonuçlarla açılıyor</b>
             <span>İlk etkinliğin oylaması kapanınca sıralama burada başlıyor.</span>
           </div>
-          <div className="empty">
+          <div className="kart bos-kart">
             <b>Müdavim</b>
             <span>Sonuçlarla birlikte açılıyor.</span>
           </div>
-          <div className="empty">
+          <div className="kart bos-kart">
             <b>Geçen sezon</b>
             <span>{ozet?.onceki ? 'Sezon bitince buradan bakılıyor.' : 'Henüz yok. Bu kulübün ilk sezonu.'}</span>
           </div>
         </>
       ) : (
         <>
-          <h2 className="sec">Sezon sıralaması<span>İlk {sirali.length}</span></h2>
-          {sirali.length === 0 && (
-            <div className="empty" style={{ marginTop: 0 }}>
-              <b>Sıralama henüz yok</b>
-              <span>Sezonda hiç puan verilmemiş.</span>
-            </div>
-          )}
-          {sirali.map(s => satirCiz(s))}
-
-          {sirasiz.length > 0 && (
-            <div className="unr">
-              <div className="hd">Sezonda kare veren diğer isimler</div>
-              <div className="names">
-                {sirasiz.map(s => (
-                  <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>
-                    {s.ad}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Karar 116: serbest temalar ayrı kategori. Aynı görünürlük sözleşmesi (karar 52). */}
-          {v.serbest.length > 0 && (
+          {v.mudavim.length > 0 && (
             <>
-              <h2 className="sec">Serbest · ekstra<span>İlk {v.serbest.filter(x => x.sirali).length}</span></h2>
-              <p className="veri" style={{ marginTop: 0, marginBottom: 12 }}>Serbest temalardaki kareler. Sezon sıralamasına yarım ağırlıkla girer.</p>
-              {v.serbest.filter(x => x.sirali).map(s => satirCiz(s, 'serbest'))}
-              {v.serbest.some(x => !x.sirali) && (
-                <div className="unr" data-tablo="serbest">
-                  <div className="hd">Serbest temada kare veren diğer isimler</div>
-                  <div className="names">
-                    {v.serbest.filter(x => !x.sirali).map(s => (
-                      <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>{s.ad}</button>
+              <div className="kart-bas">Müdavim<span>{v.mudavim.length ? `Son ${v.mudavim[0].pencere} etkinlik` : ''}</span></div>
+              {(
+                <div className="kart mud-kart">
+                  <b>{v.mudavim.length === 1 ? 'Tek kişi' : `${v.mudavim.length} kişi`}</b>
+                  <span>Son etkinliklerin hepsine kare verenler.</span>
+                  <div className="isimler">
+                    {v.mudavim.map(m => (
+                      <button key={m.uye} className={m.benim ? 'me' : ''} onClick={() => git(`profil/${m.uye}`)}>{m.ad}</button>
                     ))}
                   </div>
                 </div>
               )}
             </>
           )}
+          {(
+            <>
+              <div className="kart-bas">Sıralama<span>İlk {sirali.length}</span></div>
+              {sirali.length === 0 ? (
+                <div className="kart bos-kart"><b>Sıralama henüz yok</b><span>Sezonda hiç puan verilmemiş.</span></div>
+              ) : (
+                <div className="satirlar">{sirali.map(s => satirCiz(s))}</div>
+              )}
+              {sirasiz.length > 0 && (
+                <>
+                  <div className="kart-bas">Sezonda kare veren diğer isimler</div>
+                  <div className="kart isimler">
+                {sirasiz.map(s => (
+                  <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>{s.ad}</button>
+                ))}
+              </div>
+                </>
+              )}
+            </>
+          )}
+
+          {v.serbest.length > 0 && (
+            <>
+              <div className="kart-bas">Serbest temalar<span>İlk {v.serbest.filter(x => x.sirali).length}</span></div>
+              <p className="kart-not">Serbest temalardaki kareler. Sezon sıralamasına yarım ağırlıkla girer.</p>
+              {v.serbest.some(x => x.sirali) ? (
+                <div className="satirlar">{v.serbest.filter(x => x.sirali).map(s => satirCiz(s, 'serbest'))}</div>
+              ) : (
+                <div className="kart bos-kart"><b>Henüz serbest kare yok</b><span>Serbest temalı bir etkinlik sonuçlanınca burada.</span></div>
+              )}
+              {v.serbest.some(x => !x.sirali) && (
+                <>
+                  <div className="kart-bas">Serbest temada kare veren diğer isimler</div>
+                  <div className="kart isimler" data-tablo="serbest">
+                {v.serbest.filter(x => !x.sirali).map(s => (
+                  <button key={s.uye} className={s.benim ? 'me' : ''} onClick={() => git(`profil/${s.uye}`)}>{s.ad}</button>
+                ))}
+              </div>
+                </>
+              )}
+            </>
+          )}
+
         </>
       )}
     </div>

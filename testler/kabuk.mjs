@@ -294,7 +294,7 @@ for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
   await p.click('.tabs button:has-text("Sıralama")'); await p.waitForTimeout(1500);
   const yer3 = await p.evaluate(() => { const sc = document.querySelector('.sc'); sc.scrollTop = sc.scrollHeight; return Math.round(sc.scrollTop); });
   bekle('hareket: sıralama kaydırılabilir', yer3 > 80, String(yer3));
-  await p.locator('.sc .mud button, .sc .unr .names button').last().click();
+  await p.locator('.sc .mud-kart button, .sc .kart.isimler button').last().click();
   await p.waitForTimeout(1500);
   await p.evaluate(() => {
     window.__ornek = [];
@@ -427,12 +427,12 @@ for (const yol of ['uyeler', 'kur', 'asama']) {
 
   const y1 = await sirala();
   bekle('geri dönüş testi: Sıralama gerçekten kayıyor', y1 > 40, String(y1));
-  await p.locator('.unr .names button, .row').last().click(); await p.waitForTimeout(1600);
+  await p.locator('.kart.isimler button, .row').last().click(); await p.waitForTimeout(1600);
   await p.locator('.geri').click(); await p.waitForTimeout(1400);
   const y2 = await yer();
   bekle('künyedeki geri ile dönünce yer korunuyor', Math.abs(y2 - y1) <= 2, `${y2} / ${y1}`);
 
-  await p.locator('.unr .names button, .row').last().click(); await p.waitForTimeout(1600);
+  await p.locator('.kart.isimler button, .row').last().click(); await p.waitForTimeout(1600);
   await p.goBack(); await p.waitForTimeout(1400);
   const y3 = await yer();
   bekle('tarayıcının geri tuşuyla da yer korunuyor', Math.abs(y3 - y1) <= 2, `${y3} / ${y1}`);

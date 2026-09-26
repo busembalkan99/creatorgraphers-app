@@ -64,8 +64,8 @@ const A = await oturum('kurucu@test.local');
 // ---------------------------------------------------------------- Sıralama: Müdavim ve boş durum
 {
   await ac(A, 'siralama');
-  bekle('Müdavim çok kişilik: sayı yazıyor', (await A.locator('.mud .big').textContent())?.includes('2 kişi'));
-  bekle('sırasız blokta üç isim', (await A.locator('.unr:not([data-tablo=serbest]) .names button').count()) === 3);
+  bekle('Müdavim çok kişilik: sayı yazıyor', (await A.locator('.mud-kart b').textContent())?.includes('2 kişi'));
+  bekle('sırasız blokta üç isim', (await A.locator('.kart.isimler:not([data-tablo=serbest]) button').count()) === 3);
 
   // Tek Müdavim: Barış'ın ilk etkinlikteki karesi geçici olarak kaldırılıyor
   const { data: bk } = await admin.from('kareler').select('*, temalar!inner(etkinlik, etkinlikler!inner(bulusma_gunu))').eq('sahip', baris.id);
@@ -73,7 +73,7 @@ const A = await oturum('kurucu@test.local');
   const { data: eskiOy } = await admin.from('oylar').select('*').eq('kare', eski.id);
   await admin.from('kareler').delete().eq('id', eski.id);
   await ac(A, 'siralama');
-  bekle('Müdavim tek kişilik: adı büyük yazıyor', (await A.locator('.mud .one').count()) === 1 && (await A.locator('.mud .big').count()) === 0);
+  bekle('Müdavim tek kişilik: adı büyük yazıyor', (await A.locator('.mud-kart b').textContent())?.includes('Tek kişi') && (await A.locator('.mud-kart .isimler button').count()) === 1);
   const { temalar: _t, ...satir } = eski;
   await admin.from('kareler').insert(satir);
   if (eskiOy?.length) await admin.from('oylar').insert(eskiOy);

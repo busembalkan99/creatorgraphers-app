@@ -148,9 +148,9 @@ await B.goto(APP + '#/uyeler'); await B.waitForTimeout(600);
 bekle('üye #/uyeler açınca istekleri görmez', !icerir(await metin(B), 'Katılma istekleri'));
 await B.click('.tabs button:has-text("Sıralama")');
 bekle('sıralama kilitli', await bekleMetin(B, 'İlk sonuçlarla açılıyor'));
-bekle('kilitli sıralamada üç blok', (await B.locator('.empty').count()) === 3,
-  String(await B.locator('.empty').count()));
-bekle('sonuç yokken Müdavim şeridi yok', (await B.locator('.mud').count()) === 0);
+bekle('kilitli sıralamada üç blok', (await B.locator('.bos-kart').count()) === 3,
+  String(await B.locator('.bos-kart').count()));
+bekle('sonuç yokken Müdavim şeridi yok', (await B.locator('.mud-kart').count()) === 0);
 bekle('sezon künyesi kilitliyken de duruyor', icerir(await metin(B), 'Sezon 01') && icerir(await metin(B), '0 / 6'),
   (await metin(B)).slice(0, 160));
 await olc(B, '13-siralama');
@@ -961,7 +961,7 @@ await olc(B, '39-sonuc-uye');
   await ekle(kalabalik, hepsi.users.find(u => u.email === 'esit1@test.local').id, 9);
 
   await A.goto(APP + '#/siralama'); await A.waitForTimeout(2500);
-  bekle('sezon sıralaması açıldı', icerir(await metin(A), 'Sezon sıralaması'), (await metin(A)).slice(0, 200));
+  bekle('sezon sıralaması açıldı', (await A.locator('.kart-bas', { hasText: 'Sıralama' }).count()) > 0, (await metin(A)).slice(0, 200));
   bekle('sıralı satır var', (await A.locator('.row').count()) > 0, String(await A.locator('.row').count()));
   bekle('sıralı satırda kare görünüyor', (await A.locator('.row img').count()) === (await A.locator('.row').count()),
     `${await A.locator('.row img').count()} / ${await A.locator('.row').count()}`);
@@ -999,14 +999,14 @@ await olc(B, '39-sonuc-uye');
     return null;
   });
   bekle('alt menü: güvenli alan payı yüksekliğe ekleniyor', /calc\(52px \+ env\(safe-area-inset-bottom\)\)/.test(sekmeKurali?.min ?? '') && /env\(safe-area-inset-bottom\)/.test(sekmeKurali?.alt ?? ''), JSON.stringify(sekmeKurali));
-  bekle('Müdavim şeridi açıldı', (await A.locator('.mud').count()) === 1);
-  bekle('kendi satırın işaretli', (await A.locator('.row.me').count()) + (await A.locator('.unr .me').count()) > 0);
+  bekle('Müdavim şeridi açıldı', (await A.locator('.mud-kart').count()) === 1);
+  bekle('kendi satırın işaretli', (await A.locator('.row.me').count()) + (await A.locator('.kart.isimler .me').count()) > 0);
   await olc(A, '44-siralama-dolu');
 
   // Sırasız blokta isim varsa oraya, yoksa sıralı satıra dokun
-  const sirasiz = await A.locator('.unr .names button').count();
-  const hedefAd = sirasiz > 0 ? await yaz(A, '.unr .names button') : await yaz(A, '.row .nm > span');
-  await (sirasiz > 0 ? A.locator('.unr .names button').first() : A.locator('.row').first()).click();
+  const sirasiz = await A.locator('.kart.isimler button').count();
+  const hedefAd = sirasiz > 0 ? await yaz(A, '.kart.isimler button') : await yaz(A, '.row .nm > span');
+  await (sirasiz > 0 ? A.locator('.kart.isimler button').first() : A.locator('.row').first()).click();
   await A.waitForTimeout(2000);
   bekle('isimden profil açılıyor', icerir(await metin(A), hedefAd), `${hedefAd} | ${(await metin(A)).slice(0, 120)}`);
   bekle('başkasının profilinde sekme çubuğu yok', (await A.locator('.tabs').count()) === 0);
@@ -1015,7 +1015,7 @@ await olc(B, '39-sonuc-uye');
   bekle('başkasının ortalaması yazmıyor', !icerir(await metin(A), 'Ortalaman'));
   await olc(A, '45-baskasinin-profili');
   await A.locator('.geri').click(); await A.waitForTimeout(1500);
-  bekle('geri sıralamaya döner', icerir(await metin(A), 'Sezon sıralaması') || icerir(await metin(A), 'İlk sonuçlarla'),
+  bekle('geri sıralamaya döner', (await A.locator('.kart-bas', { hasText: 'Sıralama' }).count()) > 0 || icerir(await metin(A), 'İlk sonuçlarla'),
     (await metin(A)).slice(0, 120));
 
   // Kendi profilin: ortalama ve ayarlar burada

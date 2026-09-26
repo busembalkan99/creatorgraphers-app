@@ -127,8 +127,8 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   const metin = async () => (await p.locator('.app').innerText()).replace(/\s+/g, ' ');
 
   await ac('siralama');
-  bekle('ekran: Serbest tablosunda sırasız isimler ve "İlk 1"', (await p.locator('.unr[data-tablo=serbest] .names button').allTextContents()).join() === 'Barış Ak' && (await p.locator('h2.sec', { hasText: 'Serbest' }).textContent()).includes('İlk 1'), JSON.stringify(await p.locator('.unr[data-tablo=serbest] .names button').allTextContents()));
-  bekle('ekran: Serbest tablosu görünüyor', (await metin()).includes('SERBEST · EKSTRA') || (await metin()).includes('Serbest · ekstra'), (await metin()).slice(0, 300));
+  bekle('ekran: Serbest tablosunda sırasız isimler ve "İlk 1"', (await p.locator('.kart.isimler[data-tablo=serbest] button').allTextContents()).join() === 'Barış Ak' && (await p.locator('.kart-bas', { hasText: 'Serbest temalar' }).textContent()).includes('İlk 1'), JSON.stringify(await p.locator('.kart.isimler[data-tablo=serbest] button').allTextContents()));
+  bekle('ekran: Serbest tablosu görünüyor', (await p.locator('.kart-bas', { hasText: 'Serbest temalar' }).count()) === 1, (await metin()).slice(0, 300));
   bekle('ekran: sezon ilerlemesi serbest etkinliği saymıyor', (await metin()).includes('1 / 6 etkinlik'));
   // Serbest tablosu hata verirse ana tablo yine görünüyor, Serbest bölümü sessizce yok
   await p.route('**/rest/v1/rpc/serbest_siralama*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));

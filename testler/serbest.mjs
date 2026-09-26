@@ -129,11 +129,16 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   await ac('siralama');
   bekle('ekran: Serbest tablosu görünüyor', (await metin()).includes('SERBEST · EKSTRA') || (await metin()).includes('Serbest · ekstra'), (await metin()).slice(0, 300));
   bekle('ekran: sezon ilerlemesi serbest etkinliği saymıyor', (await metin()).includes('1 / 6 etkinlik'));
+  // Serbest tablosu hata verirse ana tablo yine görünüyor, Serbest bölümü sessizce yok
+  await p.route('**/rest/v1/rpc/serbest_siralama*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+  await ac('siralama');
+  bekle('ekran: Serbest tablosu düşerse ana tablo duruyor', (await p.locator('.row[data-tablo=sezon]').count()) > 0 && (await p.locator('.row[data-tablo=serbest]').count()) === 0 && (await p.locator('.hata').count()) === 0, (await metin()).slice(0, 200));
+  await p.unroute('**/rest/v1/rpc/serbest_siralama*');
   await ac('etkinlikler');
   bekle('ekran: arşivde ekstra etkinlik "EK"', (await p.locator('.ev .no', { hasText: 'EK' }).count()) === 1);
   bekle('ekran: arşiv numarası yalnız buluşmaları sayıyor', (await p.locator('.ev .no').allTextContents()).map(x => x.trim()).sort().join() === '01,EK', JSON.stringify(await p.locator('.ev .no').allTextContents()));
   await ac(`wrapped/${S1.id}`);
-  bekle('ekran: ekstra etkinliğin açılışı söylüyor', (await metin()).toLocaleLowerCase('tr-TR').includes('ekstra etkinlik · eylül'), (await metin()).slice(0, 160));
+  bekle('ekran: ekstra etkinliğin açılışı söylüyor', (await metin()).toLocaleLowerCase('tr-TR').includes(`ekstra etkinlik · ${new Date(Date.now() - 5 * 86400000).toLocaleDateString('tr-TR', { month: 'long', timeZone: 'Europe/Istanbul' }).toLocaleLowerCase('tr-TR')}`), (await metin()).slice(0, 160));
   await ac(`sonuc/${S1.id}`);
   bekle('ekran: ekstra etkinliğin sayfası söylüyor', (await metin()).toLocaleLowerCase('tr-TR').includes('ekstra etkinlik'), (await metin()).slice(0, 160));
 
@@ -152,6 +157,35 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   const yeniT = yeni ? (await admin.from('temalar').select('ad, bulusmada').eq('etkinlik', yeni.id)).data : [];
   bekle('ekran: kurulan etkinlik serbest, teması serbest', yeni?.serbest === true && yeniT?.length === 1 && yeniT[0].bulusmada === false && yeniT[0].ad === 'Işık', JSON.stringify([yeni, yeniT]));
   bekle('ekran: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
+  await b.close();
+}
+
+
+// ---------------------------------------------- sezon sınırı (gizli.sezon_etkinlikleri)
+// Beş eski buluşma daha: E1 ile birlikte altı → birinci sezon doluyor. Yeni bir buluşma ikinci
+// sezonu açıyor. Serbest etkinlik, kendi gününe kadarki son buluşmanın sezonuna düşüyor;
+// hiçbir buluşmadan önceyse birinci sezona.
+{
+  for (const g of [20, 19, 18, 17, 16]) { const e = await etkinlik(g, [['Eski', true]]); await kare(e, 0, K.c, 5); }
+  const E7 = await etkinlik(3, [['Yeni', true]]); await kare(E7, 0, K.c, 5);
+  const S2 = await etkinlik(2, [['Serbest2', false]], true); await kare(S2, 0, K.b, 4);
+  const S0 = await etkinlik(30, [['Erken', false]], true); await kare(S0, 0, K.d, 2);
+  const sez = async n => ((await K.b.c.rpc('serbest_siralama', { p_sezon: n })).data ?? []);
+  const s1 = await sez(1), s2 = await sez(2);
+  bekle('sezon sınırı: ikinci sezon açıldı', Number(((await A.c.rpc('sezon_ozeti')).data ?? [])[0]?.sezon) === 2, JSON.stringify((await A.c.rpc('sezon_ozeti')).data));
+  bekle('sezon sınırı: sonraki buluşmadan sonraki serbest etkinlik ikinci sezonda', s2.length === 1 && s2[0].ad === 'Barış Ak' && Number(s2[0].ortalama) === 4, JSON.stringify(s2));
+  bekle('sezon sınırı: önceki serbest etkinlikler birinci sezonda kaldı', !!satir(s1, 'Barış Ak') && !!satir(s1, 'Deniz Yılmaz'), JSON.stringify(s1.map(x => x.ad)));
+  bekle('sezon sınırı: hiçbir buluşmadan önceki serbest etkinlik birinci sezonda', Number(satir(await sez(1).then(l => l), 'Deniz Yılmaz')?.kare_sayisi) === 2, JSON.stringify(s1));
+  // Arşiv numarası yalnız buluşmaları sayıyor: 7 buluşma 01..07, iki eski serbest EK
+  const { chromium } = await import('/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs');
+  const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 390, height: 2400 } })).newPage();
+  await p.goto('http://localhost:5180/'); await p.waitForFunction(() => window.__sb);
+  await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
+  await admin.from('wrapped_izlendi').upsert([E7.id, S2.id, S0.id].map(e => ({ etkinlik: e, uye: A.id })), { ignoreDuplicates: true });
+  await p.goto('http://localhost:5180/#/etkinlikler'); await p.reload(); await p.waitForTimeout(2500);
+  const no = (await p.locator('.ev .no').allTextContents()).map(x => x.trim());
+  const sayi = no.filter(x => x !== 'EK');
+  bekle('arşiv: buluşmalar 07..01 kesintisiz, serbest etkinlikler EK', JSON.stringify(sayi) === JSON.stringify(['07', '06', '05', '04', '03', '02', '01']) && no.filter(x => x === 'EK').length === 3, JSON.stringify(no));
   await b.close();
 }
 

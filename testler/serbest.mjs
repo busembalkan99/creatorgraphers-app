@@ -137,6 +137,7 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   await p.unroute('**/rest/v1/rpc/serbest_siralama*');
   await ac('etkinlikler');
   bekle('ekran: arşivde ekstra etkinlik "EK"', (await p.locator('.ev .no', { hasText: 'EK' }).count()) === 1);
+  bekle('ekran: arşivde ay yanında " · ekstra"', (await p.locator('.ev .mo', { hasText: '· ekstra' }).count()) === 1);
   bekle('ekran: arşiv numarası yalnız buluşmaları sayıyor', (await p.locator('.ev .no').allTextContents()).map(x => x.trim()).sort().join() === '01,EK', JSON.stringify(await p.locator('.ev .no').allTextContents()));
   await ac(`wrapped/${S1.id}`);
   bekle('ekran: ekstra etkinliğin açılışı söylüyor', (await metin()).toLocaleLowerCase('tr-TR').includes(`ekstra etkinlik · ${new Date(Date.now() - 5 * 86400000).toLocaleDateString('tr-TR', { month: 'long', timeZone: 'Europe/Istanbul' }).toLocaleLowerCase('tr-TR')}`), (await metin()).slice(0, 160));

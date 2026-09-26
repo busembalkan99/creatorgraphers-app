@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { kartDenetle } from './kartDenetim.mjs';
 
 const APP = 'http://localhost:5180/';
 const SS = '/tmp/cgapp/ss';
@@ -245,7 +246,12 @@ await git(D, 'sonuc/' + E);
 bekle('7: sahibi kendi çıkarılan karesini ayrı bölümde görüyor', await var_(D, 'Yarışmadan çıkarılan') && (await D.locator('.izgara figure.cikti').count()) === 1);
 bekle('7: sahibe kimin gördüğü yazıyor', await var_(D, 'Bunu yalnız sen ve yöneticiler görüyorsunuz'));
 bekle('7: sayılar çıkarılanı saymıyor', (await D.locator('.bas .meta').innerText()).includes('2 kare'), await D.locator('.bas .meta').innerText());
-await D.locator('.izgara figure.cikti').click();
+// Kart sistemi ve basılabilirlik: çıkarılan karede de köşe işareti var
+await kartDenetle(D, '7-sonuc-cikarilan', bekle);
+// İşaretin tam ortasına basınca kare açılıyor: işaret dokunuşu yutmuyor
+const isaret = await D.locator('.izgara figure.cikti .buyut').boundingBox();
+bekle('7: çıkarılan karede köşe işareti görünür boyda', !!isaret && isaret.width >= 16 && isaret.height >= 16, JSON.stringify(isaret));
+await D.mouse.click(isaret.x + isaret.width / 2, isaret.y + isaret.height / 2);
 await D.waitForTimeout(400);
 bekle('7: detayda neden', await var_(D, 'Yarışmadan çıkarıldı') && await var_(D, 'Buluşmaya katılmadın.'));
 bekle('7: sahipte geri alma düğmesi yok', (await D.getByRole('button', { name: 'Yarışmaya geri al' }).count()) === 0);

@@ -94,7 +94,8 @@ export function Oylama({ uye }: { uye: Uye }) {
 
       {/* Karar 76: oylamasını bitirene isteğe bağlı oyun. Oylama bitince açık kalan asıl iş bu. */}
       {kalanToplam === 0 && oyunVar && (
-        <button className="tahmin-kart" onClick={() => git(`tahmin/${v.e!.id}`)}>
+        // Ters kart: oylama bitince açık kalan iş bu, bilgi notu gibi değil eylem gibi görünsün (Buse, 2026-09-26)
+        <button className="tahmin-kart ters" onClick={() => git(`tahmin/${v.e!.id}`)}>
           <span className="lab">Kim çekti · isteğe bağlı</span>
           <b>{tahmin.gonderildi ? 'Tahminlerin gönderildi' : tahmin.basladi ? 'Tahmin oyunu sürüyor' : 'Tahmin oyunu'}</b>
           <span className="git">{tahmin.gonderildi ? 'Bak' : tahmin.basladi ? 'Devam et' : 'Oyna'}<Ikon ad="sag" /></span>

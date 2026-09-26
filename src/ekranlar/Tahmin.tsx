@@ -162,12 +162,13 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
         <div className="kart tahmin-teklif">
           <span className="lab">Kim çekti · isteğe bağlı</span>
           <p>Birkaç kare seçiliyor. Her karede adaylar arasından kimin çektiğini tahmin ediyorsun. Skorun yalnız sana görünür.</p>
+          {/* Ne olduğu, başlatmanın sonucu ve düğme tek kararın parçası: tek kartta (Buse, 2026-09-26) */}
+          <div className="kilit-ic">
+            <div className="bas"><Ikon ad="kilit" /><span>Başlarsan puanların kilitlenir</span></div>
+            <p>Tahmin etmek “bu kareyi kim çekti” diye düşünmeni istiyor. Puanların açık kalırsa o düşünce oylamana sızar. Bu yüzden oyun başladığı anda bu etkinlikte verdiğin puanlar değiştirilemez.</p>
+          </div>
+          <button className="btn" disabled={gidiyor} onClick={baslat}>Oyunu başlat</button>
         </div>
-        <div className="kart kutu">
-          <div className="bas"><Ikon ad="kilit" /><span>Başlarsan puanların kilitlenir</span></div>
-          <p>Tahmin etmek “bu kareyi kim çekti” diye düşünmeni istiyor. Puanların açık kalırsa o düşünce oylamana sızar. Bu yüzden oyun başladığı anda bu etkinlikte verdiğin puanlar değiştirilemez.</p>
-        </div>
-        <button className="btn" disabled={gidiyor} onClick={baslat}>Oyunu başlat</button>
         <button className="btn ik" onClick={() => git('oyla')}>Puanlarımı gözden geçir</button>
         <Hata metin={hata} />
       </div>

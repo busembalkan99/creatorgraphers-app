@@ -94,10 +94,15 @@ try {
   bekle('2: oylama bitince tahmin kartı çıkıyor', (await P.locator('.tahmin-kart').count()) === 1);
   bekle('2: kart eylemi söylüyor', await var_(P, 'Tahmin oyunu') && (await P.locator('.tahmin-kart .git').textContent()).includes('Oyna'));
   await olc(P, '60-tahmin-kart');
+  // Buse (2026-09-26): oylama bitince açık kalan iş bu, bilgi notu gibi değil eylem gibi görünsün: ters kart
+  bekle('2: tahmin kartı ters (açık zemin)', await P.locator('.tahmin-kart').evaluate(k => getComputedStyle(k).backgroundColor === getComputedStyle(document.body).color));
   await P.locator('.tahmin-kart').click(); await P.waitForTimeout(1300);
   bekle('2: teklif ekranı ve kilit uyarısı', await var_(P, 'Başlarsan puanların kilitlenir') && await var_(P, 'Oyunu başlat'));
   bekle('2: teklif puanları gözden geçirme yolu veriyor', await var_(P, 'Puanlarımı gözden geçir'));
   await olc(P, '61-tahmin-teklif');
+  // Ne olduğu, kilit uyarısı ve Oyunu başlat tek kartta; gözden geçir dışarıda (Buse, 2026-09-26)
+  bekle('2: teklif tek kart: açıklama, kilit uyarısı, başlat düğmesi', await P.locator('.tahmin-teklif', { hasText: 'Başlarsan puanların kilitlenir' }).getByRole('button', { name: 'Oyunu başlat' }).count() === 1
+    && await P.locator('.tahmin-teklif').getByRole('button', { name: 'Puanlarımı gözden geçir' }).count() === 0);
   bekle('2: başlamadan veritabanında oyun yok', ((await admin.from('tahmin_oyun').select('uye').eq('uye', A.id)).data ?? []).length === 0);
 
   // ------------------------------------------------ 3. başlat ve oyna
@@ -202,6 +207,8 @@ try {
   bekle('6: geçilen satır geçtin diyor', await var_(P, 'geçtin'));
   bekle('6: skorun yalnız kişiye olduğu yazıyor', await var_(P, 'Bu skoru yalnız sen görüyorsun'));
   await olc(P, '66-tahmin-sonuc');
+  // Doğru işareti yuvarlak rozet: köşeli kutu onay kutusu gibi görünüyordu (Buse, 2026-09-26)
+  bekle('6: doğru işareti yuvarlak', await P.locator('.tahmin-satir .tik').first().evaluate(t => getComputedStyle(t).borderTopLeftRadius === '50%'));
   // Oylamada çıkarılan kare: satırda söyleniyor, skora girmiyor. Sunucu cevabında bir doğru
   // satır (yoksa ilk satır) çıkarılmış gösteriliyor.
   await P.route('**/rest/v1/rpc/tahmin_sonucum*', async r => {

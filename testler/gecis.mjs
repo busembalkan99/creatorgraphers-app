@@ -97,6 +97,41 @@ try {
   await p.locator('.tabs button', { hasText: 'Profil' }).click(); await p.waitForTimeout(1500);
   s = await iz();
   bekle('Profil ikinci açılış: tahmin skoru ve yönetim satırları bellekten, "Çıkış yap" kaymıyor (±2px)', s.cikis.length > 0 && Math.max(...s.cikis) - Math.min(...s.cikis) <= 2 && /2\/4/.test(await p.locator('.kisisel').textContent()), JSON.stringify(s.cikis));
+  // 5. Tahmin skoru okunamazsa bellekteki skor kalıyor, sayfa hatası yok
+  await p.unroute('**/rest/v1/rpc/tahmin_profilim*');
+  await p.route('**/rest/v1/rpc/tahmin_profilim*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+  await p.locator('.tabs button', { hasText: 'Etkinlikler' }).click(); await p.waitForTimeout(600);
+  await p.locator('.tabs button', { hasText: 'Profil' }).click(); await p.waitForTimeout(1200);
+  bekle('tahmin skoru okunamazsa bellekteki skor kalıyor', /2\/4/.test((await p.locator('.kisisel').textContent().catch(() => '')) ?? ''));
+
+  // 6. Yeni oturum: önceden yükleme düşerse belleğe bir şey yazılmıyor, sekme yine açılıyor; tahmin okunamazsa satır yok
+  const ctx2 = await b.newContext({ ...devices['iPhone 14'] });
+  const q = await ctx2.newPage();
+  q.on('pageerror', e => hatalar.push(String(e)));
+  await q.route('**/rest/v1/rpc/siralama*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+  await q.route('**/rest/v1/rpc/tahmin_profilim*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+  await q.goto(APP); await q.waitForFunction(() => window.__sb, null, { timeout: 20000 });
+  await q.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error; }, K.A.eposta);
+  await q.goto(APP + '#/etkinlikler'); await q.reload(); await q.waitForTimeout(2500);
+  const anahtarlar = await q.evaluate(() => [...window.__bellek.keys()]);
+  bekle('önceden yükleme düşünce sıralama belleğe yazılmadı', !anahtarlar.some(k => k.endsWith(':siralama')) && anahtarlar.some(k => k.endsWith(':profil:')), JSON.stringify(anahtarlar));
+  await q.unroute('**/rest/v1/rpc/siralama*');
+  await q.locator('.tabs button', { hasText: 'Sıralama' }).click(); await q.waitForTimeout(1500);
+  bekle('önceden yükleme düşse de sekme açılınca yükleniyor', (await q.locator('.seas').count()) === 1);
+  await q.locator('.tabs button', { hasText: 'Profil' }).click(); await q.waitForTimeout(1200);
+  bekle('tahmin okunamazsa (bellek boşken) skor satırı yok, profil açık', (await q.locator('.pname').count()) === 1 && !/Tahminde/.test((await q.locator('.kart.stats').textContent()) ?? ''));
+  await ctx2.close();
+
+  // 7. Karesi olmayan üye: yavaş ağda yalnız şeridin yer tutucusu, kendi kartının yer tutucusu yok
+  const ctx3 = await b.newContext({ ...devices['iPhone 14'] });
+  const z = await ctx3.newPage();
+  z.on('pageerror', e => hatalar.push(String(e)));
+  await z.route('**/rest/v1/rpc/sonuc_kareleri*', async r => { await new Promise(y => setTimeout(y, 1500)); await r.continue(); });
+  await z.goto(APP); await z.waitForFunction(() => window.__sb, null, { timeout: 20000 });
+  await z.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error; }, K.Z.eposta);
+  await z.goto(APP + '#/etkinlikler'); await z.reload(); await z.waitForTimeout(800);
+  bekle('karesi olmayan: şeridin yer tutucusu var, kendi kartının yok', (await z.locator('.vitrin .vt.yer-kart').count()) > 0 && (await z.locator('.katildigin').count()) === 0);
+  await ctx3.close();
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {
   await b.close();

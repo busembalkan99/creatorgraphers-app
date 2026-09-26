@@ -37,7 +37,7 @@ const icerir = (a, b) => a.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR').inclu
 const yaz = (p, sec, i = 0) => p.evaluate(([s, j]) => (document.querySelectorAll(s)[j]?.textContent ?? '').trim(), [sec, i]);
 const bekleMetin = (p, t) => p.getByText(t, { exact: false }).first().waitFor({ timeout: 8000 }).then(() => true, () => false);
 // Kart sistemi (karar 118): Yükleme ve Giriş durumları da kart denetiminden geçiyor
-const KART_DENETIMI = ['05-bekliyor', '08-ret', '11-hosgeldin', '17-yukleme-bos', '18-ret-gun', '19-ret-tarihsiz', '20-yuklendi', '21-degistirme-ret', '22-kaldir-onay', '23-iki-tema', '26-yukleme-kapali'];
+const KART_DENETIMI = ['05-bekliyor', '08-ret', '11-hosgeldin', '17-yukleme-bos', '18-ret-gun', '19-ret-tarihsiz', '20-yuklendi', '21-degistirme-ret', '22-kaldir-onay', '23-iki-tema', '26-yukleme-kapali', '36-arsiv', '37-sonuc', '41-kalabalik-tema', '46-kendi-profilin'];
 async function olc(p, ad) {
   // Sayfa geçişi sürerken ekran yandan kayıyor; ölçüm oturmuş ekranda yapılsın.
   // Sonsuz dönen yükleme çubuğu beklenmez.

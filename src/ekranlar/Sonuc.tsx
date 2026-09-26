@@ -197,6 +197,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               )}
               {birinciler.map(k => (
                 <div className="kazanan" key={k.id}>
+                  <span className="buyut"><Ikon ad="buyut" /></span>
                   {k.url && (
                     <img src={k.url} width={k.genislik} height={k.yukseklik}
                       alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} />
@@ -215,6 +216,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
             <div className="kursu">
               {kursu.map(k => (
                 <figure key={k.id} onClick={() => ac(k)}>
+                    <span className="buyut"><Ikon ad="buyut" /></span>
                   {k.url && <img src={k.url} alt="" />}
                   <figcaption>
                     {/* Numara sunucudaki sıradan gelir, dizideki yerden değil */}
@@ -235,6 +237,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
                   {k.url && <img src={k.url} alt="" />}
                   <span className="ad">{k.sahip_ad}</span>
                   <span className="ort">{puanYaz(k.ortalama)}</span>
+                  <span className="ileri"><Ikon ad="sag" /></span>
                 </button>
               ))}
             </div>
@@ -246,6 +249,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               <div className="izgara">
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => ac(k)}>
+                    <span className="buyut"><Ikon ad="buyut" /></span>
                     {k.url && <img src={k.url} alt="" />}
                     {/* Karar 38: kendi ortalamanı her zaman görürsün, başkasınınki gizli */}
                     <figcaption>{k.sahip_ad}{k.benim ? ' · sen' : ''}{k.benim && k.ortalama != null ? ` · ${puanYaz(k.ortalama)}` : ''}</figcaption>
@@ -264,6 +268,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               <div className="izgara">
                 {cikanlar.map(k => (
                   <figure key={k.id} className="cikti" onClick={() => ac(k)}>
+                    <span className="buyut"><Ikon ad="buyut" /></span>
                     {k.url && <img src={k.url} alt="" />}
                     <figcaption>{k.sahip_ad}{k.benim ? ' · sen' : ''}</figcaption>
                   </figure>

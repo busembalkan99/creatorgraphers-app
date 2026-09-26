@@ -30,10 +30,18 @@ export async function kartDenetle(p, ad, bekle) {
     // Bölüm başlığı ana metin renginde, sayacı soluk
     const govde = getComputedStyle(document.body).color;
     const solukBaslik = [...document.querySelectorAll('h2.kart-bas')].filter(h => getComputedStyle(h).color !== govde || [...h.querySelectorAll('span')].some(x => getComputedStyle(x).color === govde)).length;
+    // Basılabilirlik (Buse, 2026-09-26): açılan her şey ipucunu taşıyor. Satır: eylem adı ya da ok;
+    // kare: köşede büyüt işareti; isim: çip (zeminli)
+    const ipucusuz = [
+      ...[...document.querySelectorAll('.satir-kartlari > .ev')].filter(e => !e.querySelector('.git')).map(() => 'ev'),
+      ...[...document.querySelectorAll('.satir-kartlari > .row, .satir-kartlari > .satir-kare')].filter(e => !e.querySelector('.ileri')).map(e => e.className.split(' ')[0]),
+      ...[...document.querySelectorAll('.kursu figure, .izgara figure, .grid figure, .odul .kazanan')].filter(e => !e.querySelector('.buyut')).map(() => 'kare'),
+      ...[...document.querySelectorAll('.isimler button > span')].filter(e => getComputedStyle(e).backgroundColor === 'rgba(0, 0, 0, 0)').map(() => 'isim'),
+    ];
     const dugme = [...document.querySelectorAll('.sc .btn, .sc .secim button, .sc .rolakt button')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;
       // Kendi adının çipi ince (en çok 24px), dokunma alanı düğmede (en az 44px)
       const cip = [...document.querySelectorAll('.isimler .me')].map(c => ({ c: Math.round(c.getBoundingClientRect().height), d: Math.round(c.closest('button').getBoundingClientRect().height) }));
-      return { sayi: kartlar.length, sikisik: sikisik.slice(0, 3), solukBaslik, girinti: girinti.slice(0, 3), basliksiz, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
+      return { sayi: kartlar.length, ipucusuz: [...new Set(ipucusuz)], sikisik: sikisik.slice(0, 3), solukBaslik, girinti: girinti.slice(0, 3), basliksiz, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
     });
     bekle(`${ad}: kart var (kontrol)`, r.sayi > 0, String(r.sayi));
     bekle(`${ad}: bütün kart köşeleri 8px`, r.koseHatali.length === 0, r.koseHatali.join(' | '));
@@ -46,6 +54,7 @@ export async function kartDenetle(p, ad, bekle) {
     bekle(`${ad}: satır kartlarında içerik 16px içeride`, r.girinti.length === 0, JSON.stringify(r.girinti));
   bekle(`${ad}: bölümler arası nefes 36px`, r.sikisik.length === 0, JSON.stringify(r.sikisik));
   bekle(`${ad}: bölüm başlığı ana renkte, sayacı soluk`, r.solukBaslik === 0, String(r.solukBaslik));
+  bekle(`${ad}: açılan her şey ipucunu taşıyor (satırda eylem ya da ok, karede işaret, isimde çip)`, r.ipucusuz.length === 0, r.ipucusuz.join(' | '));
   bekle(`${ad}: kart içeriği taşmıyor`, r.tasma.length === 0, r.tasma.join(' | '));
     bekle(`${ad}: düğme köşeleri 6px`, r.dugme === 0, String(r.dugme));
     bekle(`${ad}: kendi adının çipi ince, dokunma alanı 44px`, r.cip.every(x => x.c <= 24 && x.d >= 44), JSON.stringify(r.cip));

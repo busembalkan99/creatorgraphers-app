@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Uye } from '../lib/tipler'
+import { Ikon } from '../bilesenler/Ikon'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
@@ -80,6 +81,7 @@ export function Siralama({ uye }: { uye: Uye }) {
         {puanYaz(s.ortalama)}
         <small>{s.kare_sayisi > 1 ? `${s.kare_sayisi} kare ort.` : 'tek kare'}</small>
       </span>
+      <span className="ileri"><Ikon ad="sag" /></span>
     </button>
   )
   const ozet = v.ozet

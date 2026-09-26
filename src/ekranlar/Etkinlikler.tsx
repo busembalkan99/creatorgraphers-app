@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema, Uye } from '../lib/tipler'
 import { asama, ayAdi, gunYaz, kalanYaz, saatEki, saatYaz } from '../lib/zaman'
+import { Ikon } from '../bilesenler/Ikon'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
@@ -151,14 +152,15 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
             <div className="top">
               <span className="no">{e.serbest ? 'EK' : String(no).padStart(2, '0')}</span>
               <span className="mo">{ayAdi(e.bulusma_gunu)}{e.serbest ? ' · ekstra' : ''}</span>
-              <span className="mt">{tm.length} tema</span>
+              {/* Basılabilirlik: satır nereye gittiğini söylüyor (Oylama'daki "Puanla ›" dili) */}
+              <span className="git">Sonuçlar<Ikon ad="sag" /></span>
             </div>
             {/* Vurgu: arşiv kimin kazandığını da söylüyor (Buse, 2026-09-26) */}
             <div className="alt">
               {tm.map((t, j) => {
                 const kaz = kazananlar.get(t.id)
                 return <span key={t.id}>{j ? ' · ' : ''}{t.ad}{kaz?.length ? <>: <b>{kaz.join(', ')}</b></> : null}</span>
-              })}{tm.length ? ' · ' : ''}sonuçlar
+              })}
             </div>
           </button>
         )

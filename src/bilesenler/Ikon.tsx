@@ -13,6 +13,8 @@ const P = {
   asagi: '<polyline points="6 9 12 15 18 9"/>',
   yukari: '<polyline points="6 15 12 9 18 15"/>',
   sag: '<polyline points="9 6 15 12 9 18"/>',
+  // Kareyi büyüt: köşeden köşeye iki ok (basılabilirlik, 2026-09-26)
+  buyut: '<polyline points="14 4 20 4 20 10"/><line x1="20" y1="4" x2="13" y2="11"/><polyline points="10 20 4 20 4 14"/><line x1="4" y1="20" x2="11" y2="13"/>',
   // sekmeler: perforasyonlu film karesi elle çizildi (v16)
   film: '<rect x="2" y="6" width="20" height="12"/><rect x="4" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="10.5" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="17" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="4" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="10.5" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="17" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/>',
   sira: '<polygon points="2 12 2 21 6 21 6 12"/><polygon points="18 7 18 21 22 21 22 7"/><polygon points="10 3 10 21 14 21 14 3"/>',

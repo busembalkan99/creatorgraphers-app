@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Uye } from '../lib/tipler'
 import { asama, ayAdi, kalanYaz, saatYaz, sayiEki } from '../lib/zaman'
+import { Ikon } from '../bilesenler/Ikon'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
@@ -161,6 +162,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
           <div className="grid">
             {v.kareler.map(kr => (
               <figure key={kr.id} className={kr.sirali ? 'sirali' : ''} onClick={() => git(`sonuc/${kr.etkinlik}/kare/${kr.id}`)}>
+                <span className="buyut"><Ikon ad="buyut" /></span>
                 {kr.url && <img src={kr.url} alt={`${kr.tema_ad} · ${k.ad}`} />}
                 <figcaption>
                   <span>{kr.tema_ad}</span>

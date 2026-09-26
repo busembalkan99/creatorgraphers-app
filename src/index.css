@@ -875,3 +875,13 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .mud-kart b{display:block;font-size:26px;line-height:1;text-transform:uppercase;font-variation-settings:"wdth" 70,"wght" 900}
 .mud-kart > span{display:block;font-size:11px;color:var(--soft);margin-top:6px}
 .mud-kart .isimler{padding:0;margin-top:6px}
+/* Sonuç: tema sekmeleri boydan boya; birinci kartı fotoğrafı kenardan kenara tutuyor, beyaz künye şeridi altta */
+.sekmeler{margin-left:calc(var(--pad) * -1);margin-right:calc(var(--pad) * -1)}
+.odul .kart-bas{margin-top:0}
+.odul .kazanan{border-radius:var(--kart-r);overflow:hidden}
+.kursu img,.izgara img{border-radius:var(--foto-r)}
+.odul + .satir-kartlari,.kursu + .satir-kartlari{margin-top:var(--s-blok)}
+.satir-kartlari .satir-kare{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}
+.satir-kartlari .satir-kare.benim{box-shadow:none;padding-left:16px;background:rgba(12,110,74,.28)}
+.satir-kartlari .satir-kare img{border-radius:var(--foto-r)}
+.kart.bos-tema{border:0;padding:14px 16px}

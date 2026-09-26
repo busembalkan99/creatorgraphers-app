@@ -20,8 +20,9 @@ try {
         const kartlar = [...document.querySelectorAll('.kart, .satir-kartlari > *, .bos-kart, .mud-kart, .odul .kazanan')];
         const koseler = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomLeftRadius', 'borderBottomRightRadius'];
         const koseHatali = kartlar.filter(k => koseler.some(y => px(getComputedStyle(k)[y]) !== 8)).map(k => k.className);
-        const bosluk = kartlar.filter(k => { const s = getComputedStyle(k); return px(s.paddingLeft) < 12 || px(s.paddingRight) < 12; }).map(k => k.className);
-        const foto = [...document.querySelectorAll('.kart img, .satir-kartlari img, .izgara img')].filter(i => px(getComputedStyle(i).borderTopLeftRadius) !== 4).length;
+        // Birincinin kartında fotoğraf kenardan kenara; boşluğu künye şeridi taşıyor
+        const bosluk = [...kartlar.filter(k => !k.matches('.odul .kazanan')), ...document.querySelectorAll('.odul .serit')].filter(k => { const s = getComputedStyle(k); return px(s.paddingLeft) < 12 || px(s.paddingRight) < 12; }).map(k => k.className);
+        const foto = [...document.querySelectorAll('.kart img, .satir-kartlari img, .izgara img, .kursu img')].filter(i => px(getComputedStyle(i).borderTopLeftRadius) !== 4).length;
         const kalin = [...document.querySelectorAll('.sc *')].filter(e => px(getComputedStyle(e).borderTopWidth) >= 2 && !e.closest('.kunye, .tabs, .prog, .sekmeler, .live')).map(e => e.className);
         const tasma = kartlar.filter(k => { const kb = k.getBoundingClientRect(); return [...k.querySelectorAll('*')].some(c => { const cb = c.getBoundingClientRect(); return cb.width > 0 && (cb.right > kb.right + 1 || cb.bottom > kb.bottom + 1); }); }).map(k => k.className);
         const dugme = [...document.querySelectorAll('.sc .btn')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;

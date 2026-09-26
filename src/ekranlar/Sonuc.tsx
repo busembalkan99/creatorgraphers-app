@@ -154,7 +154,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
       <TahminBaglantisi etkinlikId={v.etkinlik.id} />
 
       {temalar.length === 0 ? (
-        <div className="bos-tema">
+        <div className="kart bos-tema">
           <b>Bu etkinlik</b>
           <h3>Hiç kare<br />yüklenmedi</h3>
           <p>Hiçbir temaya kare gelmemiş.</p>
@@ -171,7 +171,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
           </div>
 
           {oylanmadi && (
-            <div className="bos-tema">
+            <div className="kart bos-tema">
               <b>{secili.ad}</b>
               <h3>Bu temada<br />oylama olmadı</h3>
               <p>Bu temayı kimse oylamamış. Kareler aşağıda.</p>
@@ -180,7 +180,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {birinciler.length > 0 && (
             <div className="odul">
-              <span className="lab">Birinci</span>
+              <div className="kart-bas">Birinci</div>
               {birinciler.length > 1 && (
                 <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
               )}
@@ -216,18 +216,22 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
             </div>
           )}
 
-          {liste.map(k => (
-            <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => ac(k)}>
-              <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>
-              {k.url && <img src={k.url} alt="" />}
-              <span className="ad">{k.sahip_ad}</span>
-              <span className="ort">{puanYaz(k.ortalama)}</span>
-            </button>
-          ))}
+          {liste.length > 0 && (
+            <div className="satir-kartlari">
+              {liste.map(k => (
+                <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => ac(k)}>
+                  <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>
+                  {k.url && <img src={k.url} alt="" />}
+                  <span className="ad">{k.sahip_ad}</span>
+                  <span className="ort">{puanYaz(k.ortalama)}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {galeri.length > 0 && (
             <>
-              <h2 className="sec alt">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></h2>
+              <div className="kart-bas">{secili.ad}{oylanmadi ? ' kareleri' : ' galerisi'}<span>{galeri.length} kare</span></div>
               <div className="izgara">
                 {galeri.map(k => (
                   <figure key={k.id} className={k.benim ? 'benim' : ''} onClick={() => ac(k)}>
@@ -245,7 +249,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
 
           {cikanlar.length > 0 && (
             <>
-              <h2 className="sec alt">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></h2>
+              <div className="kart-bas">Yarışmadan çıkarılan<span>{cikanlar.length} kare</span></div>
               <div className="izgara">
                 {cikanlar.map(k => (
                   <figure key={k.id} className="cikti" onClick={() => ac(k)}>

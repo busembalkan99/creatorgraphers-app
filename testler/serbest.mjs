@@ -157,13 +157,15 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   await p.locator('#bg').fill(tarih(-2));
   bekle('ekran: serbest türde tarih ipucu', (await metin()).includes('Etkinliğin tarihi bu gün olarak görünür'));
   await p.locator('#yb').fill(new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 16));
+  bekle('ekran: serbest türde tema adı boşken kur düğmesi açık', await p.getByRole('button', { name: 'Etkinliği kur' }).isEnabled());
+  await p.getByRole('button', { name: 'Tema ekle' }).click();
   await p.locator('#t0').fill('Işık');
   await p.getByRole('button', { name: 'Etkinliği kur' }).click(); await p.waitForTimeout(2000);
   const yeni = (await admin.from('etkinlikler').select('id, serbest').eq('iptal', false).order('olusturma', { ascending: false }).limit(1)).data?.[0];
   const yeniT = yeni ? (await admin.from('temalar').select('ad, bulusmada').eq('etkinlik', yeni.id)).data : [];
   await ac('etkinlikler');
   bekle('ekran: canlı kart "Ekstra etkinlik · ay" diyor', ((await p.locator('.live .kick').textContent()) ?? '').startsWith('Ekstra etkinlik · '), await p.locator('.live .kick').textContent().catch(() => ''));
-  bekle('ekran: kurulan etkinlik serbest, teması serbest', yeni?.serbest === true && yeniT?.length === 1 && yeniT[0].bulusmada === false && yeniT[0].ad === 'Işık', JSON.stringify([yeni, yeniT]));
+  bekle('ekran: kurulan etkinlik serbest, temaları serbest; boş ad "Serbest" oluyor', yeni?.serbest === true && yeniT?.length === 2 && yeniT.every(t => t.bulusmada === false) && yeniT.map(t => t.ad).sort().join() === 'Işık,Serbest', JSON.stringify([yeni, yeniT]));
   bekle('ekran: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
   // Boş p_serbest buluşma sayılıyor
   if (yeni) await admin.from('etkinlikler').update({ iptal: true }).eq('id', yeni.id);

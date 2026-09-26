@@ -30,7 +30,12 @@ export function Kur() {
   const [gidiyor, setGidiyor] = useState(false)
 
   const y = Number(yukSaat), o = Number(oySaat)
-  const temalarTamam = temalar.every(t => t.ad.trim().length > 0)
+  // Serbest etkinlikte konu da serbest olabiliyor: ad boşsa tema "Serbest" (Buse, 2026-09-26)
+  const temalarTamam = serbest || temalar.every(t => t.ad.trim().length > 0)
+  const temaAdlari = () => {
+    let bos = 0
+    return temalar.map(t => t.ad.trim() || (++bos === 1 ? 'Serbest' : `Serbest ${bos}`))
+  }
   const hazir = !!bulusma && !!baslangic && y >= 1 && o >= 1 && temalarTamam && !gidiyor
 
   const tema = (i: number, p: Partial<TemaGirdi>) =>
@@ -44,7 +49,7 @@ export function Kur() {
       p_yukleme_baslar: yerelIso(baslangic),
       p_yukleme_saat: y,
       p_oylama_saat: o,
-      p_temalar: temalar.map(t => ({ ad: t.ad.trim(), bulusmada: serbest ? false : t.bulusmada })),
+      p_temalar: temalar.map((t, i) => ({ ad: temaAdlari()[i], bulusmada: serbest ? false : t.bulusmada })),
       p_serbest: serbest,
     })
     setGidiyor(false)
@@ -101,7 +106,7 @@ export function Kur() {
         <div className="tema-kur" key={i}>
           <div className="alan">
             <label className="lab" htmlFor={`t${i}`}>Tema {i + 1}</label>
-            <input id={`t${i}`} value={t.ad} maxLength={40} placeholder="ÖRNEK: SOKAK"
+            <input id={`t${i}`} value={t.ad} maxLength={40} placeholder={serbest ? 'BOŞ BIRAKIRSAN: SERBEST' : 'ÖRNEK: SOKAK'}
               autoCapitalize="words" autoCorrect="off" spellCheck={false} enterKeyHint="done"
               onChange={e => tema(i, { ad: e.target.value })} />
           </div>

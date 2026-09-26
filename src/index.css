@@ -885,6 +885,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kart.stats{display:grid;grid-template-columns:repeat(3,1fr);row-gap:14px}
 .kart.stats b{font-size:26px;line-height:1;font-variation-settings:"wdth" 70,"wght" 900}
 .kart.stats span{margin-top:6px}
+/* Karesi olmayan üyede sayılar sönük; kendi tahmin skoru sönük değil */
+.stats.zero .kisisel b{color:var(--ink)}
 .kart.stats .kisisel{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);padding-top:14px}
 .kisisel p{grid-column:1 / -1;margin-top:10px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
 /* "Senin olan" hep aynı yeşil: kendi satırın, kendi yerin, kendi karen */

@@ -138,7 +138,10 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   // Serbest'te kare var ama hiçbiri sıralamaya girmedi: boş durum kartı
   await p.route('**/rest/v1/rpc/serbest_siralama*', async r => { const c = await r.fetch(); r.fulfill({ response: c, json: (await c.json()).map(x => ({ ...x, sirali: false, sira: null, ortalama: null })) }); });
   await ac('siralama');
-  bekle('ekran: Serbest temasında sıralı kimse yoksa boş durum kartı', (await p.locator('.bos-kart', { hasText: 'Henüz serbest kare yok' }).count()) === 1 && (await p.locator('.row[data-tablo=serbest]').count()) === 0);
+  // Kare veren var ama sıralı kimse yok: kart "kare yok" demiyor, adlar hemen altında (son inceleme bulgusu)
+  bekle('ekran: Serbest temasında sıralı kimse yoksa boş durum kartı, kare verenleri inkâr etmiyor', (await p.locator('.bos-kart', { hasText: 'Serbest sıralaması henüz yok' }).count()) === 1
+    && (await p.locator('.bos-kart', { hasText: 'kare yok' }).count()) === 0 && (await p.locator('.row[data-tablo=serbest]').count()) === 0
+    && (await p.locator('.kart.isimler[data-tablo=serbest] button').count()) > 0);
   await p.unroute('**/rest/v1/rpc/serbest_siralama*');
   await ac('etkinlikler');
   bekle('ekran: arşivde ekstra etkinlik "EK"', (await p.locator('.ev .no', { hasText: 'EK' }).count()) === 1);

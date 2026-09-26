@@ -133,6 +133,11 @@ try {
   bekle('karesi olmayan: senin karen kartı yok', (await Z.locator('.senin').count()) === 0);
   await git(Z, 'siralama');
   bekle('karesi olmayan: senin yerin kartı yok', (await Z.locator('.sen-yeri').count()) === 0);
+  // Karesi olmayan ama tahmin oynamış üye: sayılar sönük, kendi tahmin skoru sönük değil (son inceleme bulgusu)
+  await Z.route('**/rest/v1/rpc/tahmin_profilim*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[{"bilen":2,"toplam":4}]' }));
+  await git(Z, 'profil'); await Z.waitForTimeout(800);
+  bekle('karesi olmayan: sayılar sönük (kontrol)', (await Z.locator('.stats.zero').count()) === 1);
+  bekle('karesi olmayan: kendi tahmin skoru ana renkte', await Z.locator('.kisisel b').first().evaluate(e => getComputedStyle(e).color === getComputedStyle(document.body).color, null, { timeout: 1500 }).catch(() => false));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {
   await b.close();

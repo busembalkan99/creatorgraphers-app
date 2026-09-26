@@ -122,6 +122,8 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
   const kursu = sirali.filter(k => k.sira != null && k.sira >= 2 && k.sira <= 3)
   const liste = sirali.filter(k => k.sira != null && k.sira >= 4)
   const galeri = temaKareler.filter(k => !k.sirali)
+  // Vurgu: kişinin bu temadaki karesi sekmelerin hemen altında (sonuçtan sonra, yalnız kendine)
+  const benimki = secili ? v.kareler.find(k => k.benim && k.tema === secili.id) : undefined
 
   // Detay adresten: temanın oylanıp oylanmadığı karenin kendi temasından hesaplanıyor
   const detay = kareId ? v.kareler.find(k => k.id === kareId) ?? null : null
@@ -149,7 +151,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
       )}
       {/* Karar 104: yarışan karesi olan kendi kartını paylaşabiliyor */}
       {paylasilacakKare(v.kareler) && (
-        <button className="btn ik" onClick={() => git(`paylas/${etkinlikId}`)}>Kartını paylaş</button>
+        <button className="btn" onClick={() => git(`paylas/${etkinlikId}`)}>Kartını paylaş</button>
       )}
       <TahminBaglantisi etkinlikId={v.etkinlik.id} />
 
@@ -169,6 +171,15 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               </button>
             ))}
           </div>
+
+          {benimki && !oylanmadi && (
+            <div className="kart senin">
+              {benimki.cikarildi ? <p>Karen yarışmadan çıkarıldı.</p>
+                : benimki.sirali ? <><div><b>{benimki.sira}</b><span>Sıran</span></div><div><b>{puanYaz(benimki.ortalama)}</b><span>Puanın</span></div></>
+                  : <>{benimki.ortalama != null && <div><b>{puanYaz(benimki.ortalama)}</b><span>Puanın</span></div>}
+                    <p>Karen sıralamaya girmedi. Puanını yalnız sen görüyorsun.</p></>}
+            </div>
+          )}
 
           {oylanmadi && (
             <div className="kart bos-tema">

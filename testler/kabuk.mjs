@@ -334,7 +334,8 @@ for (const yol of ['etkinlikler', 'siralama', 'profil', 'uyeler', 'kur']) {
     const t0 = performance.now();
     const f = () => {
       window.__kare++;
-      if (document.querySelector('.sc')?.textContent.includes('Ayşe Kaya')) window.__sizinti = true;
+      // Öncekinin profili: profil adı. Etkinlikler'deki kazanan adları herkese açık, sızıntı değil.
+      if (document.querySelector('.sc .pname')?.textContent.includes('Ayşe Kaya')) window.__sizinti = true;
       if (performance.now() - t0 < 1500) requestAnimationFrame(f);
     };
     requestAnimationFrame(f);

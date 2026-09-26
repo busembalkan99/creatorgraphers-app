@@ -252,7 +252,7 @@ try {
   // ------------------------------------------------ 7. profil
   await git(P, 'profil');
   const isimVerdigi = vt.filter(x => x.cevap).length;
-  bekle('7: profilde birikmiş skor', await var_(P, `Tahmin oyununda ${dogruSayisi} / ${isimVerdigi} kareyi bildin`), (await metin(P)).slice(0, 400));
+  bekle('7: profilde birikmiş skor', (await metin(P)).replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR').includes(`${dogruSayisi}/${isimVerdigi} tahminde bildin`), (await metin(P)).slice(0, 400));
 
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {

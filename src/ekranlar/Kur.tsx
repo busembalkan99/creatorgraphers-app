@@ -62,9 +62,9 @@ export function Kur() {
   return (
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
-      <h2 className="kart-bas">Yeni etkinlik</h2>
+      <h2 className="t orta">Yeni<br />etkinlik</h2>
 
-      <div className="alan" style={{ marginTop: 4 }}>
+      <div className="alan">
         <span className="lab">Etkinlik türü</span>
         <div className="secim" role="group" aria-label="Etkinlik türü">
           <button className={!serbest ? 'on' : ''} aria-pressed={!serbest} onClick={() => setSerbest(false)}>Buluşma</button>
@@ -96,7 +96,8 @@ export function Kur() {
           <input id="os" inputMode="numeric" enterKeyHint="next" value={oySaat} onChange={e => setOySaat(e.target.value.replace(/\D/g, '').slice(0, 3))} />
         </div>
       </div>
-      {bitis && <div className="ipucu">Son yükleme: {bitis}. Oylama hemen ardından açılır.</div>}
+      {/* Vurgu: kurmadan önce kontrol edilecek sonuç (Buse, 2026-09-26) */}
+      {bitis && <div className="kart kur-ozet"><span>Son yükleme</span><b>{bitis}</b><span>Oylama hemen ardından açılır.</span></div>}
       {y >= 1 && o >= 1 && o < y && (
         <div className="ipucu">Oylama yüklemeden kısa. Bilerek seçtiysen sorun yok.</div>
       )}

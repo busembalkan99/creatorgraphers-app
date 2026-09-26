@@ -18,4 +18,5 @@ for (const [yil, ek] of [[2026, 'dan'], [2025, 'ten'], [2020, 'den'], [2030, 'da
   [2050, 'den'], [2060, 'tan'], [2070, 'ten'], [2080, 'den'], [2090, 'dan'], [2010, 'dan']])
   bekle(`${yil}'${ek}`, sayiEki(yil % 100) + 'n' === ek, sayiEki(yil % 100) + 'n');
 
+
 rapor();

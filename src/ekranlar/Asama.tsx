@@ -68,22 +68,26 @@ export function Asama() {
       : `${e.serbest ? 'Ekstra etkinlik' : `${ay} etkinliği`}: buluşma ${gunYaz(e.bulusma_gunu)}.\nTemalar: ${temaListesi}\nYükleme açılışı: ${saatYaz(e.yukleme_baslar)}\nSon yükleme: ${saatYaz(e.yukleme_biter)}\n${link}`
 
   const durum =
-    a === 'baslamadi' ? `Yükleme açılışı ${saatYaz(e.yukleme_baslar)}`
-      : a === 'yukleme' ? `Yükleme açık · ${kalanYaz(e.yukleme_biter)} kaldı`
-        : `Oylama açık · ${kalanYaz(e.oylama_biter)} kaldı`
+    a === 'baslamadi' ? { etiket: 'Yükleme açılışı', deger: saatYaz(e.yukleme_baslar) }
+      : a === 'yukleme' ? { etiket: 'Yükleme açık · kalan', deger: kalanYaz(e.yukleme_biter) }
+        : { etiket: 'Oylama açık · kalan', deger: kalanYaz(e.oylama_biter) }
 
   return (
     <div className="sc" data-asama={a === 'oylama' ? 'oylama' : 'yukleme'}>
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
-      <h2 className="kart-bas">{ay} etkinliği<span>{gunYaz(e.bulusma_gunu, false)}</span></h2>
-      <p className="veri" style={{ marginTop: 0 }}><b>{durum}</b></p>
+      <h2 className="t orta">{e.serbest ? <>Ekstra<br />etkinlik</> : <>{ay}<br />etkinliği</>}</h2>
+      <div className="since">{gunYaz(e.bulusma_gunu, false)}</div>
+      {/* Vurgu: yöneticinin ilk bakacağı iki sayı, kalan süre ve gelen kare (Buse, 2026-09-26) */}
+      <div className="durum">
+        <span>{durum.etiket}</span><b>{durum.deger}</b><span>· {toplam} kare</span>
+      </div>
 
       <div className="kart ozet">
         {temalar.map(t => (
           <div key={t.id}>
             <span className="k">{t.bulusmada ? 'Buluşma' : 'Serbest'}</span>
             <span className="v">{t.ad}</span>
-            <span className="v" style={{ marginLeft: 'auto', color: 'var(--soft)' }}>{sayilar[t.id] ?? 0} kare</span>
+            <span className="v sayi" style={{ marginLeft: 'auto' }}>{sayilar[t.id] ?? 0} kare</span>
           </div>
         ))}
         <div><span className="k">Son yükleme</span><span className="v">{saatYaz(e.yukleme_biter)}</span></div>
@@ -256,7 +260,7 @@ function Yoklama({ e, surum, degisti }: { e: Etkinlik; surum: number; degisti: (
           <p className="veri" style={{ marginTop: 0 }}>
             {alindi ? 'Gelmeyenler kare yükleyemiyor.' : 'Alınmadı. Alınana kadar herkes kare yükleyebiliyor.'}
           </p>
-          <button className="btn ik" disabled={!liste}
+          <button className={`btn ${alindi ? 'ik' : ''}`} disabled={!liste}
             onClick={() => setSecim(new Set((liste ?? []).filter(x => x.geldi).map(x => x.uye)))}>
             {alindi ? 'Yoklamayı düzelt' : 'Yoklamayı al'}
           </button>

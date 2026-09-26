@@ -87,10 +87,11 @@ export function Profil({ uye, uyeDegisti, hedef }:
         <div><b>{k.etkinlik_sayisi}</b><span>Etkinlik</span></div>
         <div><b>{k.kare_sayisi}</b><span>Kare</span></div>
         <div><b>{k.seri}</b><span>Seri</span></div>
+        {/* Karar 106: tahmin skoru sonuçlanmış etkinliklerden birikiyor, yalnız kişiye.
+            Karar 112: gizlilik notu iki satırın altında bir kez. Vurgu: kişinin kendi sayıları
+            sayılar kartında, aynı boyda (Buse, 2026-09-26). */}
+        {benim && <KisiselSayilar ortalama={k.ortalama} />}
       </div>
-      {/* Karar 106: tahmin skoru sonuçlanmış etkinliklerden birikiyor, yalnız kişiye.
-          Karar 112: gizlilik notu iki satırın altında bir kez. */}
-      {benim && <KisiselSayilar ortalama={k.ortalama} />}
 
       <h2 className="kart-bas">Katkı</h2>
       {k.tam_set || Number(k.tema_sayisi) > 0 ? (
@@ -226,7 +227,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
           <h2 className="kart-bas">Yönetim</h2>
           <div className="satir-kartlari">
             {bekleyen !== null && bekleyen > 0 && (
-              <button className="satir" onClick={() => git('uyeler')}>
+              <button className="satir bekliyor" onClick={() => git('uyeler')}>
                 <div className="tx"><b>{bekleyen} katılma isteği</b><span>Onaylaman ya da reddetmen bekleniyor</span></div>
                 <div className="deg">Aç</div>
               </button>
@@ -300,10 +301,10 @@ function KisiselSayilar({ ortalama }: { ortalama: number | null }) {
   const n = (ortalama != null ? 1 : 0) + (tahmin ? 1 : 0)
   if (!n) return null
   return (
-    <p className="veri">
-      {ortalama != null && <>Ortalaman <b>{puanYaz(ortalama)}</b>.<br /></>}
-      {tahmin && <>Tahmin oyununda <b>{t!.bilen} / {t!.toplam}</b> kareyi bildin.<br /></>}
-      {n === 2 ? 'Bu ikisini yalnız sen görüyorsun.' : 'Bunu yalnız sen görüyorsun.'}
-    </p>
+    <div className="kisisel">
+      {ortalama != null && <div><b>{puanYaz(ortalama)}</b><span>Ortalaman</span></div>}
+      {tahmin && <div><b>{t!.bilen}/{t!.toplam}</b><span>Tahminde bildin</span></div>}
+      <p>{n === 2 ? 'Bu ikisini yalnız sen görüyorsun.' : 'Bunu yalnız sen görüyorsun.'}</p>
+    </div>
   )
 }

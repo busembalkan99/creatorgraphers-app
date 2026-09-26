@@ -19,6 +19,25 @@ interface Veri {
   uyeSayisi: number
   oyKalan: { kalan: number; toplam: number } | null   // oylama açıkken kaç kare kaldı
   gelmedim: boolean   // karar 103: açık etkinlikte yoklama alındı ve adım yok
+  kazananlar: Map<string, string[]>   // tema → birinci(ler)in adı, sonuçlanmış etkinliklerde
+}
+
+// Sonuç açıldıktan sonra birinci değişmiyor: dakikalık tazelemede her etkinliği yeniden
+// sormamak için etkinlik başına bir kez okunuyor. Okunamazsa satır tema adlarıyla kalıyor.
+const kazananBellek = new Map<string, Map<string, string[]>>()
+async function kazananlariOku(etkinlikler: Etkinlik[]) {
+  const eksik = etkinlikler.filter(e => !e.iptal && asama(e) === 'sonuc' && !kazananBellek.has(e.id))
+  await Promise.all(eksik.map(async e => {
+    const { data, error } = await sb.rpc('sonuc_kareleri', { p_etkinlik: e.id })
+    if (error) return
+    const m = new Map<string, string[]>()
+    for (const k of (data ?? []) as { tema: string; sahip_ad: string; sira: number | null; sirali: boolean; cikarildi: boolean }[])
+      if (k.sirali && k.sira === 1 && !k.cikarildi) m.set(k.tema, [...(m.get(k.tema) ?? []), k.sahip_ad])
+    kazananBellek.set(e.id, m)
+  }))
+  const hepsi = new Map<string, string[]>()
+  for (const m of kazananBellek.values()) for (const [t, adlar] of m) hepsi.set(t, adlar)
+  return hepsi
 }
 
 export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
@@ -52,9 +71,11 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
     const ben = ((y.data ?? []) as { alindi: boolean; geldim: boolean }[])[0]
     gelmedim = !!ben?.alindi && !ben.geldim
   }
+  const kazananlar = await sor(kazananlariOku(etkinlikler)).catch(() => new Map<string, string[]>())
   return {
     etkinlikler,
     gelmedim,
+    kazananlar,
     temalar: (t.data ?? []) as Tema[],
     benimTemalarim: new Set((k.data ?? []).map(r => r.tema as string)),
     uyeSayisi: Number(u.data ?? 0),
@@ -113,11 +134,11 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
         </div>
       )}
       {!acik && yonetici && (
-        <button className="btn ik" onClick={() => git('kur')}>Etkinliği kur</button>
+        <button className="btn" onClick={() => git('kur')}>Etkinliği kur</button>
       )}
 
       <h2 className="kart-bas">Geçmiş etkinlikler<span>{gecmis.length} etkinlik</span></h2>
-      {gecmis.length === 0 && <p className="veri">İlk etkinlik bitince burada duracak.</p>}
+      {gecmis.length === 0 && <div className="kart bos-kart"><b>Henüz geçmiş etkinlik yok</b><span>İlk etkinlik bitince burada duracak.</span></div>}
       {gecmis.length > 0 && <div className="satir-kartlari">{gecmis.map((e, i) => {
         const tm = v.temalar.filter(t => t.etkinlik === e.id)
         // Karar 116: numara yalnız buluşmaları sayıyor (sezonun altı yeri); ekstra etkinlik "EK"
@@ -129,7 +150,13 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
               <span className="mo">{ayAdi(e.bulusma_gunu)}{e.serbest ? ' · ekstra' : ''}</span>
               <span className="mt">{tm.length} tema</span>
             </div>
-            <div className="alt">{tm.map(t => t.ad).join(' · ')}{tm.length ? ' · ' : ''}sonuçlar</div>
+            {/* Vurgu: arşiv kimin kazandığını da söylüyor (Buse, 2026-09-26) */}
+            <div className="alt">
+              {tm.map((t, j) => {
+                const kaz = v.kazananlar.get(t.id)
+                return <span key={t.id}>{j ? ' · ' : ''}{t.ad}{kaz?.length ? <>: <b>{kaz.join(', ')}</b></> : null}</span>
+              })}{tm.length ? ' · ' : ''}sonuçlar
+            </div>
           </button>
         )
       })}</div>}

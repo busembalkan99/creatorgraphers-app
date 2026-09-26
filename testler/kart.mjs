@@ -24,7 +24,8 @@ async function denetle(p, yol, genislik, ad = `${yol} (${genislik}px)`) {
       const tasma = kartlar.filter(k => { const kb = k.getBoundingClientRect(); return [...k.querySelectorAll('*')].some(c => { const cb = c.getBoundingClientRect(); return cb.width > 0 && (cb.right > kb.right + 1 || cb.bottom > kb.bottom + 1); }); }).map(k => k.className);
       // Kesik çizgili boş kutular kartla yer değiştirdi; kartın kendisinde ve içinde çizgi yok
       const kesik = [...document.querySelectorAll('.sc *')].filter(e => getComputedStyle(e).borderTopStyle === 'dashed').map(e => e.className);
-      const ayrac = kartlar.flatMap(k => [k, ...k.querySelectorAll('*')]).filter(e => { const s = getComputedStyle(e); return !e.matches('.box, input, select, textarea') && (px(s.borderTopWidth) >= 1 || px(s.borderRightWidth) >= 1 || px(s.borderBottomWidth) >= 1); }).map(e => e.className);
+      const ayrac = kartlar.flatMap(k => [k, ...k.querySelectorAll('*')]).filter(e => { const s = getComputedStyle(e); return !e.matches('.box, input, select, textarea') && (px(s.borderTopWidth) >= 1 || px(s.borderRightWidth) >= 1 || px(s.borderBottomWidth) >= 1
+      || (s.boxShadow !== 'none' && !e.closest('button, .btn, .deg'))); }).map(e => e.className);
       // Bölüm başlığı anlamca da başlık (ekran okuyucu başlıktan başlığa atlıyor)
       const basliksiz = [...document.querySelectorAll('.kart-bas')].filter(e => e.tagName !== 'H2').length;
       // Kartın içindeki ilk öğe soldan 16px içeride (iç içe kural boşluğu ikiye katlamasın)
@@ -32,12 +33,48 @@ async function denetle(p, yol, genislik, ad = `${yol} (${genislik}px)`) {
       const ilk = [...k.querySelectorAll('*')].find(e => !e.children.length && e.getBoundingClientRect().width > 0);
       return ilk ? { k: k.className, g: Math.round(ilk.getBoundingClientRect().left - k.getBoundingClientRect().left) } : null;
     }).filter(x => x && (x.g < 14 || x.g > 18));
+    // Nefes: ayrı bölümün başlığıyla önceki blok arasında en az 36px (künyenin hemen altı hariç)
+    const sikisik = [...document.querySelectorAll('h2.kart-bas, .mesaj')].map(h => {
+      let o = h.previousElementSibling; while (o && !o.getBoundingClientRect().height) o = o.previousElementSibling;
+      return o && !o.matches('.tepe') ? { h: h.textContent.slice(0, 20), g: Math.round(h.getBoundingClientRect().top - o.getBoundingClientRect().bottom) } : null;
+    }).filter(x => x && x.g < 34);
+    // Bölüm başlığı ana metin renginde, sayacı soluk
+    const govde = getComputedStyle(document.body).color;
+    const solukBaslik = [...document.querySelectorAll('h2.kart-bas')].filter(h => getComputedStyle(h).color !== govde || [...h.querySelectorAll('span')].some(x => getComputedStyle(x).color === govde)).length;
     const dugme = [...document.querySelectorAll('.sc .btn, .sc .secim button, .sc .rolakt button')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;
       // Kendi adının çipi ince (en çok 24px), dokunma alanı düğmede (en az 44px)
       const cip = [...document.querySelectorAll('.isimler .me')].map(c => ({ c: Math.round(c.getBoundingClientRect().height), d: Math.round(c.closest('button').getBoundingClientRect().height) }));
-      return { sayi: kartlar.length, girinti: girinti.slice(0, 3), basliksiz, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
+      return { sayi: kartlar.length, sikisik: sikisik.slice(0, 3), solukBaslik, girinti: girinti.slice(0, 3), basliksiz, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
     });
     bekle(`${ad}: kart var (kontrol)`, r.sayi > 0, String(r.sayi));
+  const dolu = async ad2 => { const d = p.getByRole('button', { name: ad2, exact: true }); return (await d.count()) === 1 && !((await d.getAttribute('class', { timeout: 1000 })) ?? '').split(' ').includes('ik'); };
+  // Vurgu: ekranın ana bilgisi (Buse, 2026-09-26)
+  const boy = async sec => p.locator(sec).first().evaluate(e => parseFloat(getComputedStyle(e).fontSize), null, { timeout: 1000 }).catch(() => 0);
+  const yazi = async sec => ((await p.locator(sec).first().textContent({ timeout: 1000 }).catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
+  if (yol === 'profil') {
+    bekle(`${ad}: profil sayıları 26px`, (await boy('.kart.stats b')) >= 26, String(await boy('.kart.stats b')));
+    bekle(`${ad}: ortalaman sayılar kartında`, /Ortalama/.test(await yazi('.kart.stats')) && (await boy('.kart.stats .kisisel b')) >= 26, await yazi('.kart.stats'));
+  }
+  if (yol === 'siralama') {
+    bekle(`${ad}: üstte senin yerin`, /^\d+ ?Sıralaman ?\d+,\d ?Ortalaman$|^\d+,\d ?Ortalaman ?Sıralamaya girmedin/.test(await yazi('.sen-yeri')) && (await boy('.sen-yeri b')) >= 26, await yazi('.sen-yeri'));
+    const lider = await boy('.satir-kartlari .row.lider .av'), diger = await boy('.satir-kartlari .row:not(.lider) .av');
+    bekle(`${ad}: liderin puanı diğerlerinden büyük`, lider > diger && diger > 0, `${lider} / ${diger}`);
+  }
+  if (yol.startsWith('sonuc/')) bekle(`${ad}: seçili sekme sessiz (dolgu yok, çizgisi ve yazısı ana renkte)`, await p.locator('.sekmeler button.on').evaluate(e => { const s = getComputedStyle(e), g = getComputedStyle(document.body).color; return s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopColor === g && s.color === g; }, null, { timeout: 1000 }).catch(() => false));
+  if (yol.startsWith('sonuc/')) bekle(`${ad}: sekmelerin altında senin karen`, (/^\d+ ?Sıran ?\d+,\d ?Puanın$|^\d+,\d ?Puanın ?Karen sıralamaya girmedi/.test(await yazi('.senin')) && (await boy('.senin b')) >= 26 || /^Karen yarışmadan çıkarıldı/.test(await yazi('.senin'))), await yazi('.senin'));
+  if (ad.startsWith('etkinlikler (')) bekle(`${ad}: geçmiş etkinlikte kazanan adı`, /: [A-ZÇĞİÖŞÜ]/.test(await yazi('.satir-kartlari .ev .alt')), await yazi('.satir-kartlari .ev .alt'));
+  if (ad.startsWith('asama (')) {
+    bekle(`${ad}: kalan süre büyük`, (await boy('.durum b')) >= 17 && /\d/.test(await yazi('.durum b')), await yazi('.durum'));
+    bekle(`${ad}: durum satırında toplam kare`, / \d+ kare/.test(await yazi('.durum')), await yazi('.durum'));
+    bekle(`${ad}: tema kare sayıları ana renkte`, await p.locator('.kart.ozet .sayi').first().evaluate(e => getComputedStyle(e).color === getComputedStyle(document.body).color, null, { timeout: 1000 }).catch(() => false));
+  }
+  if (yol === 'kur') bekle(`${ad}: büyük başlıkla ilk alan arasında nefes`, await p.evaluate(() => { const h = document.querySelector('.sc > h2.t'); const n = h?.nextElementSibling; return !!n && n.getBoundingClientRect().top - h.getBoundingClientRect().bottom >= 20; }));
+  if (yol === 'kur') bekle(`${ad}: son yükleme vurgulu özet`, /\d/.test(await yazi('.kur-ozet b')) && (await boy('.kur-ozet b')) >= 17, await yazi('.kur-ozet'));
+  if (yol === 'kur' || yol === 'asama') bekle(`${ad}: sayfa başlığı büyük`, (await p.locator('.sc > h2.t').count()) === 1);
+  if (yol === 'uyeler' && !(await p.locator('.istek').count())) bekle(`${ad}: istek yokken boş durum kartı`, (await p.locator('.bos-kart', { hasText: 'Bekleyen istek yok' }).count()) === 1);
+  if (ad.startsWith('etkinlikler (')) bekle(`${ad}: açık etkinlik yokken "Etkinliği kur" dolu`, await dolu('Etkinliği kur'));
+  if (ad.startsWith('asama (')) bekle(`${ad}: buluşma günü "Yoklamayı al" dolu`, await dolu('Yoklamayı al'));
+  if (yol.startsWith('sonuc/') && (await p.getByRole('button', { name: 'Kartını paylaş' }).count())) bekle(`${ad}: "Kartını paylaş" dolu`, await dolu('Kartını paylaş'));
     if (yol.startsWith('profil/')) bekle(`${ad}: boş durum kartları var (kontrol)`, (await p.locator('.bos-kart').count()) === 3);
     if (yol.startsWith('sonuc/')) {
       const w = await p.evaluate(() => { const s = document.querySelector('.sekmeler'); return s && Math.round(s.getBoundingClientRect().width); });
@@ -51,6 +88,8 @@ async function denetle(p, yol, genislik, ad = `${yol} (${genislik}px)`) {
     bekle(`${ad}: kesik çizgili kutu kalmadı`, r.kesik.length === 0, r.kesik.join(' | '));
     bekle(`${ad}: kartta ve içinde çizgi yok`, r.ayrac.length === 0, r.ayrac.join(' | '));
     bekle(`${ad}: satır kartlarında içerik 16px içeride`, r.girinti.length === 0, JSON.stringify(r.girinti));
+  bekle(`${ad}: bölümler arası nefes 36px`, r.sikisik.length === 0, JSON.stringify(r.sikisik));
+  bekle(`${ad}: bölüm başlığı ana renkte, sayacı soluk`, r.solukBaslik === 0, String(r.solukBaslik));
   bekle(`${ad}: kart içeriği taşmıyor`, r.tasma.length === 0, r.tasma.join(' | '));
     bekle(`${ad}: düğme köşeleri 6px`, r.dugme === 0, String(r.dugme));
     bekle(`${ad}: kendi adının çipi ince, dokunma alanı 44px`, r.cip.every(x => x.c <= 24 && x.d >= 44), JSON.stringify(r.cip));

@@ -65,7 +65,7 @@ export function Siralama({ uye }: { uye: Uye }) {
   if (!v) return <div className="sc"><Kunye sol="Creatorgraphers" sag="Sıralama" /><Yukleniyor /></div>
 
   const satirCiz = (s: Satir, tablo: 'sezon' | 'serbest' = 'sezon') => (
-    <button key={s.uye} className={`row ${s.benim ? 'me' : ''}`} data-tablo={tablo} onClick={() => git(`profil/${s.uye}`)}>
+    <button key={s.uye} className={`row ${s.benim ? 'me' : ''} ${s.sira === 1 ? 'lider' : ''}`} data-tablo={tablo} onClick={() => git(`profil/${s.uye}`)}>
       <span className="no">{String(s.sira).padStart(2, '0')}</span>
       {/* Görsel kişinin en iyi karesi, sayı bütün karelerinin ortalaması (karar 53).
           İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu
@@ -86,6 +86,8 @@ export function Siralama({ uye }: { uye: Uye }) {
   const sirali = v.liste.filter(x => x.sirali)
   const sirasiz = v.liste.filter(x => !x.sirali)
   const acik = (ozet?.tamamlanan ?? 0) > 0
+  // Vurgu: kişinin kendi yeri en üstte; sıralı değilse ortalaması yalnız kendine (karar 52)
+  const ben = v.liste.find(x => x.benim)
 
   return (
     <div className="sc">
@@ -100,6 +102,14 @@ export function Siralama({ uye }: { uye: Uye }) {
           <i key={i} className={i < Number(ozet?.tamamlanan ?? 0) ? 'on' : ''} />
         ))}
       </div>
+
+      {/* Profil'deki sayılar kartıyla aynı dil: sayı üstte, ne olduğu altında (Buse, 2026-09-26) */}
+      {acik && ben && (ben.sirali ? (
+        <div className="kart sen-yeri"><div><b>{ben.sira}</b><span>Sıralaman</span></div><div><b>{puanYaz(ben.ortalama)}</b><span>Ortalaman</span></div></div>
+      ) : ben.ortalama != null && (
+        <div className="kart sen-yeri"><div><b>{puanYaz(ben.ortalama)}</b><span>Ortalaman</span></div>
+          <p>Sıralamaya girmedin. Ortalamanı yalnız sen görüyorsun.</p></div>
+      ))}
 
       {!acik ? (
         <>

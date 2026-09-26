@@ -96,8 +96,8 @@ export function Uyeler({ ben }: { ben: Uye }) {
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Üyeler" />
       <Hata metin={hata} />
-      <h2 className="kart-bas">Katılma istekleri<span>{bekleyen} bekliyor</span></h2>
-      {istekler.length === 0 && <p className="veri">Bekleyen istek yok.</p>}
+      <h2 className="kart-bas">Katılma istekleri<span className={bekleyen > 0 ? 'bekliyor' : undefined}>{bekleyen} bekliyor</span></h2>
+      {istekler.length === 0 && <div className="kart bos-kart"><b>Bekleyen istek yok</b></div>}
       {istekler.map(r => (
         <div className="kart istek" key={r.id}>
           <div className="ust"><b>{r.ad}</b>{!r.sonuc && <span className="rozet bekliyor">Bekliyor</span>}</div>

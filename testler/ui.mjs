@@ -87,8 +87,12 @@ await olc(B, '05-bekliyor');
 await A.click('.tabs button:has-text("Profil")');
 bekle('profilde 1 katılma isteği', await bekleMetin(A, '1 katılma isteği'));
 await olc(A, '06-profil-yonetici');
+// Vurgu: bekleyen istek sarı (bekliyor rengi), hem profilde hem Üyeler'in sayacında
+const sari = async sec => A.locator(sec).first().evaluate(e => { const r = getComputedStyle(document.documentElement).getPropertyValue('--yukle').trim(); const t = document.createElement('i'); t.style.color = r; document.body.append(t); const c = getComputedStyle(t).color; t.remove(); const s = getComputedStyle(e); return s.backgroundColor === c || s.color === c; }).catch(() => false);
+bekle('profilde bekleyen istek satırı sarı', await sari('button.satir.bekliyor .deg'));
 await A.click('button.satir:has-text("katılma isteği")');
 bekle('istek kartı', await bekleMetin(A, 'Ayşe çağırdı'));
+bekle('üyelerde bekleyen sayacı sarı', await sari('h2.kart-bas .bekliyor'));
 bekle('ilk istekte tekrar işareti yok', (await A.locator('.tekrar').count()) === 0);
 await olc(A, '07-uyeler-istek');
 await A.click('.istek button:has-text("Reddet")');
@@ -158,7 +162,7 @@ await olc(B, '13-siralama');
 // 7 · Kurucu etkinlik kurar
 await A.goto(APP + '#/etkinlikler'); await A.waitForTimeout(600);
 await A.click('button:has-text("Etkinliği kur")');
-bekle('kur formu', await bekleMetin(A, 'Yeni etkinlik'));
+bekle('kur formu', await bekleMetin(A, 'Etkinlik türü'));
 await A.fill('#bg', bugun);
 await A.fill('#yb', `${bugun}T00:00`);
 bekle('tema adı yokken kur kapalı', await A.locator('button.btn', { hasText: /^Etkinliği kur$/ }).isDisabled());
@@ -1027,7 +1031,7 @@ await olc(B, '39-sonuc-uye');
   bekle('profil: tahmin skoru yokken not tek ve tekil', kacKez(await metin(A)) === 1 && icerir(await metin(A), 'Bunu yalnız sen görüyorsun'), (await metin(A)).slice(0, 300));
   await A.route('**/rest/v1/rpc/tahmin_profilim*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '[{"bilen":3,"toplam":5}]' }));
   await A.reload(); await A.waitForTimeout(2200);
-  bekle('profil: ortalama ve tahmin skoru varken not tek ve ikisini söylüyor', kacKez(await metin(A)) === 1 && icerir(await metin(A), 'Bu ikisini yalnız sen görüyorsun') && icerir(await metin(A), 'Tahmin oyununda 3 / 5 kareyi bildin'), (await metin(A)).slice(0, 300));
+  bekle('profil: ortalama ve tahmin skoru varken not tek ve ikisini söylüyor', kacKez(await metin(A)) === 1 && icerir(await metin(A), 'Bu ikisini yalnız sen görüyorsun') && icerir(await metin(A), '3/5 Tahminde bildin'), (await metin(A)).slice(0, 300));
   await A.unroute('**/rest/v1/rpc/tahmin_profilim*');
 
   // Karar 113: profildeki kareye basınca karenin kendisi açılıyor, oradan etkinliğe ve geri profile

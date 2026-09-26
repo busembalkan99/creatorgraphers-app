@@ -518,7 +518,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .sekmeler button{appearance:none;background:none;border:0;border-top:4px solid var(--rule);cursor:pointer;
   padding:11px 8px 12px;color:var(--soft);font-size:13px;font-weight:900;letter-spacing:.14em;
   text-transform:uppercase;overflow-wrap:anywhere}
-.sekmeler button.on{background:var(--ink);color:var(--paper);border-top-color:var(--ink)}
+/* Seçili sekme sessiz: sekmeler gezinme, ana düğmeyle yarışmasın (Buse, 2026-09-26) */
+.sekmeler button.on{color:var(--ink);border-top-color:var(--ink)}
 .sekmeler button i{display:block;font-style:normal;margin-top:5px;font-size:11px;font-weight:800;letter-spacing:.04em;
   text-transform:none;opacity:.7}
 
@@ -852,9 +853,13 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 
 /* ---------- Kart sistemi (karar 118): çizgi yerine gruplu kartlar ---------- */
 :root{--kart:#17171A;--kart-r:8px;--foto-r:4px;--cip-r:6px}
-.kart-bas{display:flex;align-items:baseline;margin:var(--s-blok) 0 10px;font-size:11px;font-weight:800;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--soft);flex:0 0 auto}
-.kart-bas span{margin-left:auto;letter-spacing:.04em;text-transform:none}
+/* İlkeler turu (Buse, 2026-09-26): bölüm başlığı ana renkte ve ayrı bölümler arası 36px (nefes);
+   sağdaki sayaç soluk. Künyenin hemen altındaki ilk başlık 18px. */
+.kart-bas{display:flex;align-items:baseline;margin:var(--s-bolum) 0 10px;font-size:11px;font-weight:900;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--ink);flex:0 0 auto;line-height:1.35}
+.kart-bas span{margin-left:auto;letter-spacing:.04em;text-transform:none;font-weight:800;color:var(--soft)}
+.tepe + .kart-bas{margin-top:18px}
+.kart-bas span.bekliyor{color:var(--yukle)}
 .kart{background:var(--kart);border-radius:var(--kart-r);padding:4px 16px;flex:0 0 auto}
 /* Sıralama satırları: her satır kendi kartı, aralarında 4px (Buse, 2026-09-26) */
 .satir-kartlari{display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
@@ -905,7 +910,8 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .kart.ozet{border-top:0;padding:4px 16px;margin-top:var(--s-ic)}
 .kart.ozet div{border-bottom:0}
 .kart.kutu{border:0;padding:14px 16px}
-.mesaj{border-radius:var(--kart-r);padding:14px 16px}
+/* Gruba yazılacak mesaj ayrı bir bölüm: dolu "Yoklamayı al"a yapışıyordu (ilkeler turu) */
+.mesaj{border-radius:var(--kart-r);padding:14px 16px;margin-top:var(--s-bolum)}
 .satir-kartlari > .izin,.satir-kartlari > .cikan{background:var(--kart);border-radius:var(--kart-r);border:0;padding:12px 16px;margin:0}
 .satir-kartlari .cikan img{border-radius:var(--foto-r)}
 .yoklama .satir-kartlari{margin-top:10px}
@@ -915,3 +921,30 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .satir-kartlari > .uye .satir{border-top:0}
 .rolakt button{border-radius:6px}
 .satir-kartlari .onaykutu{border:0;border-radius:6px;background:rgba(237,237,234,.06)}
+
+/* ---------- Vurgu (Buse, 2026-09-26): her ekranın ana bilgisi ---------- */
+/* Sayı dili: 26px dar kalın (Müdavim sayısıyla aynı); ikincil sayı 17px (canlı kartın kalan süresi) */
+.kart.stats{display:grid;grid-template-columns:repeat(3,1fr);row-gap:14px}
+.kart.stats b{font-size:26px;line-height:1;font-variation-settings:"wdth" 70,"wght" 900}
+.kart.stats span{margin-top:6px}
+.kart.stats .kisisel{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);padding-top:14px}
+.kisisel p{grid-column:1 / -1;margin-top:10px;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
+/* "Senin olan" hep aynı yeşil: kendi satırın, kendi yerin, kendi karen */
+.sen-yeri,.kart.senin{background:rgba(12,110,74,.28);padding:14px 16px;display:grid;grid-template-columns:repeat(3,1fr)}
+/* Sayılar kartıyla aynı: sayı 26px, ne olduğu altında */
+.sen-yeri b,.kart.senin b{display:block;font-size:26px;line-height:1;color:var(--ink);font-variation-settings:"wdth" 70,"wght" 900;font-variant-numeric:tabular-nums}
+.sen-yeri span,.kart.senin span{display:block;margin-top:6px;font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.sen-yeri p,.kart.senin p{grid-column:1 / -1;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft);line-height:1.5}
+.sen-yeri div + p,.kart.senin div + p{margin-top:10px}
+.sen-yeri{margin-top:var(--s-blok)}
+.kart.senin{margin-top:var(--s-ic)}
+.satir-kartlari .row.lider .av{font-size:22px}
+.ev .alt b{color:var(--ink);font-weight:800}
+.durum{display:flex;align-items:baseline;gap:9px;margin-top:12px;flex-wrap:wrap;font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--soft)}
+.durum b{font-size:17px;letter-spacing:-.02em;color:var(--ink);font-variation-settings:"wdth" 72,"wght" 900;font-variant-numeric:tabular-nums}
+.kart.ozet .sayi{color:var(--ink)}
+.satir.bekliyor .deg{background:var(--yukle);color:var(--ink);box-shadow:none}
+.kur-ozet{margin-top:var(--s-ic);padding:12px 16px;display:flex;flex-direction:column;gap:4px}
+.kur-ozet > span:first-child{font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
+.kur-ozet b{font-size:17px;letter-spacing:-.02em;font-variation-settings:"wdth" 72,"wght" 900}
+.kur-ozet > span:last-child{font-size:11px;color:var(--soft);line-height:1.5}

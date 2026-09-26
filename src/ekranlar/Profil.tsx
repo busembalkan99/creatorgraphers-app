@@ -83,7 +83,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
       <h2 className="pname">{k.ad}</h2>
       <div className="since">{aydanBeri(k.katildi_at)}{k.rol !== 'uye' && ` · ${rolAdi(k.rol)}`}</div>
 
-      <div className={`stats ${bos ? 'zero' : ''}`}>
+      <div className={`kart stats ${bos ? 'zero' : ''}`}>
         <div><b>{k.etkinlik_sayisi}</b><span>Etkinlik</span></div>
         <div><b>{k.kare_sayisi}</b><span>Kare</span></div>
         <div><b>{k.seri}</b><span>Seri</span></div>
@@ -92,9 +92,9 @@ export function Profil({ uye, uyeDegisti, hedef }:
           Karar 112: gizlilik notu iki satırın altında bir kez. */}
       {benim && <KisiselSayilar ortalama={k.ortalama} />}
 
-      <h2 className="sec">Katkı</h2>
+      <div className="kart-bas">Katkı</div>
       {k.tam_set || Number(k.tema_sayisi) > 0 ? (
-        <div className="badges">
+        <div className="kart badges">
           {k.tam_set && (
             <div className="badge">
               <b>Tam set</b>
@@ -109,22 +109,22 @@ export function Profil({ uye, uyeDegisti, hedef }:
           )}
         </div>
       ) : (
-        <div className="empty" style={{ marginTop: 0 }}>
+        <div className="kart bos-kart">
           <b>Katkı</b>
           <span>İlk etkinlikten sonra.</span>
         </div>
       )}
 
-      <h2 className="sec">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></h2>
+      <div className="kart-bas">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></div>
       {v.tarif.length === 0 ? (
-        <div className="empty" style={{ marginTop: 0 }}>
+        <div className="kart bos-kart">
           <b>Çekim tarifi</b>
           {/* Üç karesi varken "üç kareden sonra" demek yanlış: eksik olan kare değil,
               karelerdeki makine bilgisi. Telefonla düzenlenen dosyalarda siliniyor. */}
           <span>{Number(k.kare_sayisi) >= 3 ? 'Karelerinde makine bilgisi yok.' : 'Üç kareden sonra.'}</span>
         </div>
       ) : (
-        <>
+        <div className="kart">
           {odak.map((o, i) => (
             <div className="habit" key={o.deger}>
               <span className="k">{i === 0 ? 'En çok' : ''}</span>
@@ -146,12 +146,12 @@ export function Profil({ uye, uyeDegisti, hedef }:
               <span className="n">{isik.deger}</span>
             </div>
           )}
-        </>
+        </div>
       )}
 
-      <h2 className="sec">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></h2>
+      <div className="kart-bas">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></div>
       {bos ? (
-        <div className="empty" style={{ marginTop: 0 }}>
+        <div className="kart bos-kart">
           <b>Henüz kare yok</b>
           <span>{benim ? 'İlk karen buraya gelecek.' : 'İlk karesi buraya gelecek.'}</span>
         </div>
@@ -213,48 +213,52 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
   return (
     <>
-      <h2 className="sec">Ayarlar<span>{uye.eposta}</span></h2>
-      <button className="izin" onClick={afis} aria-pressed={uye.afis_izni} style={{ marginTop: 0 }}>
-        <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
-        <span><b>Kulüp afişi</b><span>Kazanırsam karem kulüp afişinde kullanılabilir.</span></span>
-      </button>
+      <div className="kart-bas">Ayarlar<span>{uye.eposta}</span></div>
+      <div className="satir-kartlari">
+        <button className="izin" onClick={afis} aria-pressed={uye.afis_izni}>
+          <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
+          <span><b>Kulüp afişi</b><span>Kazanırsam karem kulüp afişinde kullanılabilir.</span></span>
+        </button>
+      </div>
 
       {yonetici && (
         <>
-          <h2 className="sec alt">Yönetim</h2>
-          {bekleyen !== null && bekleyen > 0 && (
+          <div className="kart-bas">Yönetim</div>
+          <div className="satir-kartlari">
+            {bekleyen !== null && bekleyen > 0 && (
+              <button className="satir" onClick={() => git('uyeler')}>
+                <div className="tx"><b>{bekleyen} katılma isteği</b><span>Onaylaman ya da reddetmen bekleniyor</span></div>
+                <div className="deg">Aç</div>
+              </button>
+            )}
+            {acik === null && (
+              <button className="satir" onClick={() => git('kur')}>
+                <div className="tx"><b>Etkinliği kur</b><span>Açık etkinlik yok</span></div>
+                <div className="deg">Kur</div>
+              </button>
+            )}
+            {/* Karar 103: buluşma günü geldiyse ve yoklama alınmadıysa hatırlat */}
+            {acik && !acik.yoklama_at && ['baslamadi', 'yukleme'].includes(asama(acik))
+              && new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }) >= acik.bulusma_gunu && (
+              <button className="satir" onClick={() => git('asama')}>
+                <div className="tx"><b>Yoklamayı al</b><span>Alınana kadar herkes kare yükleyebiliyor</span></div>
+                <div className="deg">Aç</div>
+              </button>
+            )}
+            {acik && (
+              <button className="satir" onClick={() => git('asama')}>
+                <div className="tx">
+                  <b>{ayAdi(acik.bulusma_gunu)} etkinliği</b>
+                  <span>{asamaCumlesi(acik)}</span>
+                </div>
+                <div className="deg">Aç</div>
+              </button>
+            )}
             <button className="satir" onClick={() => git('uyeler')}>
-              <div className="tx"><b>{bekleyen} katılma isteği</b><span>Onaylaman ya da reddetmen bekleniyor</span></div>
+              <div className="tx"><b>Üyeler</b><span>{uye.rol === 'kurucu' ? 'İstekler, roller' : 'Katılma istekleri, üye listesi'}</span></div>
               <div className="deg">Aç</div>
             </button>
-          )}
-          {acik === null && (
-            <button className="satir" onClick={() => git('kur')}>
-              <div className="tx"><b>Etkinliği kur</b><span>Açık etkinlik yok</span></div>
-              <div className="deg">Kur</div>
-            </button>
-          )}
-          {/* Karar 103: buluşma günü geldiyse ve yoklama alınmadıysa hatırlat */}
-          {acik && !acik.yoklama_at && ['baslamadi', 'yukleme'].includes(asama(acik))
-            && new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }) >= acik.bulusma_gunu && (
-            <button className="satir" onClick={() => git('asama')}>
-              <div className="tx"><b>Yoklamayı al</b><span>Alınana kadar herkes kare yükleyebiliyor</span></div>
-              <div className="deg">Aç</div>
-            </button>
-          )}
-          {acik && (
-            <button className="satir" onClick={() => git('asama')}>
-              <div className="tx">
-                <b>{ayAdi(acik.bulusma_gunu)} etkinliği</b>
-                <span>{asamaCumlesi(acik)}</span>
-              </div>
-              <div className="deg">Aç</div>
-            </button>
-          )}
-          <button className="satir" onClick={() => git('uyeler')}>
-            <div className="tx"><b>Üyeler</b><span>{uye.rol === 'kurucu' ? 'İstekler, roller' : 'Katılma istekleri, üye listesi'}</span></div>
-            <div className="deg">Aç</div>
-          </button>
+          </div>
         </>
       )}
 

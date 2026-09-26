@@ -5,7 +5,10 @@ import { admin, bekle, rapor } from './ortak.mjs';
 const APP = 'http://localhost:5180/';
 // Sonraki geçişler buraya kendi ekranlarını ekliyor
 const son = (await admin.from('etkinlikler').select('id').eq('iptal', false).lt('oylama_biter', new Date().toISOString()).order('bulusma_gunu', { ascending: false }).limit(1)).data?.[0];
-const EKRANLAR = ['siralama', ...(son ? [`sonuc/${son.id}`] : [])];
+// Karesi olmayan üyenin profili boş durum kartlarını gösteriyor
+const kareliler = new Set(((await admin.from('kareler').select('sahip')).data ?? []).map(k => k.sahip));
+const bosUye = ((await admin.from('uyeler').select('id')).data ?? []).find(u => !kareliler.has(u.id));
+const EKRANLAR = ['siralama', ...(son ? [`sonuc/${son.id}`] : []), 'profil', ...(bosUye ? [`profil/${bosUye.id}`] : [])];
 
 const b = await webkit.launch();
 try {
@@ -25,13 +28,17 @@ try {
         const foto = [...document.querySelectorAll('.kart img, .satir-kartlari img, .izgara img, .kursu img')].filter(i => px(getComputedStyle(i).borderTopLeftRadius) !== 4).length;
         const kalin = [...document.querySelectorAll('.sc *')].filter(e => px(getComputedStyle(e).borderTopWidth) >= 2 && !e.closest('.kunye, .tabs, .prog, .sekmeler, .live')).map(e => e.className);
         const tasma = kartlar.filter(k => { const kb = k.getBoundingClientRect(); return [...k.querySelectorAll('*')].some(c => { const cb = c.getBoundingClientRect(); return cb.width > 0 && (cb.right > kb.right + 1 || cb.bottom > kb.bottom + 1); }); }).map(k => k.className);
+        // Kesik çizgili boş kutular kartla yer değiştirdi; kartın kendisinde ve içinde çizgi yok
+        const kesik = [...document.querySelectorAll('.sc *')].filter(e => getComputedStyle(e).borderTopStyle === 'dashed').map(e => e.className);
+        const ayrac = kartlar.flatMap(k => [k, ...k.querySelectorAll('*')]).filter(e => { const s = getComputedStyle(e); return !e.matches('.box') && (px(s.borderTopWidth) >= 1 || px(s.borderRightWidth) >= 1 || px(s.borderBottomWidth) >= 1); }).map(e => e.className);
         const dugme = [...document.querySelectorAll('.sc .btn')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;
         // Kendi adının çipi ince (en çok 24px), dokunma alanı düğmede (en az 44px)
         const cip = [...document.querySelectorAll('.isimler .me')].map(c => ({ c: Math.round(c.getBoundingClientRect().height), d: Math.round(c.closest('button').getBoundingClientRect().height) }));
-        return { sayi: kartlar.length, koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
+        return { sayi: kartlar.length, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
       });
       const ad = `${yol} (${genislik}px)`;
       bekle(`${ad}: kart var (kontrol)`, r.sayi > 0, String(r.sayi));
+      if (yol.startsWith('profil/')) bekle(`${ad}: boş durum kartları var (kontrol)`, (await p.locator('.bos-kart').count()) === 3);
       if (yol.startsWith('sonuc/')) {
         const w = await p.evaluate(() => { const s = document.querySelector('.sekmeler'); return s && Math.round(s.getBoundingClientRect().width); });
         bekle(`${ad}: tema sekmeleri boydan boya`, w === genislik, String(w));
@@ -40,6 +47,8 @@ try {
       bekle(`${ad}: kart iç boşluğu en az 12px`, r.bosluk.length === 0, r.bosluk.join(' | '));
       bekle(`${ad}: fotoğraf köşeleri 4px`, r.foto === 0, String(r.foto));
       bekle(`${ad}: kalın çizgi kalmadı`, r.kalin.length === 0, r.kalin.join(' | '));
+      bekle(`${ad}: kesik çizgili kutu kalmadı`, r.kesik.length === 0, r.kesik.join(' | '));
+      bekle(`${ad}: kartta ve içinde çizgi yok`, r.ayrac.length === 0, r.ayrac.join(' | '));
       bekle(`${ad}: kart içeriği taşmıyor`, r.tasma.length === 0, r.tasma.join(' | '));
       bekle(`${ad}: düğme köşeleri 6px`, r.dugme === 0, String(r.dugme));
       bekle(`${ad}: kendi adının çipi ince, dokunma alanı 44px`, r.cip.every(x => x.c <= 24 && x.d >= 44), JSON.stringify(r.cip));

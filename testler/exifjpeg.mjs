@@ -54,10 +54,11 @@ function exifEkle(jpeg, opt) {
 const bugun = process.argv[2]; // YYYY:MM:DD
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1200, height: 800 } });
-const renk = { dogru: '#556', yanlis: '#655', ayarsiz: '#565', tarihsiz: '#444', gps: '#466', dikey: '#664', donuk: '#646' };
+const renk = { dogru: '#556', yanlis: '#655', ayarsiz: '#565', tarihsiz: '#444', gps: '#466', dikey: '#664', donuk: '#646', buyuk: '#466' };
 for (const [ad, r] of Object.entries(renk)) {
   const dikey = ad === 'dikey';
-  await p.setViewportSize(dikey ? { width: 800, height: 1200 } : { width: 1200, height: 800 });
+  // buyuk: telefonun tam boy karesi (4032x3024), çevirme bilgili; küçültme 3000'e iniyor
+  await p.setViewportSize(ad === 'buyuk' ? { width: 4032, height: 3024 } : dikey ? { width: 800, height: 1200 } : { width: 1200, height: 800 });
   await p.setContent(`<body style="margin:0;background:linear-gradient(135deg,${r},#111);display:flex;align-items:center;justify-content:center;height:100vh;font:900 120px sans-serif;color:#ddd">${ad}</body>`);
   const jpg = await p.screenshot({ type: 'jpeg', quality: 90 });
   const opt = {
@@ -69,6 +70,7 @@ for (const [ad, r] of Object.entries(renk)) {
     dikey: { tarih: `${bugun} 20:00:00` },
     // Yatay kaydedilmiş, makine "90° çevir" demiş: yüklenince dikey (800x1200) olmalı
     donuk: { tarih: `${bugun} 20:10:00`, yon: 6 },
+    buyuk: { tarih: `${bugun} 20:20:00`, yon: 6 },
   }[ad];
   fs.writeFileSync(`/tmp/cgapp/${ad}.jpg`, opt ? exifEkle(jpg, opt) : jpg);
 }

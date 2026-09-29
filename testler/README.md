@@ -24,6 +24,7 @@ node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon
 node testler/kazananlar.mjs                   # arşivdeki kazanan adları, Wrapped'den önce gizli; senin karen / senin yerin kartları
 node testler/webkit.mjs                       # iPhone motorunda taşma ve üst üste binme (siralama.mjs'den sonra)
 node testler/kart.mjs                         # kart sistemi denetimi, 390 ve 320px (siralama.mjs'den sonra; karar 118, 119)
+node testler/eski-safari.mjs                  # iOS 16 Safari'de kare yükleme (iPhone X): çözme geri yolu, çevirme bilgisi
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 

@@ -2,7 +2,7 @@
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import fs from 'node:fs';
 
-function tiff({ tarih, gps }) {
+function tiff({ tarih, gps, yon }) {
   // Büyük-endian TIFF. IFD0: Make, Model, ExifIFD ptr, (GPS ptr). ExifIFD: DateTimeOriginal, FNumber, ExposureTime, ISO.
   const ascii = s => Buffer.from(s + '\0', 'ascii');
   const ent = [];
@@ -13,7 +13,7 @@ function tiff({ tarih, gps }) {
   const u32 = n => { const b = Buffer.alloc(4); b.writeUInt32BE(n); return b; };
   // düzen: header(8) | IFD0 | ExifIFD | GPSIFD | veri
   const make = ascii('NIKON CORPORATION'), model = ascii('NIKON Z 6_2');
-  const ifd0Count = 3 + (gps ? 1 : 0);
+  const ifd0Count = 3 + (gps ? 1 : 0) + (yon ? 1 : 0);
   const exifCount = tarih ? 4 : 3;
   const gpsCount = gps ? 4 : 0;
   const ifdSize = n => 2 + n * 12 + 4;
@@ -23,7 +23,10 @@ function tiff({ tarih, gps }) {
   const koy = b => { const o = dataOff; veri.push(b); dataOff += b.length; return o; };
   const e = (tag, type, count, valOrOff) => Buffer.concat([u16(tag), u16(type), u32(count), u32(valOrOff)]);
   const rat = (a, b) => Buffer.concat([u32(a), u32(b)]);
-  const ifd0 = [e(0x010f, 2, make.length, koy(make)), e(0x0110, 2, model.length, koy(model)), e(0x8769, 4, 1, exifOff)];
+  const ifd0 = [e(0x010f, 2, make.length, koy(make)), e(0x0110, 2, model.length, koy(model))];
+  // Orientation (SHORT, değer girdinin içinde): 6 = 90° saat yönünde çevirerek göster
+  if (yon) ifd0.push(Buffer.concat([u16(0x0112), u16(3), u32(1), u16(yon), u16(0)]));
+  ifd0.push(e(0x8769, 4, 1, exifOff));
   if (gps) ifd0.push(e(0x8825, 4, 1, gpsOff));
   const exif = [];
   if (tarih) { const t = ascii(tarih); exif.push(e(0x9003, 2, t.length, koy(t))); }
@@ -51,7 +54,7 @@ function exifEkle(jpeg, opt) {
 const bugun = process.argv[2]; // YYYY:MM:DD
 const b = await chromium.launch();
 const p = await b.newPage({ viewport: { width: 1200, height: 800 } });
-const renk = { dogru: '#556', yanlis: '#655', ayarsiz: '#565', tarihsiz: '#444', gps: '#466', dikey: '#664' };
+const renk = { dogru: '#556', yanlis: '#655', ayarsiz: '#565', tarihsiz: '#444', gps: '#466', dikey: '#664', donuk: '#646' };
 for (const [ad, r] of Object.entries(renk)) {
   const dikey = ad === 'dikey';
   await p.setViewportSize(dikey ? { width: 800, height: 1200 } : { width: 1200, height: 800 });
@@ -64,6 +67,8 @@ for (const [ad, r] of Object.entries(renk)) {
     tarihsiz: null,
     gps: { tarih: `${bugun} 19:40:00`, gps: true },
     dikey: { tarih: `${bugun} 20:00:00` },
+    // Yatay kaydedilmiş, makine "90° çevir" demiş: yüklenince dikey (800x1200) olmalı
+    donuk: { tarih: `${bugun} 20:10:00`, yon: 6 },
   }[ad];
   fs.writeFileSync(`/tmp/cgapp/${ad}.jpg`, opt ? exifEkle(jpg, opt) : jpg);
 }

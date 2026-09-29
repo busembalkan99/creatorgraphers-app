@@ -109,23 +109,42 @@ export function tarihKontrol(bulusmada: boolean, bulusmaGunu: string, cekimGunu:
 
 export class DosyaHatasi extends Error {}
 
-export async function kucult(dosya: File): Promise<Omit<HazirKare, 'bilgi' | 'onizleme'>> {
-  let bmp: ImageBitmap
+/**
+ * Kareyi çöz, makinenin çevirme bilgisini (EXIF Orientation) uygulayarak. Safari 16 ve öncesi
+ * imageOrientation: 'from-image' değerini tanımıyor ve çağrıyı TypeError ile reddediyor; iPhone X
+ * en fazla iOS 16'ya çıktığı için orada her kare "açılamadı" diyordu (2026-09-29). O tarayıcılarda
+ * <img> ile çözülüyor: Safari 13.1'den beri resim öğesi ve drawImage çevirme bilgisini uyguluyor.
+ */
+async function coz(dosya: File): Promise<{ kaynak: CanvasImageSource; g: number; y: number; birak: () => void }> {
   try {
-    bmp = await createImageBitmap(dosya, { imageOrientation: 'from-image' })
+    const bmp = await createImageBitmap(dosya, { imageOrientation: 'from-image' })
+    return { kaynak: bmp, g: bmp.width, y: bmp.height, birak: () => bmp.close() }
   } catch {
-    throw new DosyaHatasi('Bu dosya açılamadı. Makineden gelen JPEG dosyayı seç.')
+    const adres = URL.createObjectURL(dosya)
+    const img = new Image()
+    img.src = adres
+    try {
+      await img.decode()
+    } catch {
+      URL.revokeObjectURL(adres)
+      throw new DosyaHatasi('Bu dosya açılamadı. Makineden gelen JPEG dosyayı seç.')
+    }
+    return { kaynak: img, g: img.naturalWidth, y: img.naturalHeight, birak: () => URL.revokeObjectURL(adres) }
   }
-  const oran = Math.min(1, UZUN_KENAR / Math.max(bmp.width, bmp.height))
-  const g = Math.round(bmp.width * oran), y = Math.round(bmp.height * oran)
+}
+
+export async function kucult(dosya: File): Promise<Omit<HazirKare, 'bilgi' | 'onizleme'>> {
+  const bmp = await coz(dosya)
+  const oran = Math.min(1, UZUN_KENAR / Math.max(bmp.g, bmp.y))
+  const g = Math.round(bmp.g * oran), y = Math.round(bmp.y * oran)
   const tuval = document.createElement('canvas')
   tuval.width = g
   tuval.height = y
   const ctx = tuval.getContext('2d')
-  if (!ctx) throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.')
+  if (!ctx) { bmp.birak(); throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.') }
   ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(bmp, 0, 0, g, y)
-  bmp.close()
+  ctx.drawImage(bmp.kaynak, 0, 0, g, y)
+  bmp.birak()
   const blob = await new Promise<Blob | null>(r => tuval.toBlob(r, 'image/jpeg', KALITE))
   if (!blob) throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.')
   return { blob, genislik: g, yukseklik: y }

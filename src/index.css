@@ -990,3 +990,14 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 /* Havuzda önerenin gerekçesi (yalnız yönetici) */
 .satir .tx .gerekce,.izin .gerekce{display:block;font-size:11px;font-style:italic;color:var(--soft);margin-top:4px;line-height:1.5}
 /* Safari iki sınırı (max-width, max-height) ayrı uygulayınca dikey kare kısa ekranda basılıyordu (2026-09-30): object-fit:contain oranı koruyor */
+/* Başarılar (karar 115): altıgen rozetler */
+.basari-izgara{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 10px}
+.basari{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:0}
+.basari b{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.02em;line-height:1.25;margin-top:4px}
+.basari span{font-size:10.5px;color:var(--soft);line-height:1.35}
+.basari-satir{display:flex;gap:14px;align-items:center}
+.basari-satir .rozet-svg{flex:0 0 auto;margin-left:-5px}   /* altıgenin kenarı SVG'de 5px içeride; içerik 16px'te başlasın */
+.basari-satir .tx{flex:1;min-width:0}
+.basari-satir .cubuk{height:8px;border-radius:4px;background:rgba(237,237,234,.1);margin-top:8px;overflow:hidden}
+.basari-satir .cubuk i{display:block;height:100%;border-radius:4px;background:var(--renk)}
+.basari-satir .sayi{display:block;text-align:right;margin-top:4px;font-weight:800}

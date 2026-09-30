@@ -8,6 +8,7 @@ import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 import { Onerilerim } from './Oneri'
+import { Basarilar, type BasariSayilari } from './Basarilar'
 import { ac, cikisYap, durum, hizliDurum, kapat, type BildirimDurumu } from '../lib/bildirim'
 import { kareAdresleri } from '../lib/imza'
 
@@ -35,12 +36,14 @@ const puanYaz = (n: number | null) => (n == null ? '' : n.toFixed(1).replace('.'
 
 export async function profilVerisi(hedef: string | undefined) {
   const arg = hedef ? { p_uye: hedef } : {}
-  const [p, k, t] = await sor(Promise.all([
+  const [p, k, t, b] = await sor(Promise.all([
     sb.rpc('profil', arg),
     sb.rpc('profil_kareleri', arg),
     sb.rpc('profil_tarifi', arg),
+    sb.rpc('basarilar', arg),
   ]))
   if (p.error) throw p.error
+  if (b.error) throw b.error
   if (k.error) throw k.error
   if (t.error) throw t.error
   const kareler = (k.data ?? []) as ProfilKare[]
@@ -51,6 +54,7 @@ export async function profilVerisi(hedef: string | undefined) {
     kunye: ((p.data ?? [])[0] ?? null) as Kunyem | null,
     kareler: kareler.map((x, i) => ({ ...x, url: imza[i]?.url ?? null })),
     tarif: (t.data ?? []) as Tarif[],
+    basarilar: ((b.data ?? [])[0] ?? null) as BasariSayilari | null,
   }
 }
 
@@ -97,28 +101,8 @@ export function Profil({ uye, uyeDegisti, hedef }:
         {benim && <KisiselSayilar ortalama={k.ortalama} uyeId={uye.id} />}
       </div>
 
-      <h2 className="kart-bas">Katkı</h2>
-      {k.tam_set || Number(k.tema_sayisi) > 0 ? (
-        <div className="kart badges">
-          {k.tam_set && (
-            <div className="badge">
-              <b>Tam set</b>
-              <span>Her etkinlikte bütün temalara kare {benim ? 'verdin' : 'verdi'}.</span>
-            </div>
-          )}
-          {Number(k.tema_sayisi) > 0 && (
-            <div className="badge">
-              <b>{k.tema_sayisi} tema</b>
-              <span>Bu kadar farklı temada kare {benim ? 'verdin' : 'verdi'}.</span>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="kart bos-kart">
-          <b>Katkı</b>
-          <span>İlk etkinlikten sonra.</span>
-        </div>
-      )}
+      {/* Karar 115: Katkı rozetleri seviyeli başarılara dönüştü */}
+      <Basarilar sayilar={v.basarilar} benim={benim} />
 
       <h2 className="kart-bas">{benim ? 'Nasıl çekiyorsun' : 'Nasıl çekiyor'}<span>Makine bilgisinden</span></h2>
       {v.tarif.length === 0 ? (

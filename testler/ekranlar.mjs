@@ -35,9 +35,12 @@ const A = await oturum('kurucu@test.local');
   bekle('çekim tarifi: en çok kullanılan odak ve oranı', habit.some(h => h.includes('En çok') && h.includes('35mm') && h.includes('3 / 4 kare')), JSON.stringify(habit));
   bekle('çekim tarifi: diyafram satırı', habit.some(h => h.includes('Diyafram') && h.includes('Genelde açık')), JSON.stringify(habit));
   bekle('çekim tarifi: ışık satırı', habit.some(h => h.includes('Işık') && h.includes('Bol ışıkta')), JSON.stringify(habit));
-  bekle('katkı: tam set rozeti', t.includes('Tam set'));
-  bekle('katkı: tema sayısı rozeti', t.includes('4 tema'), t.slice(0, 200));
-  bekle('kendi profilinde rozet ikinci tekil: verdin', t.includes('temalara kare verdin.') && t.includes('temada kare verdin.'));
+  // Karar 115: Katkı rozetleri seviyeli başarılar oldu (kendinde liste, ilerleme)
+  const basari = await A.evaluate(() => [...document.querySelectorAll('.basari-satir')].map(e => ({ ad: e.querySelector('b')?.textContent, kilitli: e.classList.contains('kilitli'), metin: e.textContent.replace(/\s+/g, ' ').trim() })));
+  bekle('başarılar: dört satır, sırası sabit', basari.map(b => b.ad).join() === 'Tam Set,Tema Avcısı,Kürsü,Tema Birincisi', JSON.stringify(basari));
+  bekle('başarılar: Tam Set kazanıldı', basari[0] && !basari[0].kilitli, JSON.stringify(basari[0]));
+  bekle('başarılar: Tema Avcısı 4 tema, sıradaki seviyeye 4 / 6', basari[1] && !basari[1].kilitli && basari[1].metin.includes('4 / 6 tema'), JSON.stringify(basari[1]));
+  bekle('kendi profilinde nasıl kazanılacağı yazıyor', t.includes('Bir etkinliğin bütün temalarına kare ver.') && t.includes('Farklı temalarda kare ver.'));
   const yil = Number(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 4));
   bekle(`katılım satırı doğru ekle: ${yil}'${sayiEki(yil % 100)}n beri`, t.includes(`${yil}'${sayiEki(yil % 100)}n beri`), t.slice(0, 120));
 }
@@ -48,13 +51,19 @@ const A = await oturum('kurucu@test.local');
   const t = await yazi(A);
   bekle('makine bilgisi olmayan üç kare: doğru boş durum', t.includes('Karelerinde makine bilgisi yok.') && !t.includes('Üç kareden sonra'), t);
   bekle('başkasının gizli puan notu', t.includes('Sıralamaya girmeyen karelerin puanı gizli.'));
-  bekle('bir temayı atlayanda tam set yok', !t.includes('Tam set'));
-  bekle('başkasının profilinde rozet üçüncü tekil: verdi', t.includes('temada kare verdi.') && !t.includes('verdin'));
+  const baskaRozet = await A.evaluate(() => [...document.querySelectorAll('.basari')].map(e => ({ ad: e.querySelector('b')?.textContent, kilitli: e.classList.contains('kilitli') })));
+  // Karar 115'ten sonra Tam Set "her etkinlikte" değil, tam set verilen etkinlik sayısı: bir etkinlikte tema atlayan
+  // diğerinde tam verdiyse Tam Set 1'i alır. Ekran sunucunun sayısıyla aynı olmalı.
+  const baskaSayi = ((await A.evaluate(async id => (await window.__sb.rpc('basarilar', { p_uye: id })).data, baris.id)) ?? [])[0];
+  bekle('başkasının rozetleri sunucunun sayılarıyla tutarlı (Tam Set)', baskaRozet.some(r => r.ad === 'Tam Set') === Number(baskaSayi?.tam_set_sayisi) > 0, JSON.stringify({ baskaRozet, baskaSayi }));
+  bekle('başkasının profilinde yalnız kazanılanlar: kilitli, ilerleme, liste yok (Buse, 2026-09-30)',
+    baskaRozet.every(r => !r.kilitli) && (await A.locator('.basari-satir, .basari .cubuk').count()) === 0, JSON.stringify(baskaRozet));
 
   await ac(A, 'profil/' + zeynep.id);
   const z = await yazi(A);
   bekle('karesi olmayan: henüz kare yok', z.includes('Henüz kare yok'));
   bekle('karesi olmayan: üç kareden sonra', z.includes('Üç kareden sonra.'));
+  bekle('karesi olmayanın profilinde Başarılar bölümü yok', !z.includes('Başarılar'));
   bekle('karesi olmayan: sayaçlar sönük', (await A.locator('.stats.zero').count()) === 1);
 
   await ac(A, 'profil/00000000-0000-0000-0000-000000000000');

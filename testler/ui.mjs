@@ -148,7 +148,7 @@ bekle('üye profilinde yönetim yok', await bekleMetin(B, 'Kulüp afişi') && !i
 // Yeni üye: künye sıfırlarla, üç blok boş (spec 7. bölüm)
 bekle('yeni üyenin sayaçları sönük', (await B.locator('.stats.zero').count()) === 1);
 bekle('yeni üyede kare yok', icerir(await metin(B), 'Henüz kare yok'), (await metin(B)).slice(0, 200));
-bekle('katkı ilk etkinlikten sonra', icerir(await metin(B), 'İlk etkinlikten sonra'));
+bekle('yeni üyede başarılar kilitli, nasıl kazanılacağı yazıyor (karar 115)', icerir(await metin(B), '0 / 4') && (await B.locator('.basari-satir.kilitli').count()) === 4 && icerir(await metin(B), 'Bir etkinliğin bütün temalarına kare ver.'), (await metin(B)).slice(0, 300));
 bekle('çekim tarifi üç kareden sonra', icerir(await metin(B), 'Üç kareden sonra'));
 bekle('kendi profilinde ortalama satırı yok', !icerir(await metin(B), 'Ortalaman'));
 await olc(B, '12-profil-uye');

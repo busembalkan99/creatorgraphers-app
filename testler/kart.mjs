@@ -42,7 +42,7 @@ async function denetle(p, yol, genislik, ad = `${yol} (${genislik}px)`) {
   if (ad.startsWith('etkinlikler (')) bekle(`${ad}: açık etkinlik yokken "Etkinliği kur" dolu`, await dolu('Etkinliği kur'));
   if (ad.startsWith('asama (')) bekle(`${ad}: buluşma günü "Yoklamayı al" dolu`, await dolu('Yoklamayı al'));
   if (yol.startsWith('sonuc/') && (await p.getByRole('button', { name: 'Kartını paylaş' }).count())) bekle(`${ad}: "Kartını paylaş" dolu`, await dolu('Kartını paylaş'));
-    if (yol.startsWith('profil/')) bekle(`${ad}: boş durum kartları var (kontrol)`, (await p.locator('.bos-kart').count()) === 3);
+    if (yol.startsWith('profil/')) bekle(`${ad}: boş durum kartları var (kontrol)`, (await p.locator('.bos-kart').count()) === 2);   // tarif, kareler (başarı yoksa bölüm yok, karar 115)
     if (yol.startsWith('sonuc/')) {
       const w = await p.evaluate(() => { const s = document.querySelector('.sekmeler'); return s && Math.round(s.getBoundingClientRect().width); });
       bekle(`${ad}: tema sekmeleri boydan boya`, w === genislik, String(w));

@@ -1,0 +1,21 @@
+// Başarı seviyeleri (karar 115, 2026-09-30: beş seviye). Veritabanı istemez.
+import { BASARILAR, seviyeBul } from '../src/lib/basarilar.ts';
+import { bekle, rapor } from './ortak.mjs';
+const tam = BASARILAR.find(b => b.anahtar === 'tam_set_sayisi');
+bekle('dört başarı, sırası sabit', BASARILAR.map(b => b.anahtar).join() === 'tam_set_sayisi,tema_sayisi,sirali_sayisi,birinci_sayisi');
+bekle('her başarının beş eşiği, artan', BASARILAR.every(b => b.esikler.length === 5 && b.esikler.every((e, i) => i === 0 || e > b.esikler[i - 1])));
+let s = seviyeBul(tam, 0);
+bekle('hiç yoksa seviye 0, sonraki hedef 1', s.seviye === 0 && s.hedef === 1 && s.kazanildi === false, JSON.stringify(s));
+s = seviyeBul(tam, 3);
+bekle('3 tam set: seviye 2, hedef 4, ilerleme 3/4', s.seviye === 2 && s.hedef === 4 && s.kazanildi && s.son === false, JSON.stringify(s));
+s = seviyeBul(tam, 12);
+bekle('en üst eşikte seviye 5, son', s.seviye === 5 && s.son && s.hedef === null, JSON.stringify(s));
+s = seviyeBul(tam, 40);
+bekle('üst eşiği aşınca yine seviye 5', s.seviye === 5 && s.son, JSON.stringify(s));
+const kursu = BASARILAR.find(b => b.anahtar === 'sirali_sayisi');
+bekle('Kürsü eşikleri 1 3 7 15 30', kursu.esikler.join() === '1,3,7,15,30');
+bekle('Tema Avcısı eşikleri 3 6 12 20 30', BASARILAR[1].esikler.join() === '3,6,12,20,30');
+bekle('Tema Birincisi eşikleri 1 2 4 7 12', BASARILAR[3].esikler.join() === '1,2,4,7,12');
+bekle('Tam Set eşikleri 1 2 4 6 12', tam.esikler.join() === '1,2,4,6,12');
+bekle('sayı metne dönüşüyor (bozuk değer 0)', seviyeBul(tam, '3').seviye === 2 && seviyeBul(tam, null).seviye === 0);
+rapor();

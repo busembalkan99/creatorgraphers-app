@@ -37,6 +37,8 @@ node testler/onizleme-yukle.mjs               # yüklemede 720 px önizleme, de�
 node testler/yon.mjs                          # eski Safari: çevirme ölçümü ve elle çevirme; dikey kare dosyaya ezik kaydedilmiyor
 node testler/oran.mjs                         # her ekranda kareler beş boyutta oranı bozulmadan çiziliyor (Oylama basıklığı, 2026-09-30)
 node testler/onar.mjs                         # scripts/onar-sunmus.mjs onarım betiği, yerel veritabanında
+node testler/basari-seviye.mjs                # başarı seviyeleri, beş eşik (veritabanı istemez)
+node testler/basarilar.mjs                    # başarı sayıları: yalnız sonucu açık etkinlik, çıkarılan kare sayılmaz (karar 115)
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 

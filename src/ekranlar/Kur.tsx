@@ -3,13 +3,14 @@ import { sb, hataMetni } from '../lib/supabase'
 import { gunYaz, saatYaz, yerelIso } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Hata, Kunye } from '../bilesenler/Kunye'
+import { Havuz } from './Oneri'
 
 /**
  * Etkinliği kur (kararlar 26, 29, 32, 33, 72, 85, 88, 91). Prototip: v21 "Etkinliği kur".
- * Tema havuzu (karar 81) sonraki adımda; şimdilik tema elle yazılıyor (karar 85).
+ * Havuzdan seçilen tema öneriye bağlanıyor (kararlar 81, 121); elle yazılan bağsız (karar 85).
  */
 
-interface TemaGirdi { ad: string; bulusmada: boolean }
+interface TemaGirdi { ad: string; bulusmada: boolean; oneri?: string }
 
 function sonrakiCumartesi() {
   const d = new Date()
@@ -44,7 +45,7 @@ export function Kur() {
   async function kur() {
     setGidiyor(true)
     setHata(null)
-    const { error } = await sb.rpc('etkinlik_kur', {
+    const { data: eid, error } = await sb.rpc('etkinlik_kur', {
       p_bulusma: bulusma,
       p_yukleme_baslar: yerelIso(baslangic),
       p_yukleme_saat: y,
@@ -52,8 +53,11 @@ export function Kur() {
       p_temalar: ((adlar) => temalar.map((t, i) => ({ ad: adlar[i], bulusmada: serbest ? false : t.bulusmada })))(temaAdlari()),
       p_serbest: serbest,
     })
+    if (error) { setGidiyor(false); return setHata(hataMetni(error)) }
+    // Havuzdan gelenler bağlanıyor: öneren "seçildi" görüyor, bildirim gidiyor (karar 121)
+    const baglar = temalar.flatMap((t, i) => t.oneri ? [{ oneri: t.oneri, sira: i + 1 }] : [])
+    if (baglar.length) await sb.rpc('onerileri_bagla', { p_etkinlik: eid, p_baglar: baglar })
     setGidiyor(false)
-    if (error) return setHata(hataMetni(error))
     git('asama')
   }
 
@@ -102,6 +106,17 @@ export function Kur() {
         <div className="ipucu">Oylama yüklemeden kısa. Bilerek seçtiysen sorun yok.</div>
       )}
 
+      <Havuz secim={{
+        secili: temalar.flatMap(t => t.oneri ? [t.oneri] : []),
+        // Dokununca sıradaki boş temaya yazılıyor; tekrar dokununca geri alınıyor. 3 tema sınırı (karar 72).
+        sec: o => setTemalar(l => {
+          if (l.some(t => t.oneri === o.id)) return l.map(t => t.oneri === o.id ? { ad: '', bulusmada: t.bulusmada } : t)
+          const bos = l.findIndex(t => !t.ad.trim())
+          if (bos >= 0) return l.map((t, j) => j === bos ? { ...t, ad: o.ad, oneri: o.id } : t)
+          return l.length < 3 ? [...l, { ad: o.ad, bulusmada: true, oneri: o.id }] : l
+        }),
+      }} />
+
       <h2 className="kart-bas">Temalar<span>{temalar.length} / 3</span></h2>
       {temalar.map((t, i) => (
         <div className="kart tema-kur" key={i}>
@@ -109,7 +124,7 @@ export function Kur() {
             <label className="lab" htmlFor={`t${i}`}>Tema {i + 1}</label>
             <input id={`t${i}`} value={t.ad} maxLength={40} placeholder={serbest ? 'BOŞ BIRAKIRSAN: SERBEST' : 'ÖRNEK: SOKAK'}
               autoCapitalize="words" autoCorrect="off" spellCheck={false} enterKeyHint="done"
-              onChange={e => tema(i, { ad: e.target.value })} />
+              onChange={e => tema(i, { ad: e.target.value, oneri: undefined })} />
           </div>
           {!serbest && <div className="secim" role="group" aria-label="Çekim şartı">
             <button className={t.bulusmada ? 'on' : ''} aria-pressed={t.bulusmada} onClick={() => tema(i, { bulusmada: true })}>Buluşmada</button>

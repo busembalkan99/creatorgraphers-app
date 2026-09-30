@@ -9,6 +9,7 @@ import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { izlenmemisWrapped, wrappedGerekirseAc } from './Wrapped'
 import { BildirimKarti } from '../bilesenler/BildirimKarti'
+import { OneriKarti } from './Oneri'
 
 /**
  * Ana ekran: etkinlikler arşivi (karar 44). Prototip: v16.
@@ -144,6 +145,8 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
 
       {/* Bildirimler (karar 120): bir kez çıkan davet, canlı / sıradaki kartın altında */}
       <BildirimKarti />
+      {/* Karar 82, 121: açık etkinlik yokken sıradaki için tema bırak */}
+      {!acik && <OneriKarti uyeId={uye.id} />}
 
       {/* Boş günler: son etkinliğin birincileri ve kişinin katıldığı son etkinlik (Buse, 2026-09-26) */}
       <Vitrin uyeId={uye.id} etkinlikler={v.etkinlikler} temalar={v.temalar} benimTemalarim={v.benimTemalarim} />

@@ -396,13 +396,18 @@ language sql stable security definer set search_path = public as $$
   order by (t.durum = 'havuzda') desc, s.olusturma desc
 $$;
 
+-- Gerekçe yöneticiye sahibiyle görünür (Buse, 2026-09-30)
+drop function if exists public.havuz();
 create or replace function public.havuz()
-returns table (id uuid, ad text, elle boolean, onerenler text, kac_kisi int, bekledigi int)
+returns table (id uuid, ad text, elle boolean, onerenler text, kac_kisi int, bekledigi int, gerekceler jsonb)
 language sql stable security definer set search_path = public as $$
   select t.id, t.ad, t.elle,
          coalesce((select string_agg(u.ad, ', ' order by s.olusturma) from public.oneri_sahipleri s join public.uyeler u on u.id = s.uye where s.oneri = t.id), ''),
          (select count(*) from public.oneri_sahipleri s where s.oneri = t.id)::int,
-         (select count(*) from public.etkinlikler e where not e.iptal and e.olusturma > t.olusturma)::int
+         (select count(*) from public.etkinlikler e where not e.iptal and e.olusturma > t.olusturma)::int,
+         coalesce((select jsonb_agg(jsonb_build_object('ad', u.ad, 'gerekce', s.gerekce) order by s.olusturma)
+                     from public.oneri_sahipleri s join public.uyeler u on u.id = s.uye
+                    where s.oneri = t.id and s.gerekce is not null), '[]'::jsonb)
   from public.tema_onerileri t
   where t.durum = 'havuzda' and public.yonetici_mi()
   order by t.olusturma

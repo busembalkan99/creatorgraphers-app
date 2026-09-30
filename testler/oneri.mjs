@@ -12,6 +12,7 @@ bekle('öneri bırakılıyor', !r.error, hata(r));
 r = await K.C.c.rpc('oneri_birak', { p_ad: '  gece ' });
 let h = (await A.c.rpc('havuz')).data ?? [];
 bekle('aynı tema birleşiyor, iki öneren', h.length === 1 && h[0].kac_kisi === 2 && /Barış Ak/.test(h[0].onerenler) && /Can Öz/.test(h[0].onerenler), JSON.stringify(h));
+bekle('havuzda gerekçe sahibiyle (Buse, 2026-09-30)', JSON.stringify(h[0].gerekceler) === JSON.stringify([{ ad: 'Barış Ak', gerekce: 'Işıkların altında' }]), JSON.stringify(h[0].gerekceler));
 bekle('üye havuzu göremiyor', ((await K.B.c.rpc('havuz')).data ?? []).length === 0);
 bekle('tablolar doğrudan okunamıyor', ((await K.B.c.from('tema_onerileri').select('*')).data ?? []).length === 0);
 await K.B.c.rpc('oneri_birak', { p_ad: 'Eller' }); await K.B.c.rpc('oneri_birak', { p_ad: 'Su' });

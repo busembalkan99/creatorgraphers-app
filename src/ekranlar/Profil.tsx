@@ -7,6 +7,7 @@ import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
+import { Onerilerim } from './Oneri'
 import { ac, cikisYap, durum, hizliDurum, kapat, type BildirimDurumu } from '../lib/bildirim'
 
 /**
@@ -179,6 +180,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </>
       )}
 
+      {benim && <Onerilerim />}
       {benim && <Ayarlar uye={uye} uyeDegisti={uyeDegisti} />}
     </div>
   )
@@ -188,8 +190,9 @@ export function Profil({ uye, uyeDegisti, hedef }:
 function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }) {
   // Bellekten: yönetim satırları ilk karede yerinde, "Çıkış yap" sonradan aşağı itilmiyor (Buse, 2026-09-27)
   const anahtar = `${uye.id}:ayarlar`
-  const bellekte = bellektenAl<{ bekleyen: number; acik: Etkinlik | null }>(anahtar)
+  const bellekte = bellektenAl<{ bekleyen: number; acik: Etkinlik | null; havuz: number }>(anahtar)
   const [bekleyen, setBekleyen] = useState<number | null>(bellekte?.bekleyen ?? null)
+  const [havuz, setHavuz] = useState<number | null>(bellekte?.havuz ?? null)
   const [acik, setAcik] = useState<Etkinlik | null | undefined>(bellekte ? bellekte.acik : undefined)
   const [hata, setHata] = useState<string | null>(null)
   const yonetici = uye.rol !== 'uye'
@@ -197,15 +200,18 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
   useEffect(() => {
     if (!yonetici) return
     ;(async () => {
-      const [b, e] = await sor(Promise.all([
+      const [b, e, h] = await sor(Promise.all([
         sb.rpc('bekleyen_istekler'),
         sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }),
+        sb.rpc('havuz'),
       ]))
       if (b.error) throw b.error
       if (e.error) throw e.error
-      const d = bellegeYaz(anahtar, { bekleyen: (b.data ?? []).length, acik: acikEtkinlik((e.data ?? []) as Etkinlik[]) ?? null })
+      if (h.error) throw h.error
+      const d = bellegeYaz(anahtar, { bekleyen: (b.data ?? []).length, acik: acikEtkinlik((e.data ?? []) as Etkinlik[]) ?? null, havuz: (h.data ?? []).length })
       setBekleyen(d.bekleyen)
       setAcik(d.acik)
+      setHavuz(d.havuz)
     })().catch(x => setHata(hataMetni(x)))
   }, [yonetici])
 
@@ -260,6 +266,12 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
                   <b>{ayAdi(acik.bulusma_gunu)} etkinliği</b>
                   <span>{asamaCumlesi(acik)}</span>
                 </div>
+                <div className="deg">Aç</div>
+              </button>
+            )}
+            {havuz !== null && (
+              <button className="satir" onClick={() => git('havuz')}>
+                <div className="tx"><b>Tema havuzu</b><span>{havuz} öneri</span></div>
                 <div className="deg">Aç</div>
               </button>
             )}

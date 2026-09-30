@@ -3,7 +3,7 @@
 // yeni bir yola yazılıp kareye bağlanır (eski yol tarayıcı ve CDN önbelleğinde kalmasın diye), eski dosya silinir.
 //
 // Servis anahtarıyla çalışır; anahtar yalnız ortam değişkeninden okunur, hiçbir yere yazılmaz:
-//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/onar-sunmus.mjs listele <üye e-postası>
+//   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/onar-sunmus.mjs listele <e-posta | ad:Uygulamadaki Adı | hepsi>
 //     → açık etkinliklerdeki karelerini /tmp/onar/<kare>.jpg olarak indirir, boyutlarını yazar. Bak, karar ver.
 //   ... node scripts/onar-sunmus.mjs onar <kare kimliği> <tür>
 //     tür: ezik  → kare dik ama yatay bir kutuya ezilmiş (en-boy oranı ters)
@@ -65,9 +65,16 @@ async function donustur(jpeg, tur) {
 }
 
 if (komut === 'listele') {
-  const { data: uye } = await sb.from('uyeler').select('id, ad').eq('eposta', a1).maybeSingle();
-  if (!uye) { console.error('Bu e-postayla üye yok.'); process.exit(1); }
-  const { data: kareler } = await sb.from('kareler').select('id, dosya, genislik, yukseklik, yukleme_at, temalar!inner(ad, etkinlikler!inner(bulusma_gunu, oylama_biter, iptal))').eq('sahip', uye.id);
+  // Kimi: e-posta, "ad:<uygulamadaki adı>" ya da "hepsi" (sahip belirtilmez, isimsizlik tam korunur)
+  let sorgu = sb.from('kareler').select('id, dosya, genislik, yukseklik, yukleme_at, temalar!inner(ad, etkinlikler!inner(bulusma_gunu, oylama_biter, iptal))');
+  if (a1 !== 'hepsi') {
+    const q = a1?.startsWith('ad:') ? sb.from('uyeler').select('id').ilike('ad', a1.slice(3).trim()) : sb.from('uyeler').select('id').eq('eposta', a1 ?? '');
+    const { data: uyeler } = await q;
+    if (!uyeler?.length) { console.error('Böyle bir üye yok.'); process.exit(1); }
+    if (uyeler.length > 1) { console.error('Bu adla birden çok üye var, tam adı yaz.'); process.exit(1); }
+    sorgu = sorgu.eq('sahip', uyeler[0].id);
+  }
+  const { data: kareler } = await sorgu;
   const acik = (kareler ?? []).filter(k => !k.temalar.etkinlikler.iptal && new Date(k.temalar.etkinlikler.oylama_biter) > new Date());
   for (const k of acik) {
     const buf = await indir(k.dosya), d = jpegBoyut(buf);
@@ -104,5 +111,5 @@ if (komut === 'listele') {
   await sb.storage.from('kareler').remove([k.dosya]);
   console.log(`onarıldı: kare ${k.id} yeni dosyada, oylar yerinde.`);
 } else {
-  console.error('kullanım: listele <e-posta> | boyut <kare> | onar <kare> <ezik|yan6|yan8> [--dene]'); process.exit(2);
+  console.error('kullanım: listele <e-posta | ad:İsim | hepsi> | boyut <kare> | onar <kare> <ezik|yan6|yan8> [--dene]'); process.exit(2);
 }

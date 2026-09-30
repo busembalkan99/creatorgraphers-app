@@ -34,6 +34,11 @@ const liste = calistir('listele', 'ferda@test.local');
 bekle('listele: iki kare, uyuşmayan işaretli', liste.includes(kUyusmaz.id) && liste.includes(kEzik.id)
   && /kayıt 800x1200\s+dosya 1200x800\s+← UYUŞMUYOR/.test(liste) && !new RegExp(`${kEzik.id}.*UYUŞMUYOR`).test(liste), liste);
 bekle('listele: dosyalar indirildi', fs.existsSync(`/tmp/onar/${kEzik.id}.jpg`));
+const listeAd = calistir('listele', 'ad:ferda kılıç');
+bekle('listele ad ile (büyük küçük harf fark etmez)', listeAd.includes(kUyusmaz.id) && listeAd.includes(kEzik.id), listeAd);
+await admin.from('kareler').insert({ tema: t[0].id, sahip: A.id, dosya: (await (async () => { const y = `${e.id}/${t[0].id}/${crypto.randomUUID()}.jpg`; await admin.storage.from('kareler').upload(y, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' }); return y; })()), genislik: 1200, yukseklik: 800 });
+const listeHepsi = calistir('listele', 'hepsi');
+bekle('listele hepsi: bütün kareler, uyuşmayan işaretli, sahip adı yok', (listeHepsi.match(/kayıt /g) ?? []).length === 3 && /UYUŞMUYOR/.test(listeHepsi) && !/Ferda|Ayşe/.test(listeHepsi), listeHepsi);
 
 calistir('boyut', kUyusmaz.id);
 const k1 = (await admin.from('kareler').select('dosya, genislik, yukseklik').eq('id', kUyusmaz.id).single()).data;

@@ -410,7 +410,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .tutucu{position:relative;max-width:100%;max-height:100%;display:flex;line-height:0}
 /* Oylamada kareye uzun basınca iOS'un kaydet/paylaş menüsü çıkmasın: kareler isimsiz,
    kaydetmek gizliliği deler. Sonuçlar ve profilde açık kalıyor (Buse, 2026-09-18). */
-.tutucu img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;user-select:none;-webkit-user-drag:none;
+.tutucu img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none;
   -webkit-touch-callout:none}
 .akis img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .tutucu .bos{background:#141416}
@@ -688,7 +688,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
   display:grid;place-items:center;overflow:hidden;touch-action:none;cursor:zoom-out;
   animation:acil .18s cubic-bezier(.32,.72,0,1)}
 @keyframes acil{from{opacity:0}to{opacity:1}}
-.buyutec img{max-width:100%;max-height:100%;width:auto;height:auto;display:block;
+.buyutec img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;
   transform-origin:center center;will-change:transform;user-select:none;-webkit-user-drag:none}
 .buyutec .bar,.buyutec .alt{position:absolute;left:0;right:0;z-index:2;display:flex;gap:10px;
   font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--soft);pointer-events:none}
@@ -989,3 +989,4 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 .bildirim-karti .akt,.oneri-karti .akt{margin-top:10px}
 /* Havuzda önerenin gerekçesi (yalnız yönetici) */
 .satir .tx .gerekce,.izin .gerekce{display:block;font-size:11px;font-style:italic;color:var(--soft);margin-top:4px;line-height:1.5}
+/* Safari iki sınırı (max-width, max-height) ayrı uygulayınca dikey kare kısa ekranda basılıyordu (2026-09-30): object-fit:contain oranı koruyor */

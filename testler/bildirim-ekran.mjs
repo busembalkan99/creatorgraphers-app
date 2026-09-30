@@ -110,6 +110,7 @@ try {
     && (await pc.evaluate(async () => await window.__pushTaklit.abonelik())) !== null);
   await pc.getByRole('button', { name: 'Çıkış yap' }).click(); await pc.waitForTimeout(1500);
   bekle('silme başarısız olsa da çıkış yapılıyor', (await pc.getByRole('button', { name: 'Google ile giriş yap' }).count()) === 1);
+  bekle('silme başarısız olsa da çıkışta cihaz aboneliği bırakılıyor (sunucu satırı 410 ile düşer)', (await pc.evaluate(async () => await window.__pushTaklit.abonelik())) === null);
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

@@ -93,6 +93,7 @@ export async function kapat() {
 
 /** Çıkış: bu cihazın aboneliği önce silinir, başkası girince öncekinin bildirimleri ona gitmesin. */
 export async function cikisYap() {
-  try { await kapat() } catch { /* çıkış engellenmesin */ }
+  // Sunucudan silinemese de cihazda bırakılıyor: çıkılmış telefona bildirim gelmesin, sunucu satırı 410 ile düşer
+  try { await kapat() } catch { await bag().birak().catch(() => {}) }
   await sb.auth.signOut()
 }

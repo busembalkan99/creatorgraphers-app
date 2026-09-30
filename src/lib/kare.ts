@@ -110,16 +110,86 @@ export function tarihKontrol(bulusmada: boolean, bulusmaGunu: string, cekimGunu:
 
 export class DosyaHatasi extends Error {}
 
+/** JPEG'in EXIF çevirme değeri (1–8); etiket yoksa ya da okunamazsa 1 */
+export function yonOku(buf: ArrayBuffer): number {
+  try {
+    const v = new DataView(buf)
+    if (v.getUint16(0) !== 0xffd8) return 1
+    let i = 2
+    while (i + 4 <= v.byteLength) {
+      const m = v.getUint16(i)
+      if ((m & 0xff00) !== 0xff00 || m === 0xffda) return 1
+      const l = v.getUint16(i + 2)
+      if (m === 0xffe1 && v.getUint32(i + 4) === 0x45786966) {   // "Exif"
+        const t = i + 10, le = v.getUint16(t) === 0x4949
+        const ifd = v.getUint32(t + 4, le), n = v.getUint16(t + ifd, le)
+        for (let k = 0; k < n; k++) {
+          const e = t + ifd + 2 + k * 12
+          if (v.getUint16(e, le) === 0x0112) { const y = v.getUint16(e + 8, le); return y >= 1 && y <= 8 ? y : 1 }
+        }
+        return 1
+      }
+      i += 2 + l
+    }
+  } catch { /* bozuk başlık: çevirmesiz */ }
+  return 1
+}
+
+/** Ham (çevrilmemiş) kaynağı çevirme bilgisine göre g x y'lik (görünen boyut) tuvale çiz */
+export function yonluCiz(ctx: CanvasRenderingContext2D, kaynak: CanvasImageSource, yon: number, g: number, y: number) {
+  const dik = yon >= 5 && yon <= 8
+  const hg = dik ? y : g, hy = dik ? g : y   // ham çizimin boyutu
+  ctx.save()
+  switch (yon) {
+    case 2: ctx.transform(-1, 0, 0, 1, hg, 0); break
+    case 3: ctx.transform(-1, 0, 0, -1, hg, hy); break
+    case 4: ctx.transform(1, 0, 0, -1, 0, hy); break
+    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break
+    case 6: ctx.transform(0, 1, -1, 0, hy, 0); break
+    case 7: ctx.transform(0, -1, -1, 0, hy, hg); break
+    case 8: ctx.transform(0, -1, 1, 0, 0, hg); break
+  }
+  ctx.drawImage(kaynak, 0, 0, hg, hy)
+  ctx.restore()
+}
+
+// Ölçüm karesi: ham 16x8, sol yarı kırmızı sağ yarı mavi, EXIF 6 (90° saat yönünde göster).
+// Doğru çevrilmiş çizimde üst kırmızı, alt mavi; ham çizimde sol kırmızı, sağ mavi.
+const SONDA = '/9j/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAD/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCAAIABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAACP/EABgRAAIDAAAAAAAAAAAAAAAAAAAJRoTE/9oADAMBAAIRAxEAPwCL0hgVCy5XR2DUYZGbuQ//2Q=='
+type Olcum = { dogalYonlu: boolean; cizimYonlu: boolean }
+let olcum: Promise<Olcum> | null = null
+/** Bu tarayıcı <img>'in boyutunu ve drawImage çizimini çevirme bilgisine göre veriyor mu (bir kez ölçülür) */
+export function cizimOlc(): Promise<Olcum> {
+  olcum ??= (async () => {
+    const img = new Image()
+    img.src = 'data:image/jpeg;base64,' + SONDA
+    await img.decode()
+    const c = document.createElement('canvas')
+    c.width = 8
+    c.height = 16
+    const x = c.getContext('2d')!
+    x.drawImage(img, 0, 0, 8, 16)
+    const renk = (px: number, py: number) => {
+      const d = x.getImageData(px, py, 1, 1).data
+      return d[0] > 150 && d[2] < 110 ? 'k' : d[2] > 150 && d[0] < 110 ? 'm' : '?'
+    }
+    return { dogalYonlu: img.naturalHeight > img.naturalWidth, cizimYonlu: renk(6, 2) === 'k' && renk(2, 14) === 'm' }
+  })().catch(() => ({ dogalYonlu: true, cizimYonlu: true }))
+  return olcum
+}
+
 /**
  * Kareyi çöz, makinenin çevirme bilgisini (EXIF Orientation) uygulayarak. Safari 16 ve öncesi
  * imageOrientation: 'from-image' değerini tanımıyor ve çağrıyı TypeError ile reddediyor; iPhone X
  * en fazla iOS 16'ya çıktığı için orada her kare "açılamadı" diyordu (2026-09-29). O tarayıcılarda
- * <img> ile çözülüyor: Safari 13.1'den beri resim öğesi ve drawImage çevirme bilgisini uyguluyor.
+ * <img> ile çözülüyor. <img>'in boyutu ve drawImage'ın çevirmeyi uygulayıp uygulamadığı tarayıcıdan
+ * tarayıcıya değişiyor: uygulamayan birinde dikey kareler sündürülerek kaydediliyordu (2026-09-30).
+ * Artık ölçülüyor; uygulamıyorsa çevirme elle yapılıyor.
  */
-async function coz(dosya: File): Promise<{ kaynak: CanvasImageSource; g: number; y: number; birak: () => void }> {
+async function coz(dosya: File): Promise<{ g: number; y: number; ciz: (ctx: CanvasRenderingContext2D, g: number, y: number) => void; birak: () => void }> {
   try {
     const bmp = await createImageBitmap(dosya, { imageOrientation: 'from-image' })
-    return { kaynak: bmp, g: bmp.width, y: bmp.height, birak: () => bmp.close() }
+    return { g: bmp.width, y: bmp.height, ciz: (c, g, y) => c.drawImage(bmp, 0, 0, g, y), birak: () => bmp.close() }
   } catch {
     const adres = URL.createObjectURL(dosya)
     const img = new Image()
@@ -130,7 +200,17 @@ async function coz(dosya: File): Promise<{ kaynak: CanvasImageSource; g: number;
       URL.revokeObjectURL(adres)
       throw new DosyaHatasi('Bu dosya açılamadı. Makineden gelen JPEG dosyayı seç.')
     }
-    return { kaynak: img, g: img.naturalWidth, y: img.naturalHeight, birak: () => URL.revokeObjectURL(adres) }
+    const yon = yonOku(await dosya.slice(0, 256 * 1024).arrayBuffer())
+    const { dogalYonlu, cizimYonlu } = await cizimOlc()
+    const dik = yon >= 5 && yon <= 8
+    // Ham boyut: tarayıcı boyutu çevirerek veriyorsa geri çevir
+    const hg = dik && dogalYonlu ? img.naturalHeight : img.naturalWidth
+    const hy = dik && dogalYonlu ? img.naturalWidth : img.naturalHeight
+    const g = dik ? hy : hg, y = dik ? hg : hy
+    const ciz = cizimYonlu
+      ? (c: CanvasRenderingContext2D, w: number, h: number) => c.drawImage(img, 0, 0, w, h)
+      : (c: CanvasRenderingContext2D, w: number, h: number) => yonluCiz(c, img, yon, w, h)
+    return { g, y, ciz, birak: () => URL.revokeObjectURL(adres) }
   }
 }
 
@@ -144,7 +224,7 @@ export async function kucult(dosya: File): Promise<Omit<HazirKare, 'bilgi' | 'on
   const ctx = tuval.getContext('2d')
   if (!ctx) { bmp.birak(); throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.') }
   ctx.imageSmoothingQuality = 'high'
-  ctx.drawImage(bmp.kaynak, 0, 0, g, y)
+  bmp.ciz(ctx, g, y)
   bmp.birak()
   const blob = await new Promise<Blob | null>(r => tuval.toBlob(r, 'image/jpeg', KALITE))
   if (!blob) throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.')

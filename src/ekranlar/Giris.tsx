@@ -5,7 +5,7 @@ import type { Istek } from '../lib/tipler'
 import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { BildirimKarti } from '../bilesenler/BildirimKarti'
-import { cikisYap, durum, hizliDurum } from '../lib/bildirim'
+import { cikisYap, DEGISTI, durum, hizliDurum, type BildirimDurumu } from '../lib/bildirim'
 
 /**
  * Giriş (karar 95). Prototip: prototype/creatorgraphers/2026-09-17_v23-giris.html
@@ -306,12 +306,17 @@ export function Hosgeldin({ ad, devam }: { ad: string; devam: () => void }) {
   )
 }
 
-/** Bekleme ekranı metni bildirime göre (karar 120): açılabiliyorsa "bildirim gelir", açılamıyorsa gruba yaz. */
+/** Bekleme ekranı metni bildirime göre (karar 120). Açılmadan "bildirim gelir" denmiyor, alttaki kart
+ *  zaten soruyor; açılınca kart gidiyor, metin söylüyor. Açılamıyorsa eski metin (Buse, 2026-09-30). */
 function BeklemeNotu() {
-  const ilk = hizliDurum()
-  const [gelir, setGelir] = useState(ilk === null || ilk === 'acilabilir')
-  useEffect(() => { durum().then(d => setGelir(d === 'acik' || d === 'acilabilir')).catch(() => {}) }, [])
-  return gelir
-    ? <p>Onaylanınca bildirim gelir. Acelen varsa gruptan yaz.</p>
-    : <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
+  const [d, setD] = useState<BildirimDurumu | null>(() => hizliDurum())
+  useEffect(() => {
+    const oku = () => { durum().then(setD).catch(() => setD('desteklenmiyor')) }
+    oku()
+    window.addEventListener(DEGISTI, oku)
+    return () => window.removeEventListener(DEGISTI, oku)
+  }, [])
+  if (d === 'acik') return <p>Onaylanınca bildirim gelir. Acelen varsa gruptan yaz.</p>
+  if (d === 'izin-yok' || d === 'desteklenmiyor') return <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
+  return <p>Onaylanınca içeri girersin. Acelen varsa gruptan yaz.</p>
 }

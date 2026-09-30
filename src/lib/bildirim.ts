@@ -9,6 +9,8 @@ type Bag = {
   abonelik(): Promise<Ab | null>; aboneOl(): Promise<Ab>; birak(): Promise<void>
 }
 const ACIK = import.meta.env.VITE_VAPID_ACIK as string | undefined
+/** Aç/kapat sonrası: aynı ekrandaki başka parçalar (bekleme metni) durumu yeniden okusun */
+export const DEGISTI = 'bildirim-degisti'
 
 const bayt = (s: string) => {
   const b = atob((s + '='.repeat((4 - (s.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/'))
@@ -69,6 +71,7 @@ export async function ac(): Promise<BildirimDurumu> {
   const a = await b.aboneOl()
   const { error } = await sb.rpc('bildirim_abone_ol', { p_endpoint: a.endpoint, p_p256dh: a.p256dh, p_auth: a.auth })
   if (error) throw error
+  window.dispatchEvent(new Event(DEGISTI))
   return 'acik'
 }
 
@@ -77,6 +80,7 @@ export async function kapat() {
   if (!a) return
   await sb.rpc('bildirim_aboneligi_sil', { p_endpoint: a.endpoint })
   await b.birak()
+  window.dispatchEvent(new Event(DEGISTI))
 }
 
 /** Çıkış: bu cihazın aboneliği önce silinir, başkası girince öncekinin bildirimleri ona gitmesin. */

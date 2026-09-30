@@ -71,7 +71,12 @@ try {
   await D.c.from('istekler').insert({ kullanici: D.id, eposta: 'deniz@test.local', ad: 'Deniz Yılmaz' });
   const pd = await sayfa(TAM, 'deniz@test.local');
   bekle('bekleme ekranı: "Onaylanınca haber verelim mi?"', /Onaylanınca haber verelim mi/.test(await yazi(pd, '.bildirim-karti')));
-  bekle('bekleme ekranı metni bildirime göre', /Onaylanınca bildirim gelir/.test(await yazi(pd, '.kutu')) || /Bildirim gitmiyor/.test(await yazi(pd, '.kutu')));
+  // Buse, 2026-09-30: açılmadan "bildirim gelir" denmiyor, kartla aynı şeyi tekrar etmiyor
+  bekle('bekleme ekranı: açılmadan "bildirim gelir" denmiyor', (await yazi(pd, '.kutu p')) === 'Onaylanınca içeri girersin. Acelen varsa gruptan yaz.', await yazi(pd, '.kutu p'));
+  await pd.getByRole('button', { name: 'Bildirimleri aç' }).click(); await pd.waitForTimeout(1200);
+  bekle('bekleme ekranı: açınca "bildirim gelir", kart gidiyor', (await yazi(pd, '.kutu p')) === 'Onaylanınca bildirim gelir. Acelen varsa gruptan yaz.' && (await pd.locator('.bildirim-karti').count()) === 0, await yazi(pd, '.kutu p'));
+  const pi = await sayfa({ ...TAM, izin: 'denied' }, 'deniz@test.local');
+  bekle('bekleme ekranı: bildirim açılamıyorsa eski metin', /Bildirim gitmiyor, acelen varsa gruptan yaz/.test(await yazi(pi, '.kutu p')), await yazi(pi, '.kutu p'));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

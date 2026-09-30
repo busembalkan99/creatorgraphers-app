@@ -42,12 +42,22 @@ try {
     const c6 = ciz(6, 80, 120), c8 = ciz(8, 80, 120), c3 = ciz(3, 120, 80), c1 = ciz(1, 120, 80);
     return {
       yon6: m.yonOku(bayt(yonlu)), yon1: m.yonOku(bayt(duz)),
+      // Makineler (Canon, Nikon, Sony, Fuji) EXIF'i little-endian (II) yazıyor; iki girdili IFD, çevirme ikinci sırada
+      yonII: m.yonOku(new Uint8Array([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x2e, 0x45, 0x78, 0x69, 0x66, 0, 0,
+        0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0, 2, 0,
+        0x0f, 0x01, 2, 0, 1, 0, 0, 0, 0x41, 0, 0, 0,
+        0x12, 0x01, 3, 0, 1, 0, 0, 0, 8, 0, 0, 0,
+        0, 0, 0, 0, 0xff, 0xd9]).buffer),
+      yonBozuk: m.yonOku(new Uint8Array([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x04, 0x45, 0x78]).buffer),
+      yonJpegDegil: m.yonOku(new Uint8Array([0x89, 0x50, 0x4e, 0x47]).buffer),
       r6: renk(c6, 40, 10) + renk(c6, 40, 110), r8: renk(c8, 40, 10) + renk(c8, 40, 110),
       r3: renk(c3, 10, 40) + renk(c3, 110, 40), r1: renk(c1, 10, 40) + renk(c1, 110, 40),
       olcum: await m.cizimOlc(),
     };
   }, [yonlu, duz]);
   bekle('EXIF yönü okunuyor (6 ve etiketsiz 1)', birim.yon6 === 6 && birim.yon1 === 1, JSON.stringify(birim));
+  bekle("makine EXIF'i (little-endian) okunuyor: 8", birim.yonII === 8, String(birim.yonII));
+  bekle('bozuk başlık ya da JPEG olmayan dosya: 1 (çökmeden)', birim.yonBozuk === 1 && birim.yonJpegDegil === 1, JSON.stringify([birim.yonBozuk, birim.yonJpegDegil]));
   bekle('elle çevirme: 6 → üstü kırmızı, altı mavi', birim.r6 === 'km', birim.r6);
   bekle('elle çevirme: 8 → üstü mavi, altı kırmızı', birim.r8 === 'mk', birim.r8);
   bekle('elle çevirme: 3 → solu mavi, sağı kırmızı', birim.r3 === 'mk', birim.r3);

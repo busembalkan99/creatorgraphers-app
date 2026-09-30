@@ -52,7 +52,7 @@ try {
   bekle('yönetimde "Tema havuzu · 2 öneri"', /Tema havuzu/.test(await yazi(q, '.sc')) && /2 öneri/.test(await yazi(q, '.sc')));
   await q.getByRole('button', { name: /Tema havuzu/ }).click(); await q.waitForTimeout(1200);
   bekle('havuz ekranında öneren adı', /Gece/.test(await yazi(q, '.sc')) && /Barış Ak/.test(await yazi(q, '.sc')));
-  bekle('havuz ekranında gerekçe ve sahibi', /“Işıkların altında” · Barış Ak/.test(await yazi(q, '.sc')), await yazi(q, '.sc'));
+  bekle('havuz ekranında gerekçe; tek önerende ad tekrarlanmıyor (Buse, 2026-09-30)', /“Işıkların altında”/.test(await yazi(q, '.sc')) && !/“Işıkların altında” · Barış Ak/.test(await yazi(q, '.sc')), await yazi(q, '.sc'));
   await kartDenetle(q, 'havuz', bekle);
   await q.goto(APP + '#/kur'); await q.waitForTimeout(1500);
   await q.locator('.havuz-sec .izin', { hasText: 'Gece' }).click(); await q.waitForTimeout(300);

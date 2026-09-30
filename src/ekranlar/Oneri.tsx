@@ -106,7 +106,8 @@ export function Havuz({ secim }: { secim?: { secili: string[]; sec(o: { id: stri
   }, [])
   const alt = (k: Kalem) => `${k.elle ? 'Yönetici yazdı' : k.onerenler}${k.bekledigi ? ` · ${k.bekledigi} etkinliktir havuzda` : ''}`
   // Gerekçe sahibiyle, yalnız yöneticiye (Buse, 2026-09-30)
-  const neden = (k: Kalem) => k.gerekceler.map(g => <span className="gerekce" key={g.ad}>“{g.gerekce}” · {g.ad}</span>)
+  // Tek önerende ad üst satırda zaten yazıyor, tekrarlanmıyor; birleşmiş kalemde kimin gerekçesi olduğu kalıyor
+  const neden = (k: Kalem) => k.gerekceler.map(g => <span className="gerekce" key={g.ad}>“{g.gerekce}”{k.kac_kisi > 1 ? ` · ${g.ad}` : ''}</span>)
 
   if (secim) {
     if (!l?.length) return null

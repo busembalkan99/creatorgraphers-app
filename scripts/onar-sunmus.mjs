@@ -6,9 +6,8 @@
 //   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/onar-sunmus.mjs listele <e-posta | ad:Uygulamadaki Adı | hepsi>
 //     → açık etkinliklerdeki karelerini /tmp/onar/<kare>.jpg olarak indirir, boyutlarını yazar. Bak, karar ver.
 //   ... node scripts/onar-sunmus.mjs onar <kare kimliği> <tür>
-//     tür: ezik  → kare dik ama yatay bir kutuya ezilmiş (en-boy oranı ters)
-//          yan6  → kare yan yatmış ve ezilmiş; saat yönünde 90° çevrilince düzelir
-//          yan8  → kare yan yatmış ve ezilmiş; saatin tersine 90° çevrilince düzelir
+//     tür: ezik  → kare dik ama yatay bir kutuya ezilmiş (en-boy oranı ters). Yan yatmış kareler için tür yok:
+//          hiç görülmedi, test edilmemiş bir dönüşüm dosyayı silen bir araçta tutulmuyor.
 //   ... node scripts/onar-sunmus.mjs onar <kare> <tür> --dene   → yalnız /tmp/onar/<kare>.onarilmis.jpg yazar, üretime dokunmaz
 //   ... node scripts/onar-sunmus.mjs boyut <kare>   → dosya sağlam ama kayıttaki boyut yanlışsa yalnız kaydı düzeltir
 import fs from 'node:fs';
@@ -38,7 +37,7 @@ async function indir(yol) {
   return Buffer.from(await data.arrayBuffer());
 }
 
-// Tarayıcıda: ezik → en-boyu ters çevir; yan6/yan8 → önce ham orana aç, sonra çevir. 0,85 JPEG (karar 123).
+// Tarayıcıda: ezik → en-boyu ters çevir. 0,85 JPEG (karar 123).
 async function donustur(jpeg, tur) {
   const b = await chromium.launch();
   try {
@@ -47,15 +46,9 @@ async function donustur(jpeg, tur) {
       const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], { type: 'image/jpeg' }));
       const W = bmp.width, H = bmp.height;
       const c = document.createElement('canvas');
-      c.width = H; c.height = W;   // her üç türde de sonuç en-boyu ters
+      c.width = H; c.height = W;   // sonuç en-boyu ters
       const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
-      if (tur === 'ezik') x.drawImage(bmp, 0, 0, H, W);
-      else {
-        // Ham oran H x W (ezilmeden önceki yatay kare), sonra 90° çevir: sonuç W x H... yerine H x W tuvale
-        x.translate(c.width / 2, c.height / 2);
-        x.rotate(tur === 'yan6' ? Math.PI / 2 : -Math.PI / 2);
-        x.drawImage(bmp, -W / 2, -H / 2, W, H);
-      }
+      x.drawImage(bmp, 0, 0, H, W);
       const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
       const u = new Uint8Array(await blob.arrayBuffer()); let t = ''; for (const v of u) t += String.fromCharCode(v);
       return { b64: btoa(t), g: c.width, y: c.height };
@@ -95,7 +88,7 @@ if (komut === 'listele') {
   console.log(`kayıt ${k.genislik}x${k.yukseklik} → ${d.g}x${d.y} (dosyaya dokunulmadı)`);
 } else if (komut === 'onar') {
   const kareId = a1, tur = a2, dene = a3 === '--dene';
-  if (!['ezik', 'yan6', 'yan8'].includes(tur)) { console.error('tür: ezik | yan6 | yan8'); process.exit(2); }
+  if (tur !== 'ezik') { console.error('tür: ezik'); process.exit(2); }
   const { data: k } = await sb.from('kareler').select('id, dosya, genislik, yukseklik').eq('id', kareId).maybeSingle();
   if (!k) { console.error('Kare yok.'); process.exit(1); }
   const sonuc = await donustur(await indir(k.dosya), tur);
@@ -111,5 +104,5 @@ if (komut === 'listele') {
   await sb.storage.from('kareler').remove([k.dosya]);
   console.log(`onarıldı: kare ${k.id} yeni dosyada, oylar yerinde.`);
 } else {
-  console.error('kullanım: listele <e-posta | ad:İsim | hepsi> | boyut <kare> | onar <kare> <ezik|yan6|yan8> [--dene]'); process.exit(2);
+  console.error('kullanım: listele <e-posta | ad:İsim | hepsi> | boyut <kare> | onar <kare> ezik [--dene]'); process.exit(2);
 }

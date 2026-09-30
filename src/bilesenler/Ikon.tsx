@@ -15,8 +15,8 @@ const P = {
   sag: '<polyline points="9 6 15 12 9 18"/>',
   // Kareyi büyüt: köşeden köşeye iki ok (basılabilirlik, 2026-09-26)
   buyut: '<polyline points="14 4 20 4 20 10"/><line x1="20" y1="4" x2="13" y2="11"/><polyline points="10 20 4 20 4 14"/><line x1="4" y1="20" x2="11" y2="13"/>',
-  // sekmeler: perforasyonlu film karesi elle çizildi (v16)
-  film: '<rect x="2" y="6" width="20" height="12"/><rect x="4" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="10.5" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="17" y="2.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="4" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="10.5" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/><rect x="17" y="19.5" width="3" height="2" fill="currentColor" stroke="none"/>',
+  // Etkinlikler sekmesi: takvim (Buse, 2026-09-30; film şeridi, makine ve makaradan seçildi)
+  film: '<path d="M3 5H21V21H3V5Z"/><path d="M21 9.5H3"/><path d="M7 5V2.5M17 5V2.5"/><path d="M7 13.5H9M11 13.5H13M15 13.5H17M7 17H9M11 17H13"/>',
   sira: '<polygon points="2 12 2 21 6 21 6 12"/><polygon points="18 7 18 21 22 21 22 7"/><polygon points="10 3 10 21 14 21 14 3"/>',
   kisi: '<path d="M4,20 C4,17 8,17 10,15 C11,14 8,14 8,9 C8,5.667 9.333,4 12,4 C14.667,4 16,5.667 16,9 C16,14 13,14 14,15 C16,17 20,17 20,20"/>',
 } as const

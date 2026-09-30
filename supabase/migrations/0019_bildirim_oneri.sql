@@ -214,6 +214,19 @@ begin
       end if;
     end loop;
   end loop;
+  -- Önerin seçildi (bağlandıktan sonraki ilk tur)
+  for e in select * from public.etkinlikler where not iptal loop
+    for u, temalar in
+      select s.uye, t.ad from public.tema_onerileri t join public.temalar tm on tm.id = t.tema
+        join public.oneri_sahipleri s on s.oneri = t.id
+       where tm.etkinlik = e.id and t.durum = 'secildi' and t.secildi_at <= p_simdi and t.secildi_at > p_simdi - pencere
+         and s.uye in (select * from gizli.abone_uyeler())
+    loop
+      n := n + gizli.kuyruga(u, 'oneri_secildi:' || e.id || ':' || gizli.oneri_anahtari(temalar) || ':' || u, 'oneri_secildi', e.id,
+        'Önerin seçildi', temalar || ', ' || case when e.serbest then 'ekstra etkinliğin teması.' else gizli.gun_yaz(e.bulusma_gunu) || ' buluşmasının teması.' end,
+        'etkinlikler', greatest(p_simdi, gizli.gece_disi(p_simdi, false)));
+    end loop;
+  end loop;
   return n;
 end $$;
 revoke execute on function gizli.bildirim_planla(timestamptz) from public, anon, authenticated;
@@ -316,3 +329,129 @@ begin
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-bildirim-gizli', sifre));
 end $$;
 revoke execute on function gizli.bildirim_tetikle() from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Tema önerisi (kararlar 81, 82, 85, 89; 2026-09-30: kişi başı 3, birleşme, geri çekme)
+-- ---------------------------------------------------------------------------
+create table if not exists public.tema_onerileri (
+  id         uuid primary key default gen_random_uuid(),
+  ad         text not null check (char_length(btrim(ad)) between 1 and 24),
+  anahtar    text not null,
+  durum      text not null default 'havuzda' check (durum in ('havuzda', 'secildi')),
+  tema       uuid references public.temalar(id) on delete set null,
+  elle       boolean not null default false,
+  olusturma  timestamptz not null default now(),
+  secildi_at timestamptz
+);
+create unique index if not exists tema_onerileri_havuzda_tekil on public.tema_onerileri (anahtar) where durum = 'havuzda';
+create table if not exists public.oneri_sahipleri (
+  oneri     uuid not null references public.tema_onerileri(id) on delete cascade,
+  uye       uuid not null references auth.users(id) on delete cascade,
+  gerekce   text check (gerekce is null or char_length(gerekce) <= 140),
+  olusturma timestamptz not null default now(),
+  primary key (oneri, uye)
+);
+alter table public.tema_onerileri enable row level security;
+alter table public.oneri_sahipleri enable row level security;
+revoke all on public.tema_onerileri, public.oneri_sahipleri from anon, authenticated;
+
+create or replace function gizli.oneri_anahtari(p text) returns text language sql immutable as $$
+  select lower(regexp_replace(btrim(p), '\s+', ' ', 'g'))
+$$;
+
+create or replace function public.oneri_birak(p_ad text, p_gerekce text default null) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare o uuid; k text; acik int;
+begin
+  if not public.uye_mi() then raise exception 'yetki_yok'; end if;
+  if p_ad is null or char_length(btrim(p_ad)) not between 1 and 24 then raise exception 'ad_gecersiz'; end if;
+  if p_gerekce is not null and char_length(p_gerekce) > 140 then raise exception 'gerekce_uzun'; end if;
+  k := gizli.oneri_anahtari(p_ad);
+  select id into o from public.tema_onerileri where anahtar = k and durum = 'havuzda';
+  if o is not null and exists (select 1 from public.oneri_sahipleri where oneri = o and uye = auth.uid()) then return o; end if;
+  select count(*) into acik from public.oneri_sahipleri s join public.tema_onerileri t on t.id = s.oneri
+   where s.uye = auth.uid() and t.durum = 'havuzda';
+  if acik >= 3 then raise exception 'oneri_siniri'; end if;
+  if o is null then insert into public.tema_onerileri (ad, anahtar) values (btrim(p_ad), k) returning id into o; end if;
+  insert into public.oneri_sahipleri (oneri, uye, gerekce) values (o, auth.uid(), nullif(btrim(p_gerekce), ''));
+  return o;
+end $$;
+
+create or replace function public.oneri_geri_cek(p_oneri uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  delete from public.oneri_sahipleri s using public.tema_onerileri t
+   where s.oneri = p_oneri and s.uye = auth.uid() and t.id = s.oneri and t.durum = 'havuzda';
+  delete from public.tema_onerileri t where t.id = p_oneri and t.durum = 'havuzda' and not t.elle
+     and not exists (select 1 from public.oneri_sahipleri s where s.oneri = t.id);
+end $$;
+
+create or replace function public.onerilerim()
+returns table (id uuid, ad text, durum text, bulusma_gunu date, serbest boolean, olusturma timestamptz)
+language sql stable security definer set search_path = public as $$
+  select t.id, t.ad, t.durum, e.bulusma_gunu, e.serbest, s.olusturma
+  from public.oneri_sahipleri s join public.tema_onerileri t on t.id = s.oneri
+  left join public.temalar tm on tm.id = t.tema left join public.etkinlikler e on e.id = tm.etkinlik
+  where s.uye = auth.uid() and public.uye_mi()
+  order by (t.durum = 'havuzda') desc, s.olusturma desc
+$$;
+
+create or replace function public.havuz()
+returns table (id uuid, ad text, elle boolean, onerenler text, kac_kisi int, bekledigi int)
+language sql stable security definer set search_path = public as $$
+  select t.id, t.ad, t.elle,
+         coalesce((select string_agg(u.ad, ', ' order by s.olusturma) from public.oneri_sahipleri s join public.uyeler u on u.id = s.uye where s.oneri = t.id), ''),
+         (select count(*) from public.oneri_sahipleri s where s.oneri = t.id)::int,
+         (select count(*) from public.etkinlikler e where not e.iptal and e.olusturma > t.olusturma)::int
+  from public.tema_onerileri t
+  where t.durum = 'havuzda' and public.yonetici_mi()
+  order by t.olusturma
+$$;
+
+create or replace function public.onerileri_bagla(p_etkinlik uuid, p_baglar jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare b jsonb; tm uuid;
+begin
+  if not public.yonetici_mi() then raise exception 'yetki_yok'; end if;
+  for b in select * from jsonb_array_elements(coalesce(p_baglar, '[]'::jsonb)) loop
+    select id into tm from public.temalar where etkinlik = p_etkinlik and sira = (b->>'sira')::int;
+    if tm is null then raise exception 'tema_yok'; end if;
+    update public.tema_onerileri set durum = 'secildi', tema = tm, secildi_at = now()
+     where id = (b->>'oneri')::uuid and durum = 'havuzda';
+  end loop;
+end $$;
+
+-- İptal: seçilen öneriler havuza (aynısı havuzdaysa önerenler ona katılır); elle yazılan temalar "yönetici yazdı" olarak havuza.
+-- Ekstra etkinliğin kendiliğinden adlandırılan temaları havuza düşmüyor.
+create or replace function gizli.iptalde_havuza() returns trigger language plpgsql security definer set search_path = public as $$
+declare o public.tema_onerileri; var uuid; t public.temalar;
+begin
+  if not (new.iptal and not old.iptal) then return null; end if;
+  for o in select x.* from public.tema_onerileri x join public.temalar y on y.id = x.tema where y.etkinlik = new.id loop
+    select id into var from public.tema_onerileri where anahtar = o.anahtar and durum = 'havuzda';
+    if var is null then
+      update public.tema_onerileri set durum = 'havuzda', tema = null, secildi_at = null where id = o.id;
+    else
+      insert into public.oneri_sahipleri (oneri, uye, gerekce, olusturma)
+        select var, uye, gerekce, olusturma from public.oneri_sahipleri where oneri = o.id on conflict do nothing;
+      delete from public.tema_onerileri where id = o.id;
+    end if;
+  end loop;
+  if not new.serbest then
+    for t in select y.* from public.temalar y where y.etkinlik = new.id
+               and not exists (select 1 from public.tema_onerileri x where x.tema = y.id) loop
+      insert into public.tema_onerileri (ad, anahtar, elle)
+        select left(btrim(t.ad), 24), gizli.oneri_anahtari(t.ad), true
+        where not exists (select 1 from public.tema_onerileri where anahtar = gizli.oneri_anahtari(t.ad) and durum = 'havuzda');
+    end loop;
+  end if;
+  return null;
+end $$;
+drop trigger if exists iptalde_havuza on public.etkinlikler;
+create trigger iptalde_havuza after update of iptal on public.etkinlikler
+  for each row execute function gizli.iptalde_havuza();
+
+revoke execute on function public.oneri_birak(text, text), public.oneri_geri_cek(uuid), public.onerilerim(),
+  public.havuz(), public.onerileri_bagla(uuid, jsonb) from public, anon;
+grant execute on function public.oneri_birak(text, text), public.oneri_geri_cek(uuid), public.onerilerim(),
+  public.havuz(), public.onerileri_bagla(uuid, jsonb) to authenticated;

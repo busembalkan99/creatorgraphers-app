@@ -33,8 +33,30 @@ export async function imzala(yollar: string[]): Promise<{ signedUrl: string | nu
   return yollar.map(y => ({ signedUrl: bellek.get(y)?.url ?? null }))
 }
 
+/** Önizleme kopyasının yolu: tam boyla aynı klasörde <ad>.k.jpg (karar 123, 0020) */
+export const onizlemeYolu = (dosya: string) => dosya.replace(/\.jpg$/, '.k.jpg')
+
+// Önizlemesi olmadığı bilinen kareler (önizlemeden önce yüklenenler). Yalnız aynı istekte tam boy imzalandıysa
+// işaretleniyor: yetki yokluğu "önizleme yok" sanılmasın. Her açılışta yeniden sorulmasın diye (6 saat).
+const onizlemesiz = new Map<string, number>()
+
+/** Izgaralar için: url önizleme (yoksa tam boy), tam büyüteç ve büyük görünümler için (karar 123). */
+export async function kareAdresleri(yollar: string[]): Promise<{ url: string | null; tam: string | null }[]> {
+  const simdi = Date.now()
+  const sor = yollar.map(y => (onizlemesiz.get(y) ?? 0) <= simdi)
+  const kucukler = yollar.filter((_, i) => sor[i]).map(onizlemeYolu)
+  const imza = await imzala([...yollar, ...kucukler])
+  let j = yollar.length
+  return yollar.map((y, i) => {
+    const tam = imza[i].signedUrl
+    const kucuk = sor[i] ? imza[j++].signedUrl : null
+    if (sor[i] && tam && !kucuk) onizlemesiz.set(y, simdi + SURE * 1000)
+    return { url: kucuk ?? tam, tam }
+  })
+}
+
 /** Test için */
 export const onbellekBoyu = () => bellek.size
 
 // Başka biri girince öncekinin adresleri kalmasın
-sb.auth.onAuthStateChange(olay => { if (olay === 'SIGNED_OUT') { nesil++; bellek.clear() } })
+sb.auth.onAuthStateChange(olay => { if (olay === 'SIGNED_OUT') { nesil++; bellek.clear(); onizlemesiz.clear() } })

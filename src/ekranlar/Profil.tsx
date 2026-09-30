@@ -9,7 +9,7 @@ import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 import { Onerilerim } from './Oneri'
 import { ac, cikisYap, durum, hizliDurum, kapat, type BildirimDurumu } from '../lib/bildirim'
-import { imzala } from '../lib/imza'
+import { kareAdresleri } from '../lib/imza'
 
 /**
  * Profil (kararlar 56, 57, 58, 69, 83).
@@ -45,11 +45,11 @@ export async function profilVerisi(hedef: string | undefined) {
   if (t.error) throw t.error
   const kareler = (k.data ?? []) as ProfilKare[]
   const imza = kareler.length
-    ? await sor(imzala(kareler.map(x => x.dosya)))
+    ? await sor(kareAdresleri(kareler.map(x => x.dosya)))
     : []
   return {
     kunye: ((p.data ?? [])[0] ?? null) as Kunyem | null,
-    kareler: kareler.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null })),
+    kareler: kareler.map((x, i) => ({ ...x, url: imza[i]?.url ?? null })),
     tarif: (t.data ?? []) as Tarif[],
   }
 }

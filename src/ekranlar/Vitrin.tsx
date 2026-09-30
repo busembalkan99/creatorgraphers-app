@@ -6,7 +6,7 @@ import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
 import { izlenmemisWrapped } from './Wrapped'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
-import { imzala as adresler } from '../lib/imza'
+import { kareAdresleri as adresler } from '../lib/imza'
 
 /**
  * Ana ekranın boş günleri (Buse, 2026-09-26; ideations/creatorgraphers/2026-09-26_bos-ana-sayfa.md).
@@ -42,7 +42,7 @@ async function oku(etkinlikler: Etkinlik[], temalar: Tema[], benimTemalarim: Set
   }
   const imzala = async <T extends SonucKare>(l: T[]) => {
     const data = l.length ? await adresler(l.map(k => k.dosya)) : []
-    return l.map((k, i) => ({ ...k, url: data?.[i]?.signedUrl ?? null }))
+    return l.map((k, i) => ({ ...k, url: data?.[i]?.url ?? null }))
   }
 
   let birinciler: Veri['birinciler'] = null

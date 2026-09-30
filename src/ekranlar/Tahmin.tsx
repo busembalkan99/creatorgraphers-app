@@ -5,7 +5,7 @@ import { asama, kalanYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
-import { imzala as adresler } from '../lib/imza'
+import { kareAdresleri as adresler } from '../lib/imza'
 
 /**
  * Tahmin oyunu (karar 76, 106, 107: adaylar her soruda kare veren herkes). Prototip: prototype/creatorgraphers/2026-09-12_v18-tahmin-oyunu.html
@@ -17,7 +17,7 @@ export type TahminDurumu = { durum: string; basladi: boolean; gonderildi: boolea
 type Aday = { uye: string; ad: string }
 type Soru = {
   sira: number; kare: string; dosya: string; genislik: number; yukseklik: number; tema_ad: string
-  adaylar: Aday[]; cevap: string | null; gecti: boolean; url?: string | null
+  adaylar: Aday[]; cevap: string | null; gecti: boolean; url?: string | null; tam?: string | null
 }
 type SonucSatir = {
   sira: number; kare: string; dosya: string; genislik: number; yukseklik: number; tema_ad: string
@@ -26,9 +26,9 @@ type SonucSatir = {
 
 const iki = (n: number) => String(n).padStart(2, '0')
 
-async function imzala<T extends { dosya: string }>(l: T[]): Promise<(T & { url: string | null })[]> {
+async function imzala<T extends { dosya: string }>(l: T[]): Promise<(T & { url: string | null; tam: string | null })[]> {
   const imza = l.length ? await adresler(l.map(x => x.dosya)) : []
-  return l.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null }))
+  return l.map((x, i) => ({ ...x, url: imza[i]?.url ?? null, tam: imza[i]?.tam ?? null }))
 }
 
 export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
@@ -213,7 +213,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
       {/* Kırpma yok: tanımayı sağlayacak ipucu kırpılan yerde olabilir (spec 4. bölüm, karar 43) */}
       <div className="tahmin-foto">
         {s.url
-          ? <img src={s.url} width={s.genislik} height={s.yukseklik} alt={`${s.tema_ad} teması, ${siradaki + 1}. kare`} draggable={false} />
+          ? <img src={s.tam ?? s.url} width={s.genislik} height={s.yukseklik} alt={`${s.tema_ad} teması, ${siradaki + 1}. kare`} draggable={false} />
           : <div className="bos" />}
       </div>
       <div className="adaylar" role="radiogroup" aria-label="Kim çekti">

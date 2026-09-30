@@ -32,6 +32,8 @@ node testler/bildirim-ekran.mjs               # bildirim kartı, Ayarlar anahtar
 node testler/oneri.mjs                        # tema önerisi: 3 sınırı, birleşme, geri çekme, bağlama, iptalde havuza (karar 121)
 node testler/oneri-ekran.mjs                  # tema önerisi ekranları: kart, form, Önerilerin, havuz, Kurulum'da seçim
 node testler/imza.mjs                         # imzalı adresler oturumda yeniden kullanılıyor, çıkışta boşalıyor (egress)
+node testler/onizleme.mjs                     # önizleme kopyası depo kuralları: toplu çıkarılanın önizlemesi oylamada gizli (0020)
+node testler/onizleme-yukle.mjs               # yüklemede 720 px önizleme, değiştirince/kaldırınca iki dosya da gidiyor
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 

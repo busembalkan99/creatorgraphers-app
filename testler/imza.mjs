@@ -18,6 +18,8 @@ for (const [u, puan] of [[A, 8], [B, 6]]) {
   await admin.storage.from('kareler').upload(yol, jpeg, { contentType: 'image/jpeg' }); kareYollari.push(yol);
   kareler.push((await admin.from('kareler').insert({ tema: t.id, sahip: u.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data.id);
 }
+// A'nın karesinin önizlemesi var, B'ninki yok (önizlemeden önce yüklenmiş eski kare gibi)
+await admin.storage.from('kareler').upload(kareYollari[0].replace(/\.jpg$/, '.k.jpg'), jpeg, { contentType: 'image/jpeg' });
 // Wrapped kendiliğinden açılmasın (karar 39), sekmeleri kapatıyor
 await admin.from('wrapped_izlendi').insert([{ uye: A.id, etkinlik: e.id }]);
 await admin.from('oylar').insert([{ kare: kareler[0], veren: B.id, puan: 8 }, { kare: kareler[1], veren: A.id, puan: 6 }]);
@@ -37,7 +39,12 @@ try {
   await p.locator('.tabs button', { hasText: 'Profil' }).click(); await p.waitForTimeout(2500);
   const src2 = await p.locator('.sc img').first().getAttribute('src');
   bekle('ikinci açılışta aynı adres: tarayıcı yeniden indirmiyor', src1 === src2);
+  // Önizleme (karar 123): ızgarada önizlemesi olan kare .k.jpg'den, olmayan tam boydan geliyor
+  const profilSrc = await p.locator('.sc img').evaluateAll(l => l.map(i => i.getAttribute('src')));
+  bekle('Profil ızgarası önizlemeyi kullanıyor', profilSrc.some(u => u.includes(kareYollari[0].split('/').pop().replace('.jpg', '.k.jpg'))), JSON.stringify(profilSrc.map(u => u.split('?')[0].split('/').pop())));
   await p.goto(APP + `#/sonuc/${e.id}`); await p.waitForTimeout(2500);
+  const sonucSrc = await p.locator('.sc img').evaluateAll(l => l.map(i => i.getAttribute('src').split('?')[0].split('/').pop()));
+  bekle('Sonuç: önizlemesi olmayan eski kare tam boydan görünüyor', sonucSrc.includes(kareYollari[1].split('/').pop()), JSON.stringify(sonucSrc));
   await p.locator('.tabs button, .geri').first().click().catch(() => {});
   await p.locator('.tabs button', { hasText: 'Profil' }).click().catch(() => {}); await p.waitForTimeout(1500);
   bekle('Profil ve Sonuç arasında gidip gelince yeni imza isteği yok', imza === 0, `${imza} istek`);

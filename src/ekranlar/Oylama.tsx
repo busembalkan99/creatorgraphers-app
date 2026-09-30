@@ -9,7 +9,7 @@ import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 import type { TahminDurumu } from './Tahmin'
-import { imzala } from '../lib/imza'
+import { kareAdresleri } from '../lib/imza'
 
 /**
  * Oylama (kararlar 5, 6, 7, 9, 20, 24, 37, 42, 48, 94).
@@ -34,6 +34,8 @@ interface OyKare {
   yukseklik: number
   puan: number | null
   url?: string | null
+  /** Puanlanan büyük kare ve büyüteç tam boy (karar 123) */
+  tam?: string | null
 }
 
 const iki = (n: number) => String(n).padStart(2, '0')
@@ -182,13 +184,13 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
       const t = durum.find(x => x.tema === temaId) ?? null
       const benim = hepsi.filter(k => k.tema === temaId)
       const imza = benim.length
-        ? await imzala(benim.map(k => k.dosya))
+        ? await kareAdresleri(benim.map(k => k.dosya))
         : []
       const td = ((await sb.rpc('tahmin_durumu', { p_etkinlik: ev.id })).data ?? []) as { basladi: boolean }[]
       setKilitli(!!td[0]?.basladi)
       setTema(t)
       onaylanan.current = Object.fromEntries(benim.map(k => [k.id, k.puan]))
-      setKareler(benim.map((k, i) => ({ ...k, url: imza[i]?.signedUrl ?? null })))
+      setKareler(benim.map((k, i) => ({ ...k, url: imza[i]?.url ?? null, tam: imza[i]?.tam ?? null })))
       setE(ev)
     })().catch(x => setHata(hataMetni(x)))
   }, [uye.id, temaId])
@@ -246,8 +248,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           <div className="sahne">
             <div className="tutucu">
               {k.url ? (
-                <img src={k.url} width={k.genislik} height={k.yukseklik} alt={`${tema.ad} ${i + 1}. kare`} draggable={false}
-                  {...tetik(olcek => setBuyuk({ url: k.url!, baslik: tema.ad, sag: `${iki(i + 1)} / ${iki(kareler.length)}`, olcek }))} />
+                <img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik} alt={`${tema.ad} ${i + 1}. kare`} draggable={false}
+                  {...tetik(olcek => setBuyuk({ url: (k.tam ?? k.url)!, baslik: tema.ad, sag: `${iki(i + 1)} / ${iki(kareler.length)}`, olcek }))} />
               ) : (
                 <div className="bos" style={{ width: 200, height: 140 }} />
               )}

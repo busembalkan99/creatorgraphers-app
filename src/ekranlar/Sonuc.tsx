@@ -10,7 +10,7 @@ import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { paylasilacakKare } from './Paylas'
 import { TahminBaglantisi, TaninmaSatiri } from './Tahmin'
-import { imzala } from '../lib/imza'
+import { kareAdresleri } from '../lib/imza'
 
 /**
  * Sonuçlar (kararlar 7, 10, 18, 19, 24, 38, 43, 52, 68, 77, 98).
@@ -45,6 +45,8 @@ interface SonucKare {
   cikarildi: boolean
   cikarma_nedeni: string | null
   url?: string | null
+  /** Büyük görünüm ve büyüteç için tam boy (karar 123) */
+  tam?: string | null
 }
 
 const puanYaz = (n: number | null | undefined) =>
@@ -62,11 +64,11 @@ async function sonucVerisi(etkinlikId: string) {
   if (k.error) throw k.error
   const kareler = (k.data ?? []) as SonucKare[]
   const imza = kareler.length
-    ? await sor(imzala(kareler.map(x => x.dosya)))
+    ? await sor(kareAdresleri(kareler.map(x => x.dosya)))
     : []
   return {
     etkinlik: (e.data ?? null) as Etkinlik | null,
-    kareler: kareler.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null })),
+    kareler: kareler.map((x, i) => ({ ...x, url: imza[i]?.url ?? null, tam: imza[i]?.tam ?? null })),
   }
 }
 
@@ -200,7 +202,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
                 <div className="kazanan" key={k.id}>
                   <span className="buyut"><Ikon ad="buyut" /></span>
                   {k.url && (
-                    <img src={k.url} width={k.genislik} height={k.yukseklik}
+                    <img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik}
                       alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} />
                   )}
                   <div className="serit">
@@ -313,9 +315,10 @@ function KareDetay({ kare, temaOylanmadi, yonetici, kapat, degisti }:
         </div>
         <div className="rb" />
       </header>
-      {kare.url && <img src={kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`}
+      {/* Kare detayı ve büyüteç tam boy (karar 123) */}
+      {kare.url && <img src={kare.tam ?? kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`}
         onClick={() => setBuyuk(true)} />}
-      {buyuk && kare.url && <Buyutec acik={{ url: kare.url, baslik: kare.tema_ad, sag: kare.sahip_ad }} kapat={() => setBuyuk(false)} />}
+      {buyuk && kare.url && <Buyutec acik={{ url: (kare.tam ?? kare.url)!, baslik: kare.tema_ad, sag: kare.sahip_ad }} kapat={() => setBuyuk(false)} />}
       <div className="kim">
         <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>
         {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}

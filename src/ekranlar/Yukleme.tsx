@@ -7,7 +7,7 @@ import { Ikon } from '../bilesenler/Ikon'
 import { geriGit } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
-import { imzala } from '../lib/imza'
+import { kareAdresleri, onizlemeYolu } from '../lib/imza'
 
 /**
  * Kare yükleme, kontakt baskı (kararlar 3, 29, 41, 92, 93, 94).
@@ -77,12 +77,12 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       setGelmedi(gelmedi_)
       setCikan(cikan_)
       const imzalar = kareler.length
-        ? await imzala(kareler.map(k => k.dosya))
+        ? await kareAdresleri(kareler.map(k => k.dosya))
         : []
       const yeni: Record<string, TemaDurumu> = {}
       for (const t of temaList) yeni[t.id] = bosDurum()
       kareler.forEach((k, i) => {
-        yeni[k.tema] = { ...bosDurum(), kare: { ...k, url: imzalar[i]?.signedUrl ?? null } }
+        yeni[k.tema] = { ...bosDurum(), kare: { ...k, url: imzalar[i]?.url ?? null } }
       })
       setD(yeni)
       setE(acik)
@@ -135,16 +135,18 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       const hazir = await kucult(dosya)
       const yol = `${e.id}/${tema.id}/${crypto.randomUUID()}.jpg`
       const yuk = await sb.storage.from('kareler').upload(yol, hazir.blob, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })   // dosya adı tekil: bir yıl önbellekte (egress, 2026-09-30)
+      // Önizleme kopyası (karar 123): yüklenemezse ekran tam boya düşüyor, yükleme durmuyor
+      if (!yuk.error) await sb.storage.from('kareler').upload(onizlemeYolu(yol), hazir.kucuk, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })
       if (yuk.error) throw yuk.error
       const satir = { tema: tema.id, sahip: uye.id, dosya: yol, genislik: hazir.genislik, yukseklik: hazir.yukseklik, ...bilgi }
       const kayit = onceki
         ? await sb.from('kareler').update(satir).eq('id', onceki.id).select('id, tema, dosya, genislik, yukseklik, cekim_gunu').single()
         : await sb.from('kareler').insert(satir).select('id, tema, dosya, genislik, yukseklik, cekim_gunu').single()
       if (kayit.error) {
-        await sb.storage.from('kareler').remove([yol])
+        await sb.storage.from('kareler').remove([yol, onizlemeYolu(yol)])
         throw kayit.error
       }
-      if (onceki) await sb.storage.from('kareler').remove([onceki.dosya])
+      if (onceki) await sb.storage.from('kareler').remove([onceki.dosya, onizlemeYolu(onceki.dosya)])
       guncelle(tema.id, {
         yukleniyor: false,
         kare: { ...(kayit.data as Kare), url: URL.createObjectURL(hazir.blob) },
@@ -170,7 +172,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
     guncelle(t.id, { yukleniyor: true, onay: false })
     const { error } = await sb.from('kareler').delete().eq('id', k.id)
     if (error) return guncelle(t.id, { yukleniyor: false, hata: hataMetni(error) })
-    await sb.storage.from('kareler').remove([k.dosya])
+    await sb.storage.from('kareler').remove([k.dosya, onizlemeYolu(k.dosya)])
     guncelle(t.id, { yukleniyor: false, kare: null })
   }
 

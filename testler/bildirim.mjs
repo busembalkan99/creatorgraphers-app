@@ -8,7 +8,10 @@ create or replace function public.bildirim_planla_test(p_simdi timestamptz defau
 create or replace function public.gece_disi_test(p timestamptz, p_hatirlatma boolean) returns timestamptz
   language sql stable security definer set search_path = public as $$ select gizli.gece_disi(p, p_hatirlatma) $$;
 revoke execute on function public.bildirim_planla_test(timestamptz), public.gece_disi_test(timestamptz, boolean) from public, anon, authenticated;
-grant execute on function public.bildirim_planla_test(timestamptz), public.gece_disi_test(timestamptz, boolean) to service_role;` });
+create or replace function public.bildirim_tetikle_test() returns void
+  language sql security definer set search_path = public as $$ select gizli.bildirim_tetikle() $$;
+revoke execute on function public.bildirim_tetikle_test() from public, anon, authenticated;
+grant execute on function public.bildirim_planla_test(timestamptz), public.gece_disi_test(timestamptz, boolean), public.bildirim_tetikle_test() to service_role;` });
 await sifirla();
 const hata = r => r.error?.message ?? '';
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya');
@@ -133,4 +136,44 @@ await planla('2026-11-01T09:03:00Z');
 q = (await kuyruk()).filter(x => x.tur === 'yeni_etkinlik');
 bekle('yeni etkinlik kurana değil diğer abonelere', q.length === 2 && !q.some(x => x.kullanici === A.id), JSON.stringify(q.map(x => x.kullanici)));
 bekle('yeni etkinlik metni', q[0]?.baslik === 'Yeni etkinlik: 9 Kasım' && q[0]?.govde === 'Temalar: Gece, Eller', JSON.stringify(q[0]));
+// ---- üyelik tetikleyicileri ----
+const D = await kullanici('deniz@test.local', 'Deniz Yılmaz');
+await D.c.rpc('bildirim_abone_ol', { p_endpoint: uc('d1'), p_p256dh: 'p', p_auth: 'a' });  // onay bekleyen de abone olabiliyor
+await A.c.rpc('bildirim_abone_ol', { p_endpoint: uc('a1'), p_p256dh: 'p', p_auth: 'a' });
+await temizle();
+const ist = (await D.c.from('istekler').insert({ kullanici: D.id, eposta: 'deniz@test.local', ad: 'Deniz Yılmaz' }).select('id').single()).data;
+q = await kuyruk();
+bekle('katılma isteği yöneticiye bildirim', q.some(x => x.tur === 'istek' && x.kullanici === A.id && x.baslik === 'Katılma isteği: Deniz Yılmaz'), JSON.stringify(q.map(x => x.baslik)));
+bekle('üyeye istek bildirimi gitmiyor', !q.some(x => x.tur === 'istek' && x.kullanici === B.id));
+await A.c.rpc('istek_karar', { p_istek: ist.id, p_onay: true });
+q = await kuyruk();
+bekle('onaylanınca kişiye "Kulübe katıldın"', q.some(x => x.tur === 'istek_onay' && x.kullanici === D.id && x.baslik === 'Kulübe katıldın'), JSON.stringify(q.map(x => x.tur)));
+// ---- gönderici RPC'leri ----
+await B.c.rpc('bildirim_abone_ol', { p_endpoint: uc('b3'), p_p256dh: 'p', p_auth: 'a' });   // B'nin ikinci cihazı
+await temizle();
+await admin.from('bildirim_kuyrugu').insert({ kullanici: B.id, anahtar: 'deneme:1', tur: 'yeni_etkinlik', baslik: 'X', govde: 'Y', adres: 'etkinlikler', zaman: new Date(Date.now() - 1000).toISOString() });
+let gl = (await admin.rpc('bildirim_gonderilecekler')).data ?? [];
+bekle('gönderilecekler cihaz başına satır', gl.length === 2 && gl.every(x => x.baslik === 'X'), JSON.stringify(gl.map(x => x.endpoint)));
+bekle('üye gönderilecekleri okuyamıyor', !!(await B.c.rpc('bildirim_gonderilecekler')).error);
+await admin.rpc('bildirim_sonuc', { p_kuyruk: gl[0].kuyruk, p_basarili: true, p_hata: null });
+bekle('başarılı satır bir daha gelmiyor', ((await admin.rpc('bildirim_gonderilecekler')).data ?? []).length === 0);
+await admin.from('bildirim_kuyrugu').insert({ kullanici: B.id, anahtar: 'deneme:2', tur: 'yeni_etkinlik', baslik: 'X', govde: 'Y', adres: 'etkinlikler', zaman: new Date(Date.now() - 1000).toISOString() });
+const k2 = (await admin.from('bildirim_kuyrugu').select('id').eq('anahtar', 'deneme:2').single()).data.id;
+for (let i = 0; i < 3; i++) await admin.rpc('bildirim_sonuc', { p_kuyruk: k2, p_basarili: false, p_hata: '500' });
+bekle('3 başarısız denemeden sonra bırakılıyor', ((await admin.rpc('bildirim_gonderilecekler')).data ?? []).every(x => x.kuyruk !== k2));
+await admin.rpc('bildirim_abonelik_dustu', { p_endpoint: uc('b2') });
+bekle('düşen abonelik siliniyor', ((await admin.from('bildirim_abonelikleri').select('id').eq('endpoint', uc('b2'))).data ?? []).length === 0);
+// Geçersizleşen hatırlatma gönderilmiyor: işi bitmiş kişi
+await temizle();
+await admin.from('bildirim_kuyrugu').insert({ kullanici: C.id, anahtar: 'deneme:3', tur: 'hatirlatma_yukleme', etkinlik: E.id, baslik: 'X', govde: 'Y', adres: 'yukle',
+  zaman: new Date(Date.now() - 1000).toISOString(), son_tarih: new Date(Date.now() + 3600e3).toISOString() });
+bekle('işi bitmiş kişiye (son tarih de değişmiş) hatırlatma gitmiyor', ((await admin.rpc('bildirim_gonderilecekler')).data ?? []).length === 0);
+bekle('geçersiz satır "gecersiz" olarak kapanıyor', (await admin.from('bildirim_kuyrugu').select('son_hata').eq('anahtar', 'deneme:3').single()).data?.son_hata === 'gecersiz');
+// Çıkarılan üyenin abonelikleri ve bekleyen bildirimleri siliniyor
+await admin.from('bildirim_kuyrugu').insert({ kullanici: B.id, anahtar: 'deneme:4', tur: 'yeni_etkinlik', baslik: 'X', govde: 'Y', adres: 'etkinlikler', zaman: new Date().toISOString() });
+await A.c.rpc('uye_cikar', { p_uye: B.id, p_cikar: true });
+bekle('çıkarılan üyenin aboneliği ve bekleyen bildirimi yok', ((await admin.from('bildirim_abonelikleri').select('id').eq('kullanici', B.id)).data ?? []).length === 0
+  && ((await admin.from('bildirim_kuyrugu').select('id').eq('anahtar', 'deneme:4')).data ?? []).length === 0);
+// Tetikleme: Vault'ta adres yokken sessizce çıkıyor (yerel)
+bekle('tetikleme adres yokken hata vermiyor', !(await admin.rpc('bildirim_tetikle_test')).error);
 rapor();

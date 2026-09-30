@@ -217,3 +217,102 @@ begin
   return n;
 end $$;
 revoke execute on function gizli.bildirim_planla(timestamptz) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Üyelik bildirimleri, gönderici RPC'leri, tetikleme
+-- ---------------------------------------------------------------------------
+-- Katılma isteği: yöneticilere; onay: kişiye (onay bekleyen de abone olabiliyor, kullanici auth.users'a bağlı)
+create or replace function gizli.istek_bildirimi() returns trigger language plpgsql security definer set search_path = public as $$
+declare y uuid;
+begin
+  if tg_op = 'INSERT' and new.durum = 'bekliyor' then
+    for y in select u.id from public.uyeler u where u.cikarildi_at is null and u.rol in ('kurucu', 'yonetici')
+               and exists (select 1 from public.bildirim_abonelikleri a where a.kullanici = u.id) loop
+      perform gizli.kuyruga(y, 'istek:' || new.id || ':' || y, 'istek', null, 'Katılma isteği: ' || new.ad,
+        'Onaylaman bekleniyor.', 'uyeler', gizli.gece_disi(now(), false));
+    end loop;
+  elsif tg_op = 'UPDATE' and old.durum = 'bekliyor' and new.durum = 'onay'
+        and exists (select 1 from public.bildirim_abonelikleri a where a.kullanici = new.kullanici) then
+    perform gizli.kuyruga(new.kullanici, 'istek_onay:' || new.id, 'istek_onay', null, 'Kulübe katıldın',
+      'İsteğin onaylandı.', 'etkinlikler', gizli.gece_disi(now(), false));
+  end if;
+  return null;
+end $$;
+drop trigger if exists istek_bildirimi on public.istekler;
+create trigger istek_bildirimi after insert or update of durum on public.istekler
+  for each row execute function gizli.istek_bildirimi();
+
+-- Çıkarılan üye: abonelikleri ve bekleyen bildirimleri siliniyor
+create or replace function gizli.cikarilan_bildirim_sil() returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.cikarildi_at is not null and old.cikarildi_at is null then
+    delete from public.bildirim_abonelikleri where kullanici = new.id;
+    delete from public.bildirim_kuyrugu where kullanici = new.id and gonderildi_at is null;
+  end if;
+  return null;
+end $$;
+drop trigger if exists cikarilan_bildirim_sil on public.uyeler;
+create trigger cikarilan_bildirim_sil after update of cikarildi_at on public.uyeler
+  for each row execute function gizli.cikarilan_bildirim_sil();
+
+-- Gönderim anında yeniden doğrulama
+create or replace function gizli.bildirim_gecerli(q public.bildirim_kuyrugu, p_simdi timestamptz) returns boolean
+language sql stable as $$
+  select case
+    when q.etkinlik is not null and exists (select 1 from public.etkinlikler e where e.id = q.etkinlik and e.iptal) then false
+    when q.tur <> 'istek_onay' and not exists (select 1 from public.uyeler u where u.id = q.kullanici and u.cikarildi_at is null) then false
+    when q.tur = 'hatirlatma_yukleme' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.yukleme_biter = q.son_tarih and p_simdi < q.son_tarih
+        and coalesce(array_length(gizli.bos_temalar(e.id, q.kullanici), 1), 0) > 0)
+    when q.tur = 'hatirlatma_oy' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.oylama_biter = q.son_tarih and p_simdi < q.son_tarih
+        and gizli.kalan_oy(e.id, q.kullanici) > 0)
+    else true
+  end
+$$;
+
+create or replace function public.bildirim_gonderilecekler(p_simdi timestamptz default now())
+returns table (kuyruk bigint, endpoint text, p256dh text, auth text, baslik text, govde text, adres text)
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.bildirim_kuyrugu q set gonderildi_at = p_simdi, son_hata = 'gecersiz'
+   where q.gonderildi_at is null and q.zaman <= p_simdi and not gizli.bildirim_gecerli(q, p_simdi);
+  return query
+    select q.id, a.endpoint, a.p256dh, a.auth, q.baslik, q.govde, q.adres
+    from public.bildirim_kuyrugu q join public.bildirim_abonelikleri a on a.kullanici = q.kullanici
+    where q.gonderildi_at is null and q.zaman <= p_simdi and q.deneme < 3
+    order by q.zaman, q.id limit 500;
+end $$;
+
+create or replace function public.bildirim_sonuc(p_kuyruk bigint, p_basarili boolean, p_hata text)
+returns void language sql security definer set search_path = public as $$
+  update public.bildirim_kuyrugu
+     set gonderildi_at = case when p_basarili then now() else gonderildi_at end,
+         deneme = deneme + case when p_basarili then 0 else 1 end,
+         son_hata = case when p_basarili then null else left(p_hata, 300) end
+   where id = p_kuyruk;
+$$;
+
+create or replace function public.bildirim_abonelik_dustu(p_endpoint text)
+returns void language sql security definer set search_path = public as $$
+  delete from public.bildirim_abonelikleri where endpoint = p_endpoint;
+$$;
+
+revoke execute on function public.bildirim_gonderilecekler(timestamptz), public.bildirim_sonuc(bigint, boolean, text),
+  public.bildirim_abonelik_dustu(text) from public, anon, authenticated;
+grant execute on function public.bildirim_gonderilecekler(timestamptz), public.bildirim_sonuc(bigint, boolean, text),
+  public.bildirim_abonelik_dustu(text) to service_role;
+
+-- Cron her 5 dakikada: planla, sırada iş varsa Edge Function'ı çağır. Adres ve gizli Vault'ta (Cowork koyar).
+create or replace function gizli.bildirim_tetikle() returns void language plpgsql security definer set search_path = public as $$
+declare adres text; sifre text;
+begin
+  perform gizli.bildirim_planla();
+  if not exists (select 1 from public.bildirim_kuyrugu where gonderildi_at is null and zaman <= now() and deneme < 3) then return; end if;
+  select decrypted_secret into adres from vault.decrypted_secrets where name = 'bildirim_gonder_url';
+  select decrypted_secret into sifre from vault.decrypted_secrets where name = 'bildirim_gizli';
+  if adres is null or sifre is null then return; end if;
+  perform net.http_post(url := adres, body := '{}'::jsonb,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-bildirim-gizli', sifre));
+end $$;
+revoke execute on function gizli.bildirim_tetikle() from public, anon, authenticated;

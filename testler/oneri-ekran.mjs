@@ -32,6 +32,11 @@ try {
   // Adrese doğrudan gidip 4. öneriyi bırakmaya çalışınca form sınırı söylüyor (kapsam incelemesi)
   await p.goto(APP + '#/oner'); await p.waitForTimeout(800);
   await p.locator('#oneri-ad').fill('Rüzgar'); await p.getByRole('button', { name: 'Öneriyi bırak' }).click(); await p.waitForTimeout(1200);
+  // Üye havuz adresine girerse Profil'e düşüyor (kapsam incelemesi)
+  await p.goto(APP + '#/havuz'); await p.waitForTimeout(1500);
+  bekle('üye #/havuz açınca havuz yerine Profil', !/Tema\s*havuzu/.test(await yazi(p, '.sc')) && (await p.getByRole('button', { name: 'Çıkış yap' }).count()) === 1, await yazi(p, '.sc'));
+  await p.goto(APP + '#/oner'); await p.waitForTimeout(800);
+  await p.locator('#oneri-ad').fill('Rüzgar'); await p.getByRole('button', { name: 'Öneriyi bırak' }).click(); await p.waitForTimeout(1200);
   bekle('4. öneride form sınırı söylüyor, formda kalıyor', /Üç önerin havuzda\. Birini geri çekince/.test(await yazi(p, '.sc')) && (await p.evaluate(() => location.hash)) === '#/oner', await yazi(p, '.sc'));
   await p.goto(APP + '#/profil'); await p.waitForTimeout(1500);
   await p.locator('.onerilerim .satir', { hasText: 'Su' }).getByRole('button', { name: 'Geri çek' }).click(); await p.waitForTimeout(1200);
@@ -54,7 +59,25 @@ try {
   bekle('havuz ekranında öneren adı', /Gece/.test(await yazi(q, '.sc')) && /Barış Ak/.test(await yazi(q, '.sc')));
   bekle('havuz ekranında gerekçe; tek önerende ad tekrarlanmıyor (Buse, 2026-09-30)', /“Işıkların altında”/.test(await yazi(q, '.sc')) && !/“Işıkların altında” · Barış Ak/.test(await yazi(q, '.sc')), await yazi(q, '.sc'));
   await kartDenetle(q, 'havuz', bekle);
-  await q.goto(APP + '#/kur'); await q.waitForTimeout(1500);
+  // Kurulumda havuzdan seçim kuralları (kapsam incelemesi): üçüncü kalem için yöneticinin kendi önerisi
+  await A.c.rpc('oneri_birak', { p_ad: 'Işık' });
+  await q.goto(APP + '#/profil'); await q.waitForTimeout(600); await q.goto(APP + '#/kur'); await q.waitForTimeout(1800);
+  const kalem = ad => q.locator('.havuz-sec .izin').filter({ has: q.locator('b', { hasText: new RegExp(`^${ad}$`) }) });   // başlıkla birebir: gerekçe metni de eşleşiyordu
+  const temalar = () => q.locator('.tema-kur input').evaluateAll(l => l.map(i => i.value));
+  await kalem('Gece').click(); await q.waitForTimeout(200);
+  await kalem('Gece').click(); await q.waitForTimeout(200);
+  bekle('ikinci dokunuş seçimi geri alıyor', JSON.stringify(await temalar()) === '[""]' && (await kalem('Gece').getAttribute('aria-pressed')) === 'false', JSON.stringify(await temalar()));
+  await kalem('Gece').click(); await kalem('Eller').click(); await kalem('Işık').click(); await q.waitForTimeout(200);
+  bekle('boş yuva yokken yeni tema ekleniyor, üçe kadar', JSON.stringify(await temalar()) === '["Gece","Eller","Işık"]', JSON.stringify(await temalar()));
+  await admin.from('tema_onerileri').insert({ ad: 'Sis', anahtar: 'sis', elle: true });
+  await q.goto(APP + '#/profil'); await q.waitForTimeout(600); await q.goto(APP + '#/kur'); await q.waitForTimeout(1800);
+  for (const ad of ['Gece', 'Eller', 'Işık']) await kalem(ad).click();
+  await kalem('Sis').click(); await q.waitForTimeout(200);
+  bekle('üç tema doluyken dördüncü seçilmiyor', (await temalar()).length === 3 && (await kalem('Sis').getAttribute('aria-pressed')) === 'false', JSON.stringify(await temalar()));
+  await q.locator('#t0').fill('Gece yarısı'); await q.waitForTimeout(200);
+  bekle('seçilen tema elle değiştirilince öneriyle bağı kopuyor', (await kalem('Gece').getAttribute('aria-pressed')) === 'false', await kalem('Gece').getAttribute('aria-pressed'));
+  await admin.from('tema_onerileri').delete().in('anahtar', ['sis', 'ışık']);
+  await q.goto(APP + '#/profil'); await q.waitForTimeout(600); await q.goto(APP + '#/kur'); await q.waitForTimeout(1500);
   await q.locator('.havuz-sec .izin', { hasText: 'Gece' }).click(); await q.waitForTimeout(300);
   bekle('havuzdan seçince tema alanına yazıldı', (await q.locator('#t0').inputValue()) === 'Gece');
   await q.locator('#yb').fill(new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 16));
@@ -73,6 +96,18 @@ try {
   await q.locator('#yb').fill(new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 16));
   await q.getByRole('button', { name: 'Etkinliği kur' }).click(); await q.waitForTimeout(2500);
   bekle('öneri bağlanamazsa söylüyor ve Aşama\'ya geçiş sunuyor', /Seçtiğin öneriler bağlanamadı/.test(await yazi(q, '.sc')) && (await q.getByRole('button', { name: "Aşama'ya geç" }).count()) === 1, await yazi(q, '.sc'));
+  // Havuz hata verirse ve boşken (kapsam incelemesi)
+  await q.route('**/rpc/havuz', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }));
+  await q.goto(APP + '#/profil'); await q.waitForTimeout(600); await q.goto(APP + '#/havuz'); await q.waitForTimeout(1500);
+  bekle('havuz okunamazsa hata gösteriliyor, liste yok', (await q.locator('.hata').count()) === 1 && (await q.locator('.satir-kartlari .satir').count()) === 0);
+  await q.unroute('**/rpc/havuz');
+  await admin.from('tema_onerileri').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await q.goto(APP + '#/profil'); await q.waitForTimeout(600); await q.goto(APP + '#/havuz'); await q.waitForTimeout(1500);
+  bekle('havuz boşken boş durum kartı', /Havuz boş/.test(await yazi(q, '.sc')), await yazi(q, '.sc'));
+  await admin.from('etkinlikler').update({ iptal: true }).neq('id', '00000000-0000-0000-0000-000000000000');
+  await admin.from('tema_onerileri').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await q.goto(APP + '#/profil'); await q.waitForTimeout(600); await q.goto(APP + '#/kur'); await q.waitForTimeout(1500);
+  bekle('havuz boşken Kurulum\'da "Havuzdan seç" yok', (await q.locator('.havuz-sec').count()) === 0 && !/Havuzdan seç/.test(await yazi(q, '.sc')));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

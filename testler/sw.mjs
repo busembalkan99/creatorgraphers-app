@@ -23,6 +23,13 @@ bekle('dışarı giden adres Etkinlikler\'e düşüyor', acilan.at(-1) === 'http
 olay.push(ev({ data: { json: () => { throw new Error('bozuk'); }, text: () => 'düz metin' } }));
 await Promise.all(bekleyen);
 bekle('bozuk yükte yine bildirim', gosterilen.at(-1)?.b === 'Creatorgraphers' && gosterilen.at(-1)?.o.body === 'düz metin');
+// En sık yol: uygulama açık, pencere öne geliyor ve adrese gidiyor, yeni pencere açılmıyor (kapsam incelemesi)
+const gidilen = [];
+self.clients.matchAll = async () => [{ focus: async () => {}, navigate: async u => { gidilen.push(u); } }];
+const oncekiAcilan = acilan.length;
+olay.notificationclick(ev({ notification: { close() {}, data: { adres: 'sonuc/abc-123' } } }));
+await Promise.all(bekleyen);
+bekle('açık pencere öne geliyor ve adrese gidiyor, yeni pencere yok', gidilen.at(-1) === 'https://creatorgraphers.com/#/sonuc/abc-123' && acilan.length === oncekiAcilan, JSON.stringify(gidilen));
 // Kontrol etmediği pencerede navigate reddedilir (son inceleme #13): dokunuş boşa gitmesin, yeni pencere açılsın
 self.clients.matchAll = async () => [{ focus: async () => {}, navigate: async () => { throw new TypeError('not controlled'); } }];
 olay.notificationclick(ev({ notification: { close() {}, data: { adres: 'oyla' } } }));

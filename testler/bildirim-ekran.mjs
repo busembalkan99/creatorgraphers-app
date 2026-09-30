@@ -14,7 +14,7 @@ async function sayfa(taklit, eposta = 'kurucu@test.local', hazirla = null) {
     window.__pushTaklit = { ios: t.ios, anaEkran: t.anaEkran, iosSurum: t.iosSurum, destek: t.destek,
       get izin() { return durum.izin; },
       izinIste: async () => { durum.izin = t.cevap; return t.cevap; },
-      abonelik: async () => durum.ab,
+      abonelik: async () => { if (t.abonelikHata) throw new Error('taklit'); return durum.ab; },
       aboneOl: async () => (durum.ab = { endpoint: 'https://push.example/cihaz1', p256dh: 'p', auth: 'a' }),
       birak: async () => { durum.ab = null; } };
   }, taklit);
@@ -111,6 +111,21 @@ try {
   await pc.getByRole('button', { name: 'Çıkış yap' }).click(); await pc.waitForTimeout(1500);
   bekle('silme başarısız olsa da çıkış yapılıyor', (await pc.getByRole('button', { name: 'Google ile giriş yap' }).count()) === 1);
   bekle('silme başarısız olsa da çıkışta cihaz aboneliği bırakılıyor (sunucu satırı 410 ile düşer)', (await pc.evaluate(async () => await window.__pushTaklit.abonelik())) === null);
+  // ---- izin cevapları, durum okunamaması, anahtar çözme (kapsam incelemesi) ----
+  await tumunuSil();
+  const pRed = await sayfa({ ...TAM, cevap: 'denied' });
+  await pRed.getByRole('button', { name: 'Bildirimleri aç' }).click(); await pRed.waitForTimeout(800);
+  bekle('izin reddedilince kart kalkıyor, abonelik yok', (await pRed.locator('.bildirim-karti').count()) === 0
+    && ((await admin.from('bildirim_abonelikleri').select('id')).data ?? []).length === 0);
+  const pKapat = await sayfa({ ...TAM, cevap: 'default' });
+  await pKapat.getByRole('button', { name: 'Bildirimleri aç' }).click(); await pKapat.waitForTimeout(800);
+  bekle('izin sorusu kapatılınca kart duruyor, abonelik yok', (await pKapat.locator('.bildirim-karti').count()) === 1
+    && ((await admin.from('bildirim_abonelikleri').select('id')).data ?? []).length === 0);
+  const pOkunmaz = await sayfa({ ...TAM, izin: 'granted', abonelikHata: true });
+  bekle('cihaz durumu okunamazsa kart görünmüyor (sayfa hatası yok, aşağıda)', (await pOkunmaz.locator('.bildirim-karti').count()) === 0);
+  const anahtar = await pKapat.evaluate(async () => { const m = await import('/src/lib/bildirim.ts');
+    const b = m.bayt('BBpoNVYuzsUPSEiFjilMY-t0sCUHbCafGQ6Rs8LNfmB0YaNMnHkgCG2Aaw2TkbM-66if9v3gWF5WZOXjgGbz7PI'); return [b.length, b[0]]; });
+  bekle('VAPID açık anahtarı çözülüyor: 65 bayt, 0x04 ile başlıyor', anahtar[0] === 65 && anahtar[1] === 4, JSON.stringify(anahtar));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

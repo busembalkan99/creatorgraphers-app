@@ -58,6 +58,14 @@ try {
   // Çıkışta önbellek temizleniyor: başka biri girince önceki kişinin adresleri kalmıyor
   const bos = await p.evaluate(async () => { const m = await import('/src/lib/imza.ts'); await window.__sb.auth.signOut(); await new Promise(r => setTimeout(r, 200)); return m.onbellekBoyu(); }).catch(x => `hata: ${x.message}`);
   bekle('çıkışta imza önbelleği boşalıyor', bos === 0, String(bos));
+  // Aynı anda iki ekran aynı kareyi isterse tek imza isteği gidiyor (kapsam incelemesi)
+  const yolD = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
+  await admin.storage.from('kareler').upload(yolD, jpeg, { contentType: 'image/jpeg' });
+  let esZaman = 0; const say = r => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/sign/')) esZaman++; };
+  p.on('request', say);
+  await p.evaluate(async y => { const m = await import('/src/lib/imza.ts'); await Promise.all([m.imzala([y]), m.imzala([y]), m.imzala([y])]); }, yolD);
+  p.off('request', say);
+  bekle('aynı anda üç istek tek imzaya iniyor', esZaman === 1, `${esZaman} istek`);
   // ---- hata yolları (kapsam incelemesi) ----
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
   // Tam boy önbellekteyken önizleme isteği geçici hata verirse kare "önizlemesiz" sayılmıyor (kapsam incelemesi)
@@ -87,4 +95,23 @@ try {
   bekle('çıkıştan önce başlayan imza isteği önbelleğe yazmıyor', boy === 0, String(boy));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
+
+// Süre dolmadan yenileme: 6 saatlik adres son yarım saatinde yeniden imzalanıyor (sahte saatle)
+{
+  const b2 = await webkit.launch();
+  const ctx = await b2.newContext({ ...devices['iPhone 14'] });
+  const p = await ctx.newPage();
+  await p.clock.install();
+  await p.goto(APP); await p.waitForFunction(() => window.__sb, null, { timeout: 20000 });
+  await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
+  let n = 0; p.on('request', r => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/sign/')) n++; });
+  const imzala = () => p.evaluate(async y => (await (await import('/src/lib/imza.ts')).imzala([y]))[0].signedUrl, kareYollari[0]);
+  const u1 = await imzala();
+  await p.clock.fastForward('05:20:00'); const u2 = await imzala();
+  bekle('süresi dolmaya yarım saatten çok varken aynı adres, yeni istek yok', n === 1 && u1 === u2, `${n} istek`);
+  await p.clock.fastForward('00:20:00'); const u3 = await imzala();
+  // Sunucu gerçek saatle imzalıyor; aynı saniyede aynı adresi dönebilir, ölçü istek sayısı
+  bekle('son yarım saatte yeniden imzalanıyor', n === 2 && !!u3, `${n} istek`);
+  await b2.close();
+}
 rapor();

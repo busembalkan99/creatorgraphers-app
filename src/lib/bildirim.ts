@@ -12,7 +12,8 @@ const ACIK = import.meta.env.VITE_VAPID_ACIK as string | undefined
 /** Aç/kapat sonrası: aynı ekrandaki başka parçalar (bekleme metni) durumu yeniden okusun */
 export const DEGISTI = 'bildirim-degisti'
 
-const bayt = (s: string) => {
+/** VAPID açık anahtarı (base64url) → bayt; test için dışa açık */
+export const bayt = (s: string) => {
   const b = atob((s + '='.repeat((4 - (s.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/'))
   return Uint8Array.from(b, c => c.charCodeAt(0))
 }

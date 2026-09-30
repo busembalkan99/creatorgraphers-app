@@ -7,6 +7,7 @@ import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
+import { ac, cikisYap, durum, hizliDurum, kapat, type BildirimDurumu } from '../lib/bildirim'
 
 /**
  * Profil (kararlar 56, 57, 58, 69, 83).
@@ -226,6 +227,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
           <span className={`box ${uye.afis_izni ? 'on' : ''}`} />
           <span><b>Kulüp afişi</b><span>Kazanırsam karem kulüp afişinde kullanılabilir.</span></span>
         </button>
+        <BildirimAyari />
       </div>
 
       {yonetici && (
@@ -271,7 +273,7 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
 
       <Hata metin={hata} />
       <div className="bosluk" />
-      <button className="btn ik" onClick={() => sb.auth.signOut()}>Çıkış yap</button>
+      <button className="btn ik" onClick={() => cikisYap()}>Çıkış yap</button>
     </>
   )
 }
@@ -323,5 +325,23 @@ function KisiselSayilar({ ortalama, uyeId }: { ortalama: number | null; uyeId: s
       {tahmin && <div className={yeni ? 'belir' : undefined}><b>{t!.bilen}/{t!.toplam}</b><span>Tahminde bildin</span></div>}
       <p>{n === 2 ? 'Bu ikisini yalnız sen görüyorsun.' : 'Bunu yalnız sen görüyorsun.'}</p>
     </div>
+  )
+}
+
+/** Bildirimler (karar 120): tek anahtar, bu cihaz için. Açılamıyorsa nedenini söylüyor. */
+function BildirimAyari() {
+  // İzin verilmişse abonelik sorulana kadar kapalı görünür; satır ilk karede yerinde, altı kaymıyor
+  const [d, setD] = useState<BildirimDurumu>(() => hizliDurum() ?? 'acilabilir')
+  useEffect(() => { durum().then(setD).catch(() => setD('desteklenmiyor')) }, [])
+  const acik = d === 'acik', degisebilir = d === 'acik' || d === 'acilabilir'
+  const not = { acik: 'Aşamalar, hatırlatmalar ve yeni etkinlikler.', acilabilir: 'Aşamalar, hatırlatmalar ve yeni etkinlikler.',
+    'ana-ekran-gerek': 'Paylaş → Ana Ekrana Ekle, sonra uygulamayı oradan aç.', 'izin-yok': 'Bildirimlere telefonun ayarlarından izin ver.',
+    desteklenmiyor: 'Bu telefonda bildirim desteklenmiyor.' }[d]
+  return (
+    <button className="izin" aria-pressed={acik} disabled={!degisebilir}
+      onClick={async () => { if (acik) { await kapat(); setD(await durum()) } else setD(await ac().catch(() => 'acilabilir' as const)) }}>
+      <span className={`box ${acik ? 'on' : ''}`} />
+      <span><b>Bildirimler</b><span>{not}</span></span>
+    </button>
   )
 }

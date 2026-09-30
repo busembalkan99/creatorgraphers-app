@@ -13,6 +13,7 @@ export function Asama() {
   const [sayilar, setSayilar] = useState<Record<string, number>>({})
   const [hata, setHata] = useState<string | null>(null)
   const [soru, setSoru] = useState<'oylama' | 'iptal' | null>(null)
+  const [bildirimSayisi, setBildirimSayisi] = useState<{ acik: number; toplam: number } | null>(null)
   const [kopyalandi, setKopyalandi] = useState(false)
   // Yoklama bölümü kare çıkarınca çıkarılanlar listesi de tazelensin
   const [surum, setSurum] = useState(0)
@@ -36,6 +37,14 @@ export function Asama() {
 
   useEffect(() => {
     yukle().catch(x => setHata(hataMetni(x)))
+  }, [])
+
+  // Sayı okunamazsa satır görünmüyor; mesaj asıl iş
+  useEffect(() => {
+    sb.rpc('bildirim_acik_sayisi').then(({ data }) => {
+      const s = ((data ?? []) as { acik: number; toplam: number }[])[0]
+      if (s && Number(s.toplam) > 0) setBildirimSayisi({ acik: Number(s.acik), toplam: Number(s.toplam) })
+    })
   }, [])
 
   async function cagir(fn: string, args: Record<string, unknown>) {
@@ -137,6 +146,8 @@ export function Asama() {
         </button>
       </div>
       <p className="veri">Mesajı gruba sen yapıştıracaksın.</p>
+      {/* Karar 120: WhatsApp yedek; kaç kişiye bildirim gidiyor (yalnız sayı) */}
+      {bildirimSayisi && <p className="veri">Bildirim açık: <b>{bildirimSayisi.acik} / {bildirimSayisi.toplam}</b> üye</p>}
 
       <Hata metin={hata} />
 

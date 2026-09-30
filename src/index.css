@@ -979,3 +979,9 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 .vt.yer-kart{height:231px;cursor:default}
 .katildigin.yer-kart{height:88px;background:var(--kart);cursor:default}
 .belir{animation:belir .18s cubic-bezier(.32,.72,0,1)}
+
+/* Bildirim davet kartı (karar 120) ve tema önerisi kartı (karar 121) */
+.bildirim-karti,.oneri-karti{padding:14px 16px;display:flex;flex-direction:column;gap:4px;margin-top:var(--s-ic)}
+.bildirim-karti b,.oneri-karti b{font-size:12.5px;font-weight:900;text-transform:uppercase}
+.bildirim-karti span,.oneri-karti span{font-size:11px;color:var(--soft);line-height:1.5}
+.bildirim-karti .akt,.oneri-karti .akt{margin-top:10px}

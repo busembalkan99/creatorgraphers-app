@@ -4,6 +4,8 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Istek } from '../lib/tipler'
 import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
+import { BildirimKarti } from '../bilesenler/BildirimKarti'
+import { cikisYap, durum, hizliDurum } from '../lib/bildirim'
 
 /**
  * Giriş (karar 95). Prototip: prototype/creatorgraphers/2026-09-17_v23-giris.html
@@ -22,7 +24,7 @@ export async function googleIleGir() {
 }
 
 async function baskaHesap() {
-  await sb.auth.signOut()
+  await cikisYap()
   await googleIleGir()
 }
 
@@ -65,7 +67,7 @@ export function Cikarildin({ istekBirak }: { istekBirak: () => void }) {
       <p className="lede">Karelerin yerinde duruyor.</p>
       <div className="bosluk" />
       <button className="btn" onClick={istekBirak}>İstek bırak</button>
-      <button className="btn ik" onClick={() => sb.auth.signOut()}>Çıkış yap</button>
+      <button className="btn ik" onClick={() => cikisYap()}>Çıkış yap</button>
     </div>
   )
 }
@@ -156,8 +158,9 @@ export function UyeDegil({ kullanici, uyeOldu, cikarildi }:
           <h2 className="t">İsteğin<br />yöneticide</h2>
           <div className="kart kutu">
             <div className="bas"><Ikon ad="saat" /><span>Onay bekleniyor</span></div>
-            <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
+            <BeklemeNotu />
           </div>
+          <BildirimKarti bekleme />
           <h2 className="kart-bas">Gönderdiğin</h2>
           <Ozet istek={d.istek} />
           <div className="bosluk" />
@@ -301,4 +304,14 @@ export function Hosgeldin({ ad, devam }: { ad: string; devam: () => void }) {
       <button className="btn" onClick={devam}>Etkinliklere geç</button>
     </div>
   )
+}
+
+/** Bekleme ekranı metni bildirime göre (karar 120): açılabiliyorsa "bildirim gelir", açılamıyorsa gruba yaz. */
+function BeklemeNotu() {
+  const ilk = hizliDurum()
+  const [gelir, setGelir] = useState(ilk === null || ilk === 'acilabilir')
+  useEffect(() => { durum().then(d => setGelir(d === 'acik' || d === 'acilabilir')).catch(() => {}) }, [])
+  return gelir
+    ? <p>Onaylanınca bildirim gelir. Acelen varsa gruptan yaz.</p>
+    : <p>Onaylanınca içeri girersin. Bildirim gitmiyor, acelen varsa gruptan yaz.</p>
 }

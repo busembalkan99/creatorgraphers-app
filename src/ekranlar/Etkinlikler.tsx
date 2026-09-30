@@ -8,6 +8,7 @@ import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { izlenmemisWrapped, wrappedGerekirseAc } from './Wrapped'
+import { BildirimKarti } from '../bilesenler/BildirimKarti'
 
 /**
  * Ana ekran: etkinlikler arşivi (karar 44). Prototip: v16.
@@ -140,6 +141,9 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
           {yonetici && <button className="btn" onClick={() => git('kur')}>Etkinliği kur</button>}
         </div>
       )}
+
+      {/* Bildirimler (karar 120): bir kez çıkan davet, canlı / sıradaki kartın altında */}
+      <BildirimKarti />
 
       {/* Boş günler: son etkinliğin birincileri ve kişinin katıldığı son etkinlik (Buse, 2026-09-26) */}
       <Vitrin uyeId={uye.id} etkinlikler={v.etkinlikler} temalar={v.temalar} benimTemalarim={v.benimTemalarim} />

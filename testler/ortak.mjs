@@ -21,6 +21,10 @@ export async function kullanici(eposta, ad) {
 }
 export async function sifirla() {
   // test verisini temizle (servis anahtarıyla)
+  // Bildirim ve tema önerisi tabloları (0019): kullanıcılar test başına yeniden kullanıldığı için elle
+  await admin.from('bildirim_kuyrugu').delete().neq('id', -1);
+  for (const t of ['bildirim_abonelikleri', 'tema_onerileri'])
+    await admin.from(t).delete().neq('id', '00000000-0000-0000-0000-000000000000');
   for (const t of ['kareler', 'temalar', 'etkinlikler', 'istekler', 'uyeler'])
     await admin.from(t).delete().neq('id', '00000000-0000-0000-0000-000000000000');
   const { data: o } = await admin.storage.from('kareler').list('', { limit: 1000 });

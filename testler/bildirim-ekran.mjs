@@ -7,7 +7,7 @@ await sifirla();
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya'); await A.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
 await admin.from('uyeler').update({ hosgeldin_goruldu: true }).eq('id', A.id);
 const b = await webkit.launch(); const hatalar = [];
-async function sayfa(taklit, eposta = 'kurucu@test.local') {
+async function sayfa(taklit, eposta = 'kurucu@test.local', hazirla = null) {
   const ctx = await b.newContext({ ...devices['iPhone 14'] });
   await ctx.addInitScript(t => {
     const durum = { izin: t.izin, ab: t.abone ? { endpoint: 'https://push.example/cihaz1', p256dh: 'p', auth: 'a' } : null };
@@ -19,6 +19,7 @@ async function sayfa(taklit, eposta = 'kurucu@test.local') {
       birak: async () => { durum.ab = null; } };
   }, taklit);
   const p = await ctx.newPage(); p.on('pageerror', e => hatalar.push(String(e)));
+  if (hazirla) await hazirla(p);   // ağ taklitleri sayfa açılmadan (reload uçuştaki isteği kesip sayfa hatası üretiyordu)
   await p.goto(APP); await p.waitForFunction(() => window.__sb, null, { timeout: 20000 });
   await p.evaluate(async e => { const r = await window.__sb.auth.signInWithPassword({ email: e, password: 'test-sifre-1' }); if (r.error) throw r.error; }, eposta);
   await p.goto(APP + '#/etkinlikler'); await p.reload(); await p.waitForTimeout(2500);
@@ -96,9 +97,7 @@ try {
     && ((await admin.from('bildirim_abonelikleri').select('id')).data ?? []).length === 0);
   // Ağ hatasında başkasına bağlı sanılıp cihaz aboneliği bırakılmıyor
   await G.c.rpc('bildirim_abone_ol', { p_endpoint: 'https://push.example/cihaz1', p_p256dh: 'p', p_auth: 'a' });
-  const pn = await sayfa({ ...TAM, izin: 'granted', abone: true });
-  await pn.route('**/rpc/bildirim_aboneligim_var', r => r.abort());
-  await pn.reload(); await pn.waitForTimeout(2000);
+  const pn = await sayfa({ ...TAM, izin: 'granted', abone: true }, undefined, p => p.route('**/rpc/bildirim_aboneligim_var', r => r.abort()));
   bekle('ağ hatasında cihaz aboneliğine dokunulmuyor', (await pn.evaluate(async () => await window.__pushTaklit.abonelik())) !== null);
   // Anahtarı kapatırken silme başarısızsa açık kalıyor; çıkış yine de oluyor
   await tumunuSil();

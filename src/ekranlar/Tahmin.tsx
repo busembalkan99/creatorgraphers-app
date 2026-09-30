@@ -5,6 +5,7 @@ import { asama, kalanYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Ikon } from '../bilesenler/Ikon'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
+import { imzala as adresler } from '../lib/imza'
 
 /**
  * Tahmin oyunu (karar 76, 106, 107: adaylar her soruda kare veren herkes). Prototip: prototype/creatorgraphers/2026-09-12_v18-tahmin-oyunu.html
@@ -26,7 +27,7 @@ type SonucSatir = {
 const iki = (n: number) => String(n).padStart(2, '0')
 
 async function imzala<T extends { dosya: string }>(l: T[]): Promise<(T & { url: string | null })[]> {
-  const imza = l.length ? (await sb.storage.from('kareler').createSignedUrls(l.map(x => x.dosya), 3600)).data ?? [] : []
+  const imza = l.length ? await adresler(l.map(x => x.dosya)) : []
   return l.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null }))
 }
 

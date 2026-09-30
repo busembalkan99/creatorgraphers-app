@@ -5,6 +5,7 @@ import { ayAdi } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { DUZENLER, fontlarHazir, kartBasligi, kartCiz, type Duzen, type KartVeri } from '../lib/paylasimKarti'
+import { imzala } from '../lib/imza'
 
 /**
  * Paylaşım kartı seçim ekranı (karar 104, B): dört düzen, tek kart ortada, yanlara kaydırmalı.
@@ -64,7 +65,7 @@ export function Paylas({ etkinlikId }: { etkinlikId: string }) {
       const ortak = k.sira === 1 && kareler.filter(x => x.tema === k.tema && x.sirali && x.sira === 1 && !x.cikarildi).length > 1
       const serit = ((sr.data ?? []) as { dosya: string }[]).map(x => x.dosya)
       const yollar = [k.dosya, ...serit]
-      const imza = (await sb.storage.from('kareler').createSignedUrls(yollar, 3600)).data ?? []
+      const imza = await imzala(yollar)
       const [foto, ...seritResim] = await Promise.all(yollar.map((_, j) => resimYukle(imza[j]?.signedUrl ?? null)))
       await fontlarHazir()
       const v: KartVeri = {

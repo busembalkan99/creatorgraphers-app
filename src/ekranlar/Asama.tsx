@@ -5,6 +5,7 @@ import { asama, ayAdi, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
+import { imzala } from '../lib/imza'
 
 /** Aşama kontrolü (karar 26, 35, 89). Prototip: v21 "Aşama kontrolü". */
 export function Asama() {
@@ -355,7 +356,7 @@ function Cikarilanlar({ e, surum, degisti }: { e: Etkinlik; surum: number; degis
     const { data, error } = await sor(sb.rpc('cikarilan_kareler', { p_etkinlik: e.id }))
     if (error) throw error
     const l = (data ?? []) as { id: string; tema_ad: string; dosya: string; neden: string }[]
-    const imza = l.length ? (await sb.storage.from('kareler').createSignedUrls(l.map(x => x.dosya), 3600)).data ?? [] : []
+    const imza = l.length ? await imzala(l.map(x => x.dosya)) : []
     setListe(l.map((x, i) => ({ ...x, url: imza[i]?.signedUrl ?? null })))
   }
   useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [e.id, surum]) // eslint-disable-line react-hooks/exhaustive-deps

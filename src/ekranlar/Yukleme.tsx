@@ -7,6 +7,7 @@ import { Ikon } from '../bilesenler/Ikon'
 import { geriGit } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
+import { imzala } from '../lib/imza'
 
 /**
  * Kare yükleme, kontakt baskı (kararlar 3, 29, 41, 92, 93, 94).
@@ -76,7 +77,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       setGelmedi(gelmedi_)
       setCikan(cikan_)
       const imzalar = kareler.length
-        ? (await sb.storage.from('kareler').createSignedUrls(kareler.map(k => k.dosya), 3600)).data ?? []
+        ? await imzala(kareler.map(k => k.dosya))
         : []
       const yeni: Record<string, TemaDurumu> = {}
       for (const t of temaList) yeni[t.id] = bosDurum()
@@ -133,7 +134,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       }
       const hazir = await kucult(dosya)
       const yol = `${e.id}/${tema.id}/${crypto.randomUUID()}.jpg`
-      const yuk = await sb.storage.from('kareler').upload(yol, hazir.blob, { contentType: 'image/jpeg', upsert: false })
+      const yuk = await sb.storage.from('kareler').upload(yol, hazir.blob, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })   // dosya adı tekil: bir yıl önbellekte (egress, 2026-09-30)
       if (yuk.error) throw yuk.error
       const satir = { tema: tema.id, sahip: uye.id, dosya: yol, genislik: hazir.genislik, yukseklik: hazir.yukseklik, ...bilgi }
       const kayit = onceki

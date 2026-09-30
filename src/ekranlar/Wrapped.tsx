@@ -5,6 +5,7 @@ import type { Etkinlik } from '../lib/tipler'
 import { ayAdi } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { paylasilacakKare } from './Paylas'
+import { imzala } from '../lib/imza'
 
 /**
  * Wrapped: sonuç açılışı (karar 39). Spec: ideations/creatorgraphers/2026-09-20_wrapped-spec.md
@@ -101,7 +102,7 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
       const kareler = (sk.data ?? []) as SK[]
       // Fotoğraflar önce: kazananlar, kürsü ve kişinin kendi kareleri
       const gerek = kareler.filter(k => k.benim || (k.sira != null && k.sira <= 3 && !k.cikarildi))
-      const imza = gerek.length ? (await sb.storage.from('kareler').createSignedUrls(gerek.map(k => k.dosya), 3600)).data ?? [] : []
+      const imza = gerek.length ? await imzala(gerek.map(k => k.dosya)) : []
       const url = new Map(gerek.map((k, j) => [k.id, imza[j]?.signedUrl ?? null]))
       await Promise.race([
         Promise.all([...url.values()].filter(Boolean).map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u! }))),

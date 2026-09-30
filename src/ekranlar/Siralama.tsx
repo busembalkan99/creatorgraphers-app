@@ -5,6 +5,7 @@ import { Ikon } from '../bilesenler/Ikon'
 import { git } from '../lib/yol'
 import { bellegeYaz, bellektenAl } from '../lib/onbellek'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
+import { imzala } from '../lib/imza'
 
 /**
  * Sıralama sekmesi (kararlar 51, 52, 53, 54, 55, 62).
@@ -41,7 +42,7 @@ export async function siralamaVerisi() {
   const serbest = sr.error ? [] : ((sr.data ?? []) as Satir[])
   const yollar = [...liste, ...serbest].map(x => x.dosya).filter((x): x is string => !!x)
   const imza = yollar.length
-    ? (await sor(sb.storage.from('kareler').createSignedUrls(yollar, 3600))).data ?? []
+    ? await sor(imzala(yollar))
     : []
   const url = new Map(yollar.map((y, i) => [y, imza[i]?.signedUrl ?? null]))
   return {

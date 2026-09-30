@@ -9,6 +9,7 @@ import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 import type { TahminDurumu } from './Tahmin'
+import { imzala } from '../lib/imza'
 
 /**
  * Oylama (kararlar 5, 6, 7, 9, 20, 24, 37, 42, 48, 94).
@@ -181,7 +182,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
       const t = durum.find(x => x.tema === temaId) ?? null
       const benim = hepsi.filter(k => k.tema === temaId)
       const imza = benim.length
-        ? (await sb.storage.from('kareler').createSignedUrls(benim.map(k => k.dosya), 3600)).data ?? []
+        ? await imzala(benim.map(k => k.dosya))
         : []
       const td = ((await sb.rpc('tahmin_durumu', { p_etkinlik: ev.id })).data ?? []) as { basladi: boolean }[]
       setKilitli(!!td[0]?.basladi)

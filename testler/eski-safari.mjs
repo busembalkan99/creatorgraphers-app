@@ -52,11 +52,16 @@ try {
   await yukle('donuk');
   const k2 = (await admin.from('kareler').select('genislik, yukseklik').eq('tema', temalar[1].id).eq('sahip', A.id)).data ?? [];
   bekle('eski Safari: çevirme bilgili kare dikey yüklendi (800x1200)', k2.length === 1 && k2[0].genislik === 800 && k2[0].yukseklik === 1200, JSON.stringify(k2));
-  // Üçüncü tema: telefonun tam boy, çevirme bilgili karesi (4032x3024, 90°) 3000'e küçülüp dikey kalıyor
+  // Üçüncü tema: telefonun tam boy, çevirme bilgili karesi (4032x3024, 90°) 2400'e küçülüp dikey kalıyor (Buse, 2026-09-30: egress)
   await p.locator('.kontakt .k').nth(2).click(); await p.waitForTimeout(400);
   await yukle('buyuk');
   const k3 = (await admin.from('kareler').select('genislik, yukseklik').eq('tema', temalar[2].id).eq('sahip', A.id)).data ?? [];
-  bekle('eski Safari: tam boy çevrik kare 2250x3000 yüklendi', k3.length === 1 && k3[0].genislik === 2250 && k3[0].yukseklik === 3000, JSON.stringify(k3));
+  bekle('eski Safari: tam boy çevrik kare 1800x2400 yüklendi', k3.length === 1 && k3[0].genislik === 1800 && k3[0].yukseklik === 2400, JSON.stringify(k3));
+  // Dosya adları tekil: tarayıcı bir yıl önbellekte tutabilir (egress, 2026-09-30)
+  const d3 = (await admin.from('kareler').select('dosya').eq('tema', temalar[2].id).eq('sahip', A.id).single()).data?.dosya ?? '';
+  const klasor = d3.split('/').slice(0, -1).join('/'), ad = d3.split('/').pop();
+  const meta = ((await admin.storage.from('kareler').list(klasor, { search: ad })).data ?? [])[0]?.metadata;
+  bekle('yüklenen kare bir yıl önbellekte tutulabiliyor', meta?.cacheControl === 'max-age=31536000', JSON.stringify(meta));
 
   // Hiçbir yolla çözülemeyen dosya: yine "Bu dosya açılamadı", sayfa kırılmıyor, kare eklenmiyor
   fs.writeFileSync('/tmp/cgapp/bozuk.jpg', Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(4000, 7)]));

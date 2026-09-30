@@ -26,8 +26,9 @@ export interface HazirKare {
   onizleme: string
 }
 
-export const UZUN_KENAR = 3000
-const KALITE = 0.88
+// 2400 px ve 0,85 (Buse, 2026-09-30, egress ve depolama; önceden 3000 px, 0,88)
+export const UZUN_KENAR = 2400
+const KALITE = 0.85
 
 type Ham = Record<string, unknown>
 

@@ -10,6 +10,7 @@ import { CikarPenceresi } from '../bilesenler/Cikar'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { paylasilacakKare } from './Paylas'
 import { TahminBaglantisi, TaninmaSatiri } from './Tahmin'
+import { imzala } from '../lib/imza'
 
 /**
  * Sonuçlar (kararlar 7, 10, 18, 19, 24, 38, 43, 52, 68, 77, 98).
@@ -61,7 +62,7 @@ async function sonucVerisi(etkinlikId: string) {
   if (k.error) throw k.error
   const kareler = (k.data ?? []) as SonucKare[]
   const imza = kareler.length
-    ? (await sor(sb.storage.from('kareler').createSignedUrls(kareler.map(x => x.dosya), 3600))).data ?? []
+    ? await sor(imzala(kareler.map(x => x.dosya)))
     : []
   return {
     etkinlik: (e.data ?? null) as Etkinlik | null,

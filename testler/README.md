@@ -31,6 +31,7 @@ node testler/sw.mjs                           # service worker: bildirimi göste
 node testler/bildirim-ekran.mjs               # bildirim kartı, Ayarlar anahtarı, bekleme ekranı, Aşama sayısı; cihaz durumları taklitle
 node testler/oneri.mjs                        # tema önerisi: 3 sınırı, birleşme, geri çekme, bağlama, iptalde havuza (karar 121)
 node testler/oneri-ekran.mjs                  # tema önerisi ekranları: kart, form, Önerilerin, havuz, Kurulum'da seçim
+node testler/imza.mjs                         # imzalı adresler oturumda yeniden kullanılıyor, çıkışta boşalıyor (egress)
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 

@@ -81,7 +81,8 @@ try {
   bekle('geçici hatada tam boya düşüyor, sonra önizleme geliyor (6 saat işaretlenmiyor)', !!gecici && !gecici.includes('.k.jpg') && !!sonra && sonra.includes('.k.jpg'),
     `${gecici?.split('?')[0].split('/').pop()} → ${sonra?.split('?')[0].split('/').pop()}`);
   let hataSay = 0;
-  await p.route('**/storage/v1/object/sign/**', r => { hataSay++; return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }); });
+  // Yalnız bu testin dosyası sayılıyor: arka planda önceden yüklenen ekranlar da imza istiyor
+  await p.route('**/storage/v1/object/sign/**', r => { if ((r.request().postData() ?? '').includes('yok/1.jpg')) hataSay++; return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }); });
   const r1 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);
   const r2 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);
   bekle('imza hatasında adres null, önbelleğe girmiyor (ikinci çağrı yeniden soruyor)', r1 === null && r2 === null && hataSay === 2, `${hataSay} istek`);

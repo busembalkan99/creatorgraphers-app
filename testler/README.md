@@ -25,6 +25,12 @@ node testler/kazananlar.mjs                   # arşivdeki kazanan adları, Wrap
 node testler/webkit.mjs                       # iPhone motorunda taşma ve üst üste binme (siralama.mjs'den sonra)
 node testler/kart.mjs                         # kart sistemi denetimi, 390 ve 320px (siralama.mjs'den sonra; karar 118, 119)
 node testler/eski-safari.mjs                  # iOS 16 Safari'de kare yükleme (iPhone X): çözme geri yolu, çevirme bilgisi
+node testler/bildirim.mjs                     # bildirimler: abonelik, planlayıcı (aşama, 12/2 saat, gece kuralı), gönderim anı doğrulaması (karar 120)
+node testler/gonderici.mjs                    # Edge Function çekirdeği: gönderme, 404/410'da abonelik silme, deneme sayısı (veritabanı ister)
+node testler/sw.mjs                           # service worker: bildirimi gösterme, dokununca yalnız uygulama içi adres (veritabanı istemez)
+node testler/bildirim-ekran.mjs               # bildirim kartı, Ayarlar anahtarı, bekleme ekranı, Aşama sayısı; cihaz durumları taklitle
+node testler/oneri.mjs                        # tema önerisi: 3 sınırı, birleşme, geri çekme, bağlama, iptalde havuza (karar 121)
+node testler/oneri-ekran.mjs                  # tema önerisi ekranları: kart, form, Önerilerin, havuz, Kurulum'da seçim
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 

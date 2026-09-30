@@ -99,6 +99,43 @@ try {
     return renk(bmp.width / 2, 100) + renk(bmp.width / 2, bmp.height - 100) + renk(100, bmp.height / 2) + renk(bmp.width - 100, bmp.height / 2);
   }, dosya);
   bekle('eski Safari: kare sünmemiş, yönü doğru (üstü kırmızı, altı mavi)', icerik?.slice(0, 2) === 'km', `üst/alt/sol/sağ: ${icerik}`);
+  // ---- ikinci taklit: <img> boyutu HAM (çevrilmemiş) ama drawImage çeviriyor ----
+  // Kullanıcının tarif ettiği "sündürülmüş ama yan yatmamış" görüntü bu durumdan çıkar.
+  await admin.from('kareler').delete().eq('tema', tema.id);
+  const ctx2 = await b.newContext({ ...devices['iPhone 14'] });
+  await ctx2.addInitScript(() => {
+    const asilCib = window.createImageBitmap;
+    window.createImageBitmap = function (k, ...r) {
+      const s = r.length === 1 ? r[0] : r[4];
+      if (s && s.imageOrientation === 'from-image') return Promise.reject(new TypeError('Type error'));
+      return asilCib.call(this, k, ...r);
+    };
+    const exifsiz = u => { let i = 2; while (i < u.length - 4 && u[i] === 0xff) { const m = u[i + 1], l = (u[i + 2] << 8) | u[i + 3]; if (m === 0xe1) return new Uint8Array([...u.subarray(0, i), ...u.subarray(i + 2 + l)]); if (m === 0xda) break; i += 2 + l; } return u; };
+    const asilDecode = HTMLImageElement.prototype.decode;
+    HTMLImageElement.prototype.decode = async function () {
+      await asilDecode.call(this);
+      const ham = await asilCib(new Blob([exifsiz(new Uint8Array(await (await fetch(this.src)).arrayBuffer()))], { type: 'image/jpeg' }));
+      Object.defineProperty(this, 'naturalWidth', { value: ham.width }); Object.defineProperty(this, 'naturalHeight', { value: ham.height });
+    };
+  });
+  const p2 = await ctx2.newPage(); p2.on('pageerror', x => hatalar.push(String(x)));
+  await p2.goto(APP); await p2.waitForFunction(() => window.__sb, null, { timeout: 20000 });
+  await p2.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
+  const taklit2 = await p2.evaluate(async () => (await import('/src/lib/kare.ts')).cizimOlc());
+  bekle('ikinci taklit: boyut ham, çizim çevrilmiş ölçülüyor (kontrol)', !taklit2.dogalYonlu && taklit2.cizimYonlu, JSON.stringify(taklit2));
+  await p2.goto(APP + '#/yukle'); await p2.reload(); await p2.waitForTimeout(2500);
+  await p2.locator('input[type=file]').setInputFiles('/tmp/cgapp/yonlu.jpg'); await p2.waitForTimeout(300);
+  await p2.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {}); await p2.waitForTimeout(1000);
+  const k2 = (await admin.from('kareler').select('dosya, genislik, yukseklik').eq('tema', tema.id).eq('sahip', A.id).maybeSingle()).data;
+  bekle('ikinci taklit: dikey boyutla kaydedildi (800x1200)', k2?.genislik === 800 && k2?.yukseklik === 1200, JSON.stringify(k2));
+  const dosya2 = k2 && Buffer.from(await (await admin.storage.from('kareler').download(k2.dosya)).data.arrayBuffer()).toString('base64');
+  const icerik2 = dosya2 && await pb.evaluate(async s => {
+    const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(s), c => c.charCodeAt(0))], { type: 'image/jpeg' }));
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; c.getContext('2d').drawImage(bmp, 0, 0);
+    const renk = (x, y) => { const d = c.getContext('2d').getImageData(x, y, 1, 1).data; return d[0] > 180 && d[2] < 80 ? 'k' : d[2] > 180 && d[0] < 80 ? 'm' : '?'; };
+    return renk(bmp.width / 2, 100) + renk(bmp.width / 2, bmp.height - 100);
+  }, dosya2);
+  bekle('ikinci taklit: kare sünmemiş, yönü doğru', icerik2 === 'km', String(icerik2));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

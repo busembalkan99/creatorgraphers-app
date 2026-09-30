@@ -1,5 +1,6 @@
 // Başarı seviyeleri (karar 115, 2026-09-30: beş seviye). Veritabanı istemez.
 import { BASARILAR, seviyeBul } from '../src/lib/basarilar.ts';
+import fs from 'node:fs';
 import { bekle, rapor } from './ortak.mjs';
 const tam = BASARILAR.find(b => b.anahtar === 'tam_set_sayisi');
 bekle('dört başarı, sırası sabit', BASARILAR.map(b => b.anahtar).join() === 'tam_set_sayisi,tema_sayisi,sirali_sayisi,birinci_sayisi');
@@ -18,4 +19,5 @@ bekle('Tema Avcısı eşikleri 3 6 12 20 30', BASARILAR[1].esikler.join() === '3
 bekle('Tema Birincisi eşikleri 1 2 4 7 12', BASARILAR[3].esikler.join() === '1,2,4,7,12');
 bekle('Tam Set eşikleri 1 2 4 6 12', tam.esikler.join() === '1,2,4,6,12');
 bekle('sayı metne dönüşüyor (bozuk değer 0)', seviyeBul(tam, '3').seviye === 2 && seviyeBul(tam, null).seviye === 0);
+bekle('her başarının simge dosyası public/rozet altında', BASARILAR.every(b => fs.existsSync(new URL(`../public/rozet/${b.ikon}`, import.meta.url))), BASARILAR.map(b => b.ikon).join());
 rapor();

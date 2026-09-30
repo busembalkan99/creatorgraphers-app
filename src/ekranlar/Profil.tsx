@@ -43,7 +43,7 @@ export async function profilVerisi(hedef: string | undefined) {
     sb.rpc('basarilar', arg),
   ]))
   if (p.error) throw p.error
-  if (b.error) throw b.error
+  // Başarılar okunamazsa yalnız bölüm gizleniyor, profil açılıyor (b.error burada fırlatılmıyor)
   if (k.error) throw k.error
   if (t.error) throw t.error
   const kareler = (k.data ?? []) as ProfilKare[]
@@ -54,7 +54,7 @@ export async function profilVerisi(hedef: string | undefined) {
     kunye: ((p.data ?? [])[0] ?? null) as Kunyem | null,
     kareler: kareler.map((x, i) => ({ ...x, url: imza[i]?.url ?? null })),
     tarif: (t.data ?? []) as Tarif[],
-    basarilar: ((b.data ?? [])[0] ?? null) as BasariSayilari | null,
+    basarilar: b.error ? null : ((b.data ?? [])[0] ?? null) as BasariSayilari | null,
   }
 }
 

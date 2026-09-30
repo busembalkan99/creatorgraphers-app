@@ -40,6 +40,13 @@ const A = await oturum('kurucu@test.local');
   bekle('başarılar: dört satır, sırası sabit', basari.map(b => b.ad).join() === 'Tam Set,Tema Avcısı,Kürsü,Tema Birincisi', JSON.stringify(basari));
   bekle('başarılar: Tam Set kazanıldı', basari[0] && !basari[0].kilitli, JSON.stringify(basari[0]));
   bekle('başarılar: Tema Avcısı 4 tema, sıradaki seviyeye 4 / 6', basari[1] && !basari[1].kilitli && basari[1].metin.includes('4 / 6 tema'), JSON.stringify(basari[1]));
+  bekle('başarılar: rozette seviye yazısı (4 tema → Sv 1)', basari[1]?.metin.includes('Sv 1'), JSON.stringify(basari[1]));
+  // Başarılar sorgusu hata verirse profil çökmüyor, yalnız bölüm gizleniyor (kapsam incelemesi)
+  await A.route('**/rpc/basarilar', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }));
+  await ac(A, 'profil');
+  const th = await yazi(A);
+  bekle('başarılar okunamazsa profil açılıyor, bölüm yok', th.includes('Ayşe Kaya') && !th.includes('Başarılar') && th.includes('Nasıl çekiyorsun'), th.slice(0, 200));
+  await A.unroute('**/rpc/basarilar');
   bekle('kendi profilinde nasıl kazanılacağı yazıyor', t.includes('Bir etkinliğin bütün temalarına kare ver.') && t.includes('Farklı temalarda kare ver.'));
   const yil = Number(new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }).slice(0, 4));
   bekle(`katılım satırı doğru ekle: ${yil}'${sayiEki(yil % 100)}n beri`, t.includes(`${yil}'${sayiEki(yil % 100)}n beri`), t.slice(0, 120));

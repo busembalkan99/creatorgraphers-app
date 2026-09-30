@@ -34,6 +34,9 @@ node testler/oneri-ekran.mjs                  # tema önerisi ekranları: kart, 
 node testler/imza.mjs                         # imzalı adresler oturumda yeniden kullanılıyor, çıkışta boşalıyor (egress)
 node testler/onizleme.mjs                     # önizleme kopyası depo kuralları: toplu çıkarılanın önizlemesi oylamada gizli (0020)
 node testler/onizleme-yukle.mjs               # yüklemede 720 px önizleme, değiştirince/kaldırınca iki dosya da gidiyor
+node testler/yon.mjs                          # eski Safari: çevirme ölçümü ve elle çevirme; dikey kare dosyaya ezik kaydedilmiyor
+node testler/oran.mjs                         # her ekranda kareler beş boyutta oranı bozulmadan çiziliyor (Oylama basıklığı, 2026-09-30)
+node testler/onar.mjs                         # scripts/onar-sunmus.mjs onarım betiği, yerel veritabanında
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına
 ```
 

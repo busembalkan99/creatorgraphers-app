@@ -38,10 +38,16 @@ export async function kartDenetle(p, ad, bekle) {
       ...[...document.querySelectorAll('.kursu figure, .izgara figure, .grid figure, .odul .kazanan, .vitrin .vt')].filter(e => !e.querySelector('.buyut')).map(() => 'kare'),
       ...[...document.querySelectorAll('.isimler button > span')].filter(e => getComputedStyle(e).backgroundColor === 'rgba(0, 0, 0, 0)').map(() => 'isim'),
     ];
+    // Açıklama satırının hemen altından kart/liste yapışmasın (Buse, 2026-09-30: tema havuzu).
+    // kart-not hariç: bölüm başlığının notu, kartla arası 10px bilerek.
+    const yapisik = [...document.querySelectorAll('.sc > .lede, .sc > p:not(.kart-not), .sc > .veri')].map(m => {
+      let n = m.nextElementSibling; while (n && !n.getBoundingClientRect().height) n = n.nextElementSibling;
+      return n && n.matches('.kart, .satir-kartlari, .bos-kart') ? { m: m.className || m.tagName, n: n.className, g: Math.round(n.getBoundingClientRect().top - m.getBoundingClientRect().bottom) } : null;
+    }).filter(x => x && x.g < 16);
     const dugme = [...document.querySelectorAll('.sc .btn, .sc .secim button, .sc .rolakt button')].filter(d => px(getComputedStyle(d).borderTopLeftRadius) !== 6).length;
       // Kendi adının çipi ince (en çok 24px), dokunma alanı düğmede (en az 44px)
       const cip = [...document.querySelectorAll('.isimler .me')].map(c => ({ c: Math.round(c.getBoundingClientRect().height), d: Math.round(c.closest('button').getBoundingClientRect().height) }));
-      return { sayi: kartlar.length, ipucusuz: [...new Set(ipucusuz)], sikisik: sikisik.slice(0, 3), solukBaslik, girinti: girinti.slice(0, 3), basliksiz, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip };
+      return { sayi: kartlar.length, ipucusuz: [...new Set(ipucusuz)], sikisik: sikisik.slice(0, 3), solukBaslik, girinti: girinti.slice(0, 3), basliksiz, kesik: kesik.slice(0, 4), ayrac: [...new Set(ayrac)].slice(0, 4), koseHatali, bosluk, foto, kalin: kalin.slice(0, 4), tasma: tasma.slice(0, 4), dugme, cip, yapisik };
     });
     bekle(`${ad}: kart var (kontrol)`, r.sayi > 0, String(r.sayi));
     bekle(`${ad}: bütün kart köşeleri 8px`, r.koseHatali.length === 0, r.koseHatali.join(' | '));
@@ -56,6 +62,7 @@ export async function kartDenetle(p, ad, bekle) {
   bekle(`${ad}: bölüm başlığı ana renkte, sayacı soluk`, r.solukBaslik === 0, String(r.solukBaslik));
   bekle(`${ad}: açılan her şey ipucunu taşıyor (satırda eylem ya da ok, karede işaret, isimde çip)`, r.ipucusuz.length === 0, r.ipucusuz.join(' | '));
   bekle(`${ad}: kart içeriği taşmıyor`, r.tasma.length === 0, r.tasma.join(' | '));
+  bekle(`${ad}: açıklama satırıyla kart arasında boşluk var (en az 16px)`, r.yapisik.length === 0, JSON.stringify(r.yapisik));
     bekle(`${ad}: düğme köşeleri 6px`, r.dugme === 0, String(r.dugme));
     bekle(`${ad}: kendi adının çipi ince, dokunma alanı 44px`, r.cip.every(x => x.c <= 24 && x.d >= 44), JSON.stringify(r.cip));
 }

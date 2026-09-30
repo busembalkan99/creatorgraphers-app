@@ -133,6 +133,8 @@ export function Havuz({ secim }: { secim?: { secili: string[]; sec(o: { id: stri
       <h2 className="t orta">Tema<br />havuzu</h2>
       <p className="lede">Etkinlik kurarken buradan seçersin. Önerenlerin adını yalnız yöneticiler görüyor.</p>
       <Hata metin={hata} />
+      {/* Büyük başlık → açıklama → bölüm başlığı → kartlar (karar 119); başlıksız liste açıklamaya yapışıyordu */}
+      {l && <h2 className="kart-bas">Öneriler<span>{l.length} öneri</span></h2>}
       {l && !l.length && <div className="kart bos-kart"><b>Havuz boş</b><span>Üyeler tema önerince burada görünür.</span></div>}
       {l && l.length > 0 && (
         <div className="satir-kartlari">

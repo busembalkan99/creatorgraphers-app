@@ -10,6 +10,8 @@ const SURE = 6 * 3600
 const PAY = 30 * 60 * 1000
 const bellek = new Map<string, { url: string; bitis: number }>()
 const ucusta = new Map<string, Promise<void>>()
+// Çıkışta artıyor: çıkıştan önce başlayıp sonra dönen istek önbelleğe yazmasın
+let nesil = 0
 
 export async function imzala(yollar: string[]): Promise<{ signedUrl: string | null }[]> {
   const simdi = Date.now()
@@ -18,9 +20,10 @@ export async function imzala(yollar: string[]): Promise<{ signedUrl: string | nu
     return !(b && b.bitis - simdi > PAY) && !ucusta.has(y)
   })
   if (eksik.length) {
+    const benimNesil = nesil
     const istek = (async () => {
       const { data, error } = await sb.storage.from('kareler').createSignedUrls(eksik, SURE)
-      if (error) return
+      if (error || benimNesil !== nesil) return
       const bitis = Date.now() + SURE * 1000
       ;(data ?? []).forEach((d, i) => { if (d.signedUrl) bellek.set(eksik[i], { url: d.signedUrl, bitis }) })
     })().catch(() => {}).finally(() => eksik.forEach(y => ucusta.delete(y)))
@@ -34,4 +37,4 @@ export async function imzala(yollar: string[]): Promise<{ signedUrl: string | nu
 export const onbellekBoyu = () => bellek.size
 
 // Başka biri girince öncekinin adresleri kalmasın
-sb.auth.onAuthStateChange(olay => { if (olay === 'SIGNED_OUT') bellek.clear() })
+sb.auth.onAuthStateChange(olay => { if (olay === 'SIGNED_OUT') { nesil++; bellek.clear() } })

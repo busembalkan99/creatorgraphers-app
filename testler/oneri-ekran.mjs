@@ -29,6 +29,10 @@ try {
   for (const ad of ['Eller', 'Su']) await B.c.rpc('oneri_birak', { p_ad: ad });
   await p.reload(); await p.waitForTimeout(2000);
   bekle('3 öneride düğme yerine not', (await p.getByRole('button', { name: 'Tema öner' }).count()) === 0 && /Üç önerin havuzda/.test(await yazi(p, '.oneri-karti')));
+  // Adrese doğrudan gidip 4. öneriyi bırakmaya çalışınca form sınırı söylüyor (kapsam incelemesi)
+  await p.goto(APP + '#/oner'); await p.waitForTimeout(800);
+  await p.locator('#oneri-ad').fill('Rüzgar'); await p.getByRole('button', { name: 'Öneriyi bırak' }).click(); await p.waitForTimeout(1200);
+  bekle('4. öneride form sınırı söylüyor, formda kalıyor', /Üç önerin havuzda\. Birini geri çekince/.test(await yazi(p, '.sc')) && (await p.evaluate(() => location.hash)) === '#/oner', await yazi(p, '.sc'));
   await p.goto(APP + '#/profil'); await p.waitForTimeout(1500);
   await p.locator('.onerilerim .satir', { hasText: 'Su' }).getByRole('button', { name: 'Geri çek' }).click(); await p.waitForTimeout(1200);
   bekle('geri çekince listeden gitti', !/\bSu\b/.test(await yazi(p, '.onerilerim')));
@@ -61,6 +65,14 @@ try {
   await p.locator('.tabs button', { hasText: 'Etkinlikler' }).click(); await p.waitForTimeout(800);
   await p.locator('.tabs button', { hasText: 'Profil' }).click(); await p.waitForTimeout(2000);
   bekle('öneren Profil\'de "Seçildi"', /Seçildi/.test(await yazi(p, '.onerilerim')));
+  // Kurulumda öneri bağlanamazsa sessiz kalmıyor (kapsam incelemesi)
+  await admin.from('etkinlikler').update({ iptal: true }).neq('id', '00000000-0000-0000-0000-000000000000');
+  await q.goto(APP + '#/kur'); await q.reload(); await q.waitForTimeout(2000);
+  await q.route('**/rpc/onerileri_bagla', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }));
+  await q.locator('.havuz-sec .izin', { hasText: 'Gece' }).click(); await q.waitForTimeout(300);
+  await q.locator('#yb').fill(new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 16));
+  await q.getByRole('button', { name: 'Etkinliği kur' }).click(); await q.waitForTimeout(2500);
+  bekle('öneri bağlanamazsa söylüyor ve Aşama\'ya geçiş sunuyor', /Seçtiğin öneriler bağlanamadı/.test(await yazi(q, '.sc')) && (await q.getByRole('button', { name: "Aşama'ya geç" }).count()) === 1, await yazi(q, '.sc'));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

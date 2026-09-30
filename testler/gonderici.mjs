@@ -1,6 +1,6 @@
 // Gönderici çekirdeği: gerçek yerel veritabanına karşı, sahte gönderme fonksiyonuyla
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
-import { isle } from '../supabase/functions/bildirim-gonder/cekirdek.ts';
+import { isle, yanitla } from '../supabase/functions/bildirim-gonder/cekirdek.ts';
 await sifirla();
 const B = await kullanici('baris@test.local', 'Barış Ak');
 await admin.from('uyeler').insert({ id: B.id, ad: 'Barış Ak', eposta: 'baris@test.local' });
@@ -21,6 +21,21 @@ await admin.from('bildirim_kuyrugu').insert({ kullanici: B.id, anahtar: 'g:2', t
 await isle(admin, async () => { const e = new Error('Sunucu'); e.statusCode = 500; throw e; });
 const k = (await admin.from('bildirim_kuyrugu').select('deneme, gonderildi_at, son_hata').eq('anahtar', 'g:2').single()).data;
 bekle('hepsi başarısızsa deneme artıyor, gönderildi sayılmıyor', k.deneme === 1 && !k.gonderildi_at && k.son_hata === '500', JSON.stringify(k));
+// Gönderilecekler okunamazsa isle atıyor, hiçbir şey göndermiyor (kapsam incelemesi)
+let gonderilen = 0, atti = false;
+try { await isle({ rpc: async ad => ad === 'bildirim_gonderilecekler' ? { data: null, error: { message: 'kapali' } } : { data: null, error: null } }, async () => { gonderilen++; }); } catch { atti = true; }
+bekle('gönderilecekler okunamazsa atıyor, göndermiyor', atti && gonderilen === 0);
+// Edge Function'ın kapısı: gizli başlık yok ya da yanlışsa 401, doğruysa çalışır, hata 500
+const istek = h => new Request('https://x/functions/v1/bildirim-gonder', { method: 'POST', headers: h });
+let calisti = 0;
+const is = async () => { calisti++; return { gonderilen: 0, toplam: 0 }; };
+bekle('gizli başlık yoksa 401, çalışmıyor', (await yanitla(istek({}), 'dogru', is)).status === 401 && calisti === 0);
+bekle('gizli başlık yanlışsa 401', (await yanitla(istek({ 'x-bildirim-gizli': 'yanlis' }), 'dogru', is)).status === 401 && calisti === 0);
+bekle('sunucuda gizli tanımsızsa her çağrı 401', (await yanitla(istek({ 'x-bildirim-gizli': '' }), '', is)).status === 401 && calisti === 0);
+const ok = await yanitla(istek({ 'x-bildirim-gizli': 'dogru' }), 'dogru', is);
+bekle('doğru gizliyle 200 ve özet', ok.status === 200 && JSON.stringify(await ok.json()) === '{"gonderilen":0,"toplam":0}' && calisti === 1);
+bekle('iş hata verirse 500', (await yanitla(istek({ 'x-bildirim-gizli': 'dogru' }), 'dogru', async () => { throw new Error('bozuk'); })).status === 500);
+
 // Yarıda kalan çalışma (son inceleme #3): gönderilen satır anında işaretleniyor, çöken çalışma onu yeniden göndermiyor
 await admin.from('bildirim_kuyrugu').delete().neq('id', -1);
 await admin.from('bildirim_kuyrugu').insert([

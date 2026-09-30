@@ -12,10 +12,10 @@ const saat = h => new Date(Date.now() + h * 3600e3).toISOString();
 const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: '2026-09-20', yukleme_baslar: saat(-100), yukleme_biter: saat(-80), oylama_biter: saat(-1), kuran: A.id }).select('id').single()).data;
 const t = (await admin.from('temalar').insert({ etkinlik: e.id, ad: 'Sokak', sira: 1, bulusmada: false }).select('id').single()).data;
 const jpeg = fs.readFileSync('/tmp/cgapp/dogru.jpg');
-const kareler = [];
+const kareler = [], kareYollari = [];
 for (const [u, puan] of [[A, 8], [B, 6]]) {
   const yol = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, jpeg, { contentType: 'image/jpeg' });
+  await admin.storage.from('kareler').upload(yol, jpeg, { contentType: 'image/jpeg' }); kareYollari.push(yol);
   kareler.push((await admin.from('kareler').insert({ tema: t.id, sahip: u.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data.id);
 }
 // Wrapped kendiliğinden açılmasın (karar 39), sekmeleri kapatıyor
@@ -44,6 +44,21 @@ try {
   // Çıkışta önbellek temizleniyor: başka biri girince önceki kişinin adresleri kalmıyor
   const bos = await p.evaluate(async () => { const m = await import('/src/lib/imza.ts'); await window.__sb.auth.signOut(); await new Promise(r => setTimeout(r, 200)); return m.onbellekBoyu(); }).catch(x => `hata: ${x.message}`);
   bekle('çıkışta imza önbelleği boşalıyor', bos === 0, String(bos));
+  // ---- hata yolları (kapsam incelemesi) ----
+  await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
+  let hataSay = 0;
+  await p.route('**/storage/v1/object/sign/**', r => { hataSay++; return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }); });
+  const r1 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);
+  const r2 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);
+  bekle('imza hatasında adres null, önbelleğe girmiyor (ikinci çağrı yeniden soruyor)', r1 === null && r2 === null && hataSay === 2, `${hataSay} istek`);
+  await p.unroute('**/storage/v1/object/sign/**');
+  // Çıkıştan önce başlayan istek, çıkıştan sonra gelince önbelleğe yazmıyor
+  await p.route('**/storage/v1/object/sign/**', async r => { await new Promise(x => setTimeout(x, 800)); await r.continue(); });
+  const boy = await p.evaluate(async yol => {
+    const m = await import('/src/lib/imza.ts'); const s = m.imzala([yol]);
+    await new Promise(x => setTimeout(x, 100)); await window.__sb.auth.signOut(); await s; return m.onbellekBoyu();
+  }, kareYollari[0]);
+  bekle('çıkıştan önce başlayan imza isteği önbelleğe yazmıyor', boy === 0, String(boy));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

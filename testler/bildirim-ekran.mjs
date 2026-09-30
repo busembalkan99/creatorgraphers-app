@@ -85,6 +85,32 @@ try {
   const pg = await sayfa({ ...TAM, izin: 'granted', abone: true });
   bekle('başkasına bağlı cihaz aboneliği bırakılıyor', (await pg.evaluate(async () => await window.__pushTaklit.abonelik())) === null);
   bekle('ve kart yeniden açmayı öneriyor', /Bildirimleri aç/.test(await yazi(pg, '.bildirim-karti')));
+
+  // ---- hata yolları (kapsam incelemesi) ----
+  const tumunuSil = () => admin.from('bildirim_abonelikleri').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  await tumunuSil();
+  const ph = await sayfa(TAM);
+  await ph.route('**/rpc/bildirim_abone_ol', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }));
+  await ph.getByRole('button', { name: 'Bildirimleri aç' }).click(); await ph.waitForTimeout(1200);
+  bekle('abonelik sunucuya yazılamazsa kart kalıyor, satır yok', (await ph.locator('.bildirim-karti').count()) === 1
+    && ((await admin.from('bildirim_abonelikleri').select('id')).data ?? []).length === 0);
+  // Ağ hatasında başkasına bağlı sanılıp cihaz aboneliği bırakılmıyor
+  await G.c.rpc('bildirim_abone_ol', { p_endpoint: 'https://push.example/cihaz1', p_p256dh: 'p', p_auth: 'a' });
+  const pn = await sayfa({ ...TAM, izin: 'granted', abone: true });
+  await pn.route('**/rpc/bildirim_aboneligim_var', r => r.abort());
+  await pn.reload(); await pn.waitForTimeout(2000);
+  bekle('ağ hatasında cihaz aboneliğine dokunulmuyor', (await pn.evaluate(async () => await window.__pushTaklit.abonelik())) !== null);
+  // Anahtarı kapatırken silme başarısızsa açık kalıyor; çıkış yine de oluyor
+  await tumunuSil();
+  await A.c.rpc('bildirim_abone_ol', { p_endpoint: 'https://push.example/cihaz1', p_p256dh: 'p', p_auth: 'a' });
+  const pc = await sayfa({ ...TAM, izin: 'granted', abone: true });
+  await pc.route('**/rpc/bildirim_aboneligi_sil', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }));
+  await pc.locator('.tabs button', { hasText: 'Profil' }).click(); await pc.waitForTimeout(1500);
+  await pc.getByRole('button', { name: /Bildirimler/ }).click(); await pc.waitForTimeout(1000);
+  bekle('silme başarısızsa anahtar açık kalıyor, cihaz aboneliği bırakılmıyor', (await pc.getByRole('button', { name: /Bildirimler/ }).getAttribute('aria-pressed')) === 'true'
+    && (await pc.evaluate(async () => await window.__pushTaklit.abonelik())) !== null);
+  await pc.getByRole('button', { name: 'Çıkış yap' }).click(); await pc.waitForTimeout(1500);
+  bekle('silme başarısız olsa da çıkış yapılıyor', (await pc.getByRole('button', { name: 'Google ile giriş yap' }).count()) === 1);
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

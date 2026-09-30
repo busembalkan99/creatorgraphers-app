@@ -84,7 +84,9 @@ export async function ac(): Promise<BildirimDurumu> {
 export async function kapat() {
   const b = bag(); const a = await b.abonelik()
   if (!a) return
-  await sb.rpc('bildirim_aboneligi_sil', { p_endpoint: a.endpoint })
+  // Sunucudan silinemezse cihazda da bırakma: yoksa sunucu göndermeye devam eder, anahtar kapalı görünür
+  const { error } = await sb.rpc('bildirim_aboneligi_sil', { p_endpoint: a.endpoint })
+  if (error) throw error
   await b.birak()
   window.dispatchEvent(new Event(DEGISTI))
 }

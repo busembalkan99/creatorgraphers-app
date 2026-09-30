@@ -29,6 +29,8 @@ export function Kur() {
   const [serbest, setSerbest] = useState(false)
   const [hata, setHata] = useState<string | null>(null)
   const [gidiyor, setGidiyor] = useState(false)
+  // Etkinlik kuruldu ama havuzdan seçilenler bağlanamadı: sessiz kalmasın
+  const [baglanamadi, setBaglanamadi] = useState(false)
 
   const y = Number(yukSaat), o = Number(oySaat)
   // Serbest etkinlikte konu da serbest olabiliyor: ad boşsa tema "Serbest" (Buse, 2026-09-26)
@@ -56,7 +58,10 @@ export function Kur() {
     if (error) { setGidiyor(false); return setHata(hataMetni(error)) }
     // Havuzdan gelenler bağlanıyor: öneren "seçildi" görüyor, bildirim gidiyor (karar 121)
     const baglar = temalar.flatMap((t, i) => t.oneri ? [{ oneri: t.oneri, sira: i + 1 }] : [])
-    if (baglar.length) await sb.rpc('onerileri_bagla', { p_etkinlik: eid, p_baglar: baglar })
+    if (baglar.length) {
+      const { error: bh } = await sb.rpc('onerileri_bagla', { p_etkinlik: eid, p_baglar: baglar })
+      if (bh) { setGidiyor(false); return setBaglanamadi(true) }
+    }
     setGidiyor(false)
     git('asama')
   }
@@ -140,7 +145,12 @@ export function Kur() {
       )}
 
       <Hata metin={hata} />
-      <button className="btn" disabled={!hazir} onClick={kur}>{gidiyor ? 'Kuruluyor' : 'Etkinliği kur'}</button>
+      {baglanamadi ? (
+        <div className="kart kutu">
+          <p>Etkinlik kuruldu. Seçtiğin öneriler bağlanamadı: önerenler "seçildi" görmeyecek, öneriler havuzda kalıyor.</p>
+          <button className="btn" onClick={() => git('asama')}>Aşama'ya geç</button>
+        </div>
+      ) : <button className="btn" disabled={!hazir} onClick={kur}>{gidiyor ? 'Kuruluyor' : 'Etkinliği kur'}</button>}
     </div>
   )
 }

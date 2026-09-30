@@ -25,3 +25,13 @@ export async function isle(sb: Istemci, gonder: (a: Abonelik, yuk: string) => Pr
   for (const [kuyruk, s] of sonuc) if (!s.ok) await sb.rpc('bildirim_sonuc', { p_kuyruk: kuyruk, p_basarili: false, p_hata: s.hata })
   return { gonderilen: [...sonuc.values()].filter(s => s.ok).length, toplam: sonuc.size }
 }
+
+/** Edge Function'ın kapısı: gizli başlık yoksa ya da yanlışsa 401, iş hata verirse 500. Sunucuda gizli tanımsızsa hiç açılmaz. */
+export async function yanitla(istek: Request, gizli: string, is: () => Promise<unknown>): Promise<Response> {
+  if (!gizli || istek.headers.get('x-bildirim-gizli') !== gizli) return new Response('yetki yok', { status: 401 })
+  try {
+    return Response.json(await is())
+  } catch (e) {
+    return new Response((e as Error).message, { status: 500 })
+  }
+}

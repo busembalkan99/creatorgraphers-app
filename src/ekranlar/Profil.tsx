@@ -352,7 +352,7 @@ function BildirimAyari() {
     desteklenmiyor: 'Bu telefonda bildirim desteklenmiyor.' }[d]
   return (
     <button className="izin" aria-pressed={acik} disabled={!degisebilir}
-      onClick={async () => { if (acik) { await kapat(); setD(await durum()) } else setD(await ac().catch(() => 'acilabilir' as const)) }}>
+      onClick={async () => { if (acik) { await kapat().catch(() => {}); setD(await durum()) } else setD(await ac().catch(() => 'acilabilir' as const)) }}>
       <span className={`box ${acik ? 'on' : ''}`} />
       <span><b>Bildirimler</b><span>{not}</span></span>
     </button>

@@ -45,6 +45,13 @@ try {
   await p.goto(APP + `#/sonuc/${e.id}`); await p.waitForTimeout(2500);
   const sonucSrc = await p.locator('.sc img').evaluateAll(l => l.map(i => i.getAttribute('src').split('?')[0].split('/').pop()));
   bekle('Sonuç: önizlemesi olmayan eski kare tam boydan görünüyor', sonucSrc.includes(kareYollari[1].split('/').pop()), JSON.stringify(sonucSrc));
+  // Kazanan karesi (A, önizlemesi var) büyük görünüm: tam boy, önizleme değil (kapsam incelemesi)
+  const kazananSrc = (await p.locator('.kazanan img').first().getAttribute('src').catch(() => '')) ?? '';
+  bekle('Sonuç: kazanan karesi tam boydan (önizlemesi olsa da)', kazananSrc.includes(kareYollari[0].split('/').pop()) && !kazananSrc.includes('.k.jpg'), kazananSrc.split('?')[0].split('/').pop());
+  await p.goto(APP + `#/sonuc/${e.id}/kare/${kareler[0]}`); await p.waitForTimeout(2000);
+  const detaySrc = (await p.locator('.sc img').first().getAttribute('src').catch(() => '')) ?? '';
+  bekle('Sonuç: kare detayı tam boydan', detaySrc.includes(kareYollari[0].split('/').pop()) && !detaySrc.includes('.k.jpg'), detaySrc.split('?')[0].split('/').pop());
+  await p.goto(APP + `#/sonuc/${e.id}`); await p.waitForTimeout(1500);
   await p.locator('.tabs button, .geri').first().click().catch(() => {});
   await p.locator('.tabs button', { hasText: 'Profil' }).click().catch(() => {}); await p.waitForTimeout(1500);
   bekle('Profil ve Sonuç arasında gidip gelince yeni imza isteği yok', imza === 0, `${imza} istek`);
@@ -53,6 +60,18 @@ try {
   bekle('çıkışta imza önbelleği boşalıyor', bos === 0, String(bos));
   // ---- hata yolları (kapsam incelemesi) ----
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
+  // Tam boy önbellekteyken önizleme isteği geçici hata verirse kare "önizlemesiz" sayılmıyor (kapsam incelemesi)
+  const yolC = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
+  await admin.storage.from('kareler').upload(yolC, jpeg, { contentType: 'image/jpeg' });
+  await admin.storage.from('kareler').upload(yolC.replace(/\.jpg$/, '.k.jpg'), jpeg, { contentType: 'image/jpeg' });
+  await p.evaluate(async y => { await (await import('/src/lib/imza.ts')).imzala([y]); }, yolC);   // yalnız tam boy önbellekte
+  await p.route('**/storage/v1/object/sign/**', r => (r.request().postData() ?? '').includes('.k.jpg')
+    ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }) : r.continue());
+  const gecici = await p.evaluate(async y => (await (await import('/src/lib/imza.ts')).kareAdresleri([y]))[0].url, yolC);
+  await p.unroute('**/storage/v1/object/sign/**');
+  const sonra = await p.evaluate(async y => (await (await import('/src/lib/imza.ts')).kareAdresleri([y]))[0].url, yolC);
+  bekle('geçici hatada tam boya düşüyor, sonra önizleme geliyor (6 saat işaretlenmiyor)', !!gecici && !gecici.includes('.k.jpg') && !!sonra && sonra.includes('.k.jpg'),
+    `${gecici?.split('?')[0].split('/').pop()} → ${sonra?.split('?')[0].split('/').pop()}`);
   let hataSay = 0;
   await p.route('**/storage/v1/object/sign/**', r => { hataSay++; return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }); });
   const r1 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);

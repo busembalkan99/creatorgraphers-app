@@ -61,6 +61,12 @@ try {
   await p.getByRole('button', { name: /Kaldır/ }).first().click(); await p.waitForTimeout(300);
   await p.locator('.ret button.btn', { hasText: 'Kaldır' }).click(); await p.waitForTimeout(1500);
   bekle('kaldırınca tam boy ve önizleme silindi', !(await kareYolu()) && !(await dosyaVar(y2)) && !(await dosyaVar(onizleme(y2))));
+  // Önizleme yüklenemezse kare yine kaydediliyor, ekran tam boyla devam ediyor (kapsam incelemesi)
+  await p.route('**/storage/v1/object/kareler/**.k.jpg', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }));
+  await yukle('donuk');   // başka dosya: aynı dosya ikinci kez seçilince giriş değişiklik olayı üretmiyor
+  const y3 = await kareYolu();
+  bekle('önizleme yüklenemese de kare kaydediliyor', !!y3 && !!(await dosyaVar(y3)) && !(await dosyaVar(onizleme(y3))), String(y3));
+  await p.unroute('**/storage/v1/object/kareler/**.k.jpg');
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

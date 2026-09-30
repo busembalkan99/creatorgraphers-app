@@ -20,8 +20,8 @@ export interface KareBilgi {
 
 export interface HazirKare {
   blob: Blob
-  /** Izgaralar için 720 px'lik kopya (karar 123) */
-  kucuk: Blob
+  /** Izgaralar için 720 px'lik kopya (karar 123); üretilemezse null, yükleme durmuyor */
+  kucuk: Blob | null
   genislik: number
   yukseklik: number
   bilgi: KareBilgi
@@ -235,14 +235,17 @@ export async function kucult(dosya: File): Promise<Omit<HazirKare, 'bilgi' | 'on
   if (!blob) throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.')
   // Önizleme küçültülmüş tuvalden: çevirme bilgisi zaten uygulanmış
   const ko = Math.min(1, ONIZLEME_KENAR / Math.max(g, y))
-  const kt = document.createElement('canvas')
-  kt.width = Math.round(g * ko)
-  kt.height = Math.round(y * ko)
-  const kc = kt.getContext('2d')
-  if (!kc) throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.')
-  kc.imageSmoothingQuality = 'high'
-  kc.drawImage(tuval, 0, 0, kt.width, kt.height)
-  const kucuk = await new Promise<Blob | null>(r => kt.toBlob(r, 'image/jpeg', ONIZLEME_KALITE))
-  if (!kucuk) throw new DosyaHatasi('Tarayıcı kareyi işleyemedi.')
+  let kucuk: Blob | null = null
+  try {
+    const kt = document.createElement('canvas')
+    kt.width = Math.round(g * ko)
+    kt.height = Math.round(y * ko)
+    const kc = kt.getContext('2d')
+    if (kc) {
+      kc.imageSmoothingQuality = 'high'
+      kc.drawImage(tuval, 0, 0, kt.width, kt.height)
+      kucuk = await new Promise<Blob | null>(r => kt.toBlob(r, 'image/jpeg', ONIZLEME_KALITE))
+    }
+  } catch { /* önizleme yoksa ızgara tam boya düşer */ }
   return { blob, kucuk, genislik: g, yukseklik: y }
 }

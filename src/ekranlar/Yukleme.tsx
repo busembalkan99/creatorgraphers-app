@@ -136,7 +136,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       const yol = `${e.id}/${tema.id}/${crypto.randomUUID()}.jpg`
       const yuk = await sb.storage.from('kareler').upload(yol, hazir.blob, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })   // dosya adı tekil: bir yıl önbellekte (egress, 2026-09-30)
       // Önizleme kopyası (karar 123): yüklenemezse ekran tam boya düşüyor, yükleme durmuyor
-      if (!yuk.error) await sb.storage.from('kareler').upload(onizlemeYolu(yol), hazir.kucuk, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })
+      if (!yuk.error && hazir.kucuk) await sb.storage.from('kareler').upload(onizlemeYolu(yol), hazir.kucuk, { contentType: 'image/jpeg', upsert: false, cacheControl: '31536000' })
       if (yuk.error) throw yuk.error
       const satir = { tema: tema.id, sahip: uye.id, dosya: yol, genislik: hazir.genislik, yukseklik: hazir.yukseklik, ...bilgi }
       const kayit = onceki

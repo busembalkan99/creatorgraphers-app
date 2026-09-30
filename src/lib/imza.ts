@@ -44,13 +44,15 @@ const onizlemesiz = new Map<string, number>()
 export async function kareAdresleri(yollar: string[]): Promise<{ url: string | null; tam: string | null }[]> {
   const simdi = Date.now()
   const sor = yollar.map(y => (onizlemesiz.get(y) ?? 0) <= simdi)
+  // Tam boy bu çağrıda imzalanacaksa (önbellekte değilse) aynı istekte önizlemesinin yokluğu güvenilir
+  const tazeTam = yollar.map(y => { const b = bellek.get(y); return !(b && b.bitis - simdi > PAY) })
   const kucukler = yollar.filter((_, i) => sor[i]).map(onizlemeYolu)
   const imza = await imzala([...yollar, ...kucukler])
   let j = yollar.length
   return yollar.map((y, i) => {
     const tam = imza[i].signedUrl
     const kucuk = sor[i] ? imza[j++].signedUrl : null
-    if (sor[i] && tam && !kucuk) onizlemesiz.set(y, simdi + SURE * 1000)
+    if (sor[i] && tazeTam[i] && tam && !kucuk) onizlemesiz.set(y, simdi + SURE * 1000)
     return { url: kucuk ?? tam, tam }
   })
 }

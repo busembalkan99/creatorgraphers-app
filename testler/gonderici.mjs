@@ -21,4 +21,13 @@ await admin.from('bildirim_kuyrugu').insert({ kullanici: B.id, anahtar: 'g:2', t
 await isle(admin, async () => { const e = new Error('Sunucu'); e.statusCode = 500; throw e; });
 const k = (await admin.from('bildirim_kuyrugu').select('deneme, gonderildi_at, son_hata').eq('anahtar', 'g:2').single()).data;
 bekle('hepsi başarısızsa deneme artıyor, gönderildi sayılmıyor', k.deneme === 1 && !k.gonderildi_at && k.son_hata === '500', JSON.stringify(k));
+// Yarıda kalan çalışma (son inceleme #3): gönderilen satır anında işaretleniyor, çöken çalışma onu yeniden göndermiyor
+await admin.from('bildirim_kuyrugu').delete().neq('id', -1);
+await admin.from('bildirim_kuyrugu').insert([
+  { kullanici: B.id, anahtar: 'g:3', tur: 'yeni_etkinlik', baslik: 'Bir', govde: 'Y', adres: 'etkinlikler', zaman: new Date(Date.now() - 2000).toISOString() },
+  { kullanici: B.id, anahtar: 'g:4', tur: 'yeni_etkinlik', baslik: 'İki', govde: 'Y', adres: 'etkinlikler', zaman: new Date(Date.now() - 1000).toISOString() }]);
+isle(admin, async (a, yuk) => { if (JSON.parse(yuk).baslik === 'İki') await new Promise(() => {}); });   // ikincide takılıyor
+await new Promise(r => setTimeout(r, 1500));
+bekle('takılan çalışmada ilk bildirim gönderildi olarak işaretli', !!(await admin.from('bildirim_kuyrugu').select('gonderildi_at').eq('anahtar', 'g:3').single()).data?.gonderildi_at);
 rapor();
+process.exit(0);   // takılı söz bitmiyor

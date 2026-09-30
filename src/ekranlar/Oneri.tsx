@@ -69,11 +69,13 @@ export function OneriFormu() {
   )
 }
 
-/** Profil'de, kendi profilinde. Önerin yoksa bölüm yok. */
-export function Onerilerim() {
-  const [l, setL] = useState<Benim[]>([])
-  const oku = () => onerilerimiOku().then(setL).catch(() => {})
-  useEffect(() => { oku() }, [])
+/** Profil'de, kendi profilinde. Önerin yoksa bölüm yok. Etkinlikler'deki kartla aynı bellek:
+ *  ikinci açılışta ilk karede yerinde, Ayarlar ve "Çıkış yap" kaymıyor. */
+export function Onerilerim({ uyeId }: { uyeId: string }) {
+  const anahtar = `${uyeId}:oneriler`
+  const [l, setL] = useState<Benim[]>(() => bellektenAl<Benim[]>(anahtar) ?? [])
+  const oku = () => onerilerimiOku().then(d => setL(bellegeYaz(anahtar, d))).catch(() => {})
+  useEffect(() => { oku() }, [anahtar]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!l.length) return null
   return (
     <>

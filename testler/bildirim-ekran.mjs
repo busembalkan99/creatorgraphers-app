@@ -77,6 +77,14 @@ try {
   bekle('bekleme ekranı: açınca "bildirim gelir", kart gidiyor', (await yazi(pd, '.kutu p')) === 'Onaylanınca bildirim gelir. Acelen varsa gruptan yaz.' && (await pd.locator('.bildirim-karti').count()) === 0, await yazi(pd, '.kutu p'));
   const pi = await sayfa({ ...TAM, izin: 'denied' }, 'deniz@test.local');
   bekle('bekleme ekranı: bildirim açılamıyorsa eski metin', /Bildirim gitmiyor, acelen varsa gruptan yaz/.test(await yazi(pi, '.kutu p')), await yazi(pi, '.kutu p'));
+  // Son inceleme #9: çıkış cikisYap'tan geçmediyse (oturum süresi doldu) cihaz eski sahibine bağlı kalıyordu.
+  // Yeni giren kişinin cihazında başkasının aboneliği varsa bırakılıyor.
+  const G = await kullanici('gul@test.local', 'Gül Er');
+  await admin.from('uyeler').insert({ id: G.id, ad: 'Gül Er', eposta: 'gul@test.local', hosgeldin_goruldu: true });
+  await G.c.rpc('bildirim_abone_ol', { p_endpoint: 'https://push.example/cihaz1', p_p256dh: 'p', p_auth: 'a' });
+  const pg = await sayfa({ ...TAM, izin: 'granted', abone: true });
+  bekle('başkasına bağlı cihaz aboneliği bırakılıyor', (await pg.evaluate(async () => await window.__pushTaklit.abonelik())) === null);
+  bekle('ve kart yeniden açmayı öneriyor', /Bildirimleri aç/.test(await yazi(pg, '.bildirim-karti')));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

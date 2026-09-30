@@ -22,7 +22,9 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil((async () => {
     const pencereler = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const p of pencereler) {
-      if (p.focus) { await p.focus(); if (p.navigate) await p.navigate(hedef); return; }
+      if (!p.focus) continue;
+      // Bu worker'ın denetlemediği pencerede navigate reddediliyor; o zaman yeni pencere
+      try { await p.focus(); if (p.navigate) await p.navigate(hedef); return; } catch { break; }
     }
     await self.clients.openWindow(hedef);
   })());

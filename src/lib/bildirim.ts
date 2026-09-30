@@ -58,8 +58,14 @@ export function hizliDurum(): BildirimDurumu | null {
 export async function durum(): Promise<BildirimDurumu> {
   const h = hizliDurum()
   if (h) return h
-  const a = await bag().abonelik()
-  if (a && (await sb.rpc('bildirim_aboneligim_var', { p_endpoint: a.endpoint })).data === true) return 'acik'
+  const b = bag()
+  const a = await b.abonelik()
+  if (!a) return 'acilabilir'
+  const { data, error } = await sb.rpc('bildirim_aboneligim_var', { p_endpoint: a.endpoint })
+  if (!error && data === true) return 'acik'
+  // Cihaz başkasına bağlı kalmışsa (çıkış cikisYap'tan geçmedi, oturum süresi doldu) bırakılıyor:
+  // öncekinin bildirimleri bu kişiye gitmesin. Ağ hatasında dokunulmuyor.
+  if (!error && data === false) await b.birak().catch(() => {})
   return 'acilabilir'
 }
 

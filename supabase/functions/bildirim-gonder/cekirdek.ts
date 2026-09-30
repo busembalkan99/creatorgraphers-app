@@ -11,6 +11,8 @@ export async function isle(sb: Istemci, gonder: (a: Abonelik, yuk: string) => Pr
     try {
       await gonder({ endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } },
         JSON.stringify({ baslik: r.baslik, govde: r.govde, adres: r.adres }))
+      // Başarı hemen yazılıyor: çalışma yarıda kesilirse (zaman aşımı) gönderilen bir daha gitmesin
+      if (!sonuc.get(r.kuyruk)?.ok) await sb.rpc('bildirim_sonuc', { p_kuyruk: r.kuyruk, p_basarili: true, p_hata: null })
       sonuc.set(r.kuyruk, { ok: true, hata: null })
     } catch (e) {
       const kod = (e as { statusCode?: number }).statusCode
@@ -19,6 +21,7 @@ export async function isle(sb: Istemci, gonder: (a: Abonelik, yuk: string) => Pr
       if (!sonuc.get(r.kuyruk)?.ok) sonuc.set(r.kuyruk, { ok: false, hata: String(kod ?? (e as Error).message ?? e).slice(0, 200) })
     }
   }
-  for (const [kuyruk, s] of sonuc) await sb.rpc('bildirim_sonuc', { p_kuyruk: kuyruk, p_basarili: s.ok, p_hata: s.hata })
+  // Hiçbir cihaza gidemeyenler: deneme sayısı artıyor
+  for (const [kuyruk, s] of sonuc) if (!s.ok) await sb.rpc('bildirim_sonuc', { p_kuyruk: kuyruk, p_basarili: false, p_hata: s.hata })
   return { gonderilen: [...sonuc.values()].filter(s => s.ok).length, toplam: sonuc.size }
 }

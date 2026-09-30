@@ -176,4 +176,36 @@ bekle('çıkarılan üyenin aboneliği ve bekleyen bildirimi yok', ((await admin
   && ((await admin.from('bildirim_kuyrugu').select('id').eq('anahtar', 'deneme:4')).data ?? []).length === 0);
 // Tetikleme: Vault'ta adres yokken sessizce çıkıyor (yerel)
 bekle('tetikleme adres yokken hata vermiyor', !(await admin.rpc('bildirim_tetikle_test')).error);
+// ---- son inceleme düzeltmeleri ----
+// #2: 09.30'da kapanan yükleme: 12 saatlik 21.30'da, 2 saatlik geceden 22.30'a kayıyordu (bir saat arayla iki bildirim)
+const E4 = (await admin.from('etkinlikler').insert({ bulusma_gunu: '2026-11-19', yukleme_baslar: tz('2026-11-18T06:00:00Z'),
+  yukleme_biter: tz('2026-11-20T06:30:00Z'), oylama_biter: tz('2026-11-22T17:00:00Z'), kuran: A.id }).select('*').single()).data;
+await admin.from('temalar').insert({ etkinlik: E4.id, ad: 'Sis', sira: 1, bulusmada: false });
+await temizle();
+await planla('2026-11-19T18:31:00Z');   // 19 Kasım 21.31 İst: 12 saatlik
+await planla('2026-11-19T19:31:00Z');   // 22.31: kayan 2 saatlik
+q = (await kuyruk()).filter(x => x.tur === 'hatirlatma_yukleme' && x.etkinlik === E4.id && x.kullanici === A.id);
+bekle('12 saatlik yakınsa geceden kayan 2 saatlik gitmiyor', q.length === 1 && q[0].baslik === 'Yükleme 12 saat sonra kapanıyor', JSON.stringify(q.map(x => x.baslik)));
+// #4: 22.45'te açılıp 09.00'da kapanan yükleme: kayan hatırlatma açılıştan önce gitmiyor
+const E5 = (await admin.from('etkinlikler').insert({ bulusma_gunu: '2026-11-26', yukleme_baslar: tz('2026-11-25T19:45:00Z'),
+  yukleme_biter: tz('2026-11-26T06:00:00Z'), oylama_biter: tz('2026-11-28T17:00:00Z'), kuran: A.id }).select('*').single()).data;
+await admin.from('temalar').insert({ etkinlik: E5.id, ad: 'Buğu', sira: 1, bulusmada: false });
+await temizle();
+await planla('2026-11-25T19:31:00Z');   // 22.31, yükleme 22.45'te açılacak
+bekle('hatırlatma aşama açılmadan gitmiyor', !(await kuyruk()).some(x => x.tur === 'hatirlatma_yukleme' && x.etkinlik === E5.id), JSON.stringify((await kuyruk()).map(x => x.tur)));
+// #1: eski satır geç gönderilmiyor (aşama/üyelik 6 saat, hatırlatma 30 dk)
+await temizle();
+const once = h => new Date(Date.now() - h * 3600e3).toISOString();
+await admin.from('bildirim_kuyrugu').insert([
+  { kullanici: A.id, anahtar: 'eski:1', tur: 'yeni_etkinlik', baslik: 'X', govde: 'Y', adres: 'etkinlikler', zaman: once(7) },
+  { kullanici: A.id, anahtar: 'taze:1', tur: 'yeni_etkinlik', baslik: 'X', govde: 'Y', adres: 'etkinlikler', zaman: once(1) }]);
+gl = (await admin.rpc('bildirim_gonderilecekler')).data ?? [];
+bekle('6 saatten eski bildirim gönderilmiyor, tazesi gidiyor', new Set(gl.map(x => x.kuyruk)).size === 1 && (await admin.from('bildirim_kuyrugu').select('son_hata').eq('anahtar', 'eski:1').single()).data?.son_hata === 'eski', JSON.stringify(gl));
+// #14: yönetici isteği 08.00'den önce işlediyse "Katılma isteği" gitmiyor
+await temizle();
+const F = await kullanici('ferda@test.local', 'Ferda Kılıç');
+const istF = (await F.c.from('istekler').insert({ kullanici: F.id, eposta: 'ferda@test.local', ad: 'Ferda Kılıç' }).select('id').single()).data;
+await admin.from('bildirim_kuyrugu').update({ zaman: once(0.01) }).eq('tur', 'istek');
+await A.c.rpc('istek_karar', { p_istek: istF.id, p_onay: false });
+bekle('işlenmiş isteğin bildirimi gitmiyor', !((await admin.rpc('bildirim_gonderilecekler')).data ?? []).some(x => /Ferda/.test(x.baslik)));
 rapor();

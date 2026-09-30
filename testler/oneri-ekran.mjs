@@ -32,6 +32,16 @@ try {
   await p.goto(APP + '#/profil'); await p.waitForTimeout(1500);
   await p.locator('.onerilerim .satir', { hasText: 'Su' }).getByRole('button', { name: 'Geri çek' }).click(); await p.waitForTimeout(1200);
   bekle('geri çekince listeden gitti', !/\bSu\b/.test(await yazi(p, '.onerilerim')));
+  // Son inceleme #7: Önerilerin veri gelince beliriyor, Ayarlar ve "Çıkış yap" aşağı kayıyordu
+  await p.locator('.tabs button', { hasText: 'Etkinlikler' }).click(); await p.waitForTimeout(1500);
+  // Yavaş ağ: bellek yoksa liste 800 ms sonra gelir ve kaydırır
+  await p.route('**/rpc/onerilerim', async r => { await new Promise(res => setTimeout(res, 800)); await r.continue(); });
+  await p.locator('.tabs button', { hasText: 'Profil' }).click(); await p.waitForTimeout(60);
+  const cy1 = await p.getByRole('button', { name: 'Çıkış yap' }).evaluate(e => e.getBoundingClientRect().top).catch(() => -1);
+  await p.waitForTimeout(2000);
+  const cy2 = await p.getByRole('button', { name: 'Çıkış yap' }).evaluate(e => e.getBoundingClientRect().top);
+  bekle('Profil ikinci açılış: Önerilerin bellekten, "Çıkış yap" kaymıyor (±2px)', Math.abs(cy1 - cy2) <= 2, `${cy1} → ${cy2}`);
+  await p.unroute('**/rpc/onerilerim');
   // Yönetici: Profil → havuz, Kurulum'da havuzdan seç
   const q = await sayfa('kurucu@test.local');
   await q.goto(APP + '#/profil'); await q.waitForTimeout(1500);

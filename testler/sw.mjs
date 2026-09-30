@@ -23,4 +23,9 @@ bekle('dışarı giden adres Etkinlikler\'e düşüyor', acilan.at(-1) === 'http
 olay.push(ev({ data: { json: () => { throw new Error('bozuk'); }, text: () => 'düz metin' } }));
 await Promise.all(bekleyen);
 bekle('bozuk yükte yine bildirim', gosterilen.at(-1)?.b === 'Creatorgraphers' && gosterilen.at(-1)?.o.body === 'düz metin');
+// Kontrol etmediği pencerede navigate reddedilir (son inceleme #13): dokunuş boşa gitmesin, yeni pencere açılsın
+self.clients.matchAll = async () => [{ focus: async () => {}, navigate: async () => { throw new TypeError('not controlled'); } }];
+olay.notificationclick(ev({ notification: { close() {}, data: { adres: 'oyla' } } }));
+await Promise.all(bekleyen).catch(() => {});
+bekle('navigate reddedilince yeni pencere açılıyor', acilan.at(-1) === 'https://creatorgraphers.com/#/oyla', acilan.at(-1));
 rapor();

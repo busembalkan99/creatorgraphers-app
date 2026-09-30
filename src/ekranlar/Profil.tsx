@@ -180,7 +180,7 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </>
       )}
 
-      {benim && <Onerilerim />}
+      {benim && <Onerilerim uyeId={uye.id} />}
       {benim && <Ayarlar uye={uye} uyeDegisti={uyeDegisti} />}
     </div>
   )

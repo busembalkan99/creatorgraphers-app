@@ -191,7 +191,13 @@ begin
     foreach h in array array[12, 2] loop
       an := e.yukleme_biter - make_interval(hours => h);
       zm := gizli.gece_disi(an, true);
-      if an >= e.yukleme_baslar and zm <= p_simdi and zm > p_simdi - hatirlatma_penceresi and p_simdi < e.yukleme_biter then
+      -- Kayan zaman aşama açıldıktan sonra olmalı; 12 saatlik 3 saatten yakınsa kayan 2 saatlik atlanır
+      -- (09.30'da kapanan yükleme: 21.30 ve 22.30'da iki bildirim olurdu)
+      if an >= e.yukleme_baslar and zm >= e.yukleme_baslar and zm <= p_simdi and zm > p_simdi - hatirlatma_penceresi
+         and p_simdi < e.yukleme_biter
+         and not (h = 2 and e.yukleme_biter - interval '12 hours' >= e.yukleme_baslar
+                  and gizli.gece_disi(e.yukleme_biter - interval '12 hours', true) >= e.yukleme_baslar
+                  and gizli.gece_disi(e.yukleme_biter - interval '12 hours', true) > zm - interval '3 hours') then
         for u in select * from gizli.abone_uyeler() loop
           bos := gizli.bos_temalar(e.id, u);
           continue when coalesce(array_length(bos, 1), 0) = 0;
@@ -203,7 +209,11 @@ begin
       end if;
       an := e.oylama_biter - make_interval(hours => h);
       zm := gizli.gece_disi(an, true);
-      if an >= e.yukleme_biter and zm <= p_simdi and zm > p_simdi - hatirlatma_penceresi and p_simdi < e.oylama_biter then
+      if an >= e.yukleme_biter and zm >= e.yukleme_biter and zm <= p_simdi and zm > p_simdi - hatirlatma_penceresi
+         and p_simdi < e.oylama_biter
+         and not (h = 2 and e.oylama_biter - interval '12 hours' >= e.yukleme_biter
+                  and gizli.gece_disi(e.oylama_biter - interval '12 hours', true) >= e.yukleme_biter
+                  and gizli.gece_disi(e.oylama_biter - interval '12 hours', true) > zm - interval '3 hours') then
         for u in select * from gizli.abone_uyeler() loop
           kalan := gizli.kalan_oy(e.id, u);
           continue when kalan <= 0;
@@ -274,6 +284,8 @@ language sql stable as $$
   select case
     when q.etkinlik is not null and exists (select 1 from public.etkinlikler e where e.id = q.etkinlik and e.iptal) then false
     when q.tur <> 'istek_onay' and not exists (select 1 from public.uyeler u where u.id = q.kullanici and u.cikarildi_at is null) then false
+    when q.tur = 'istek' then exists (
+      select 1 from public.istekler i where i.id = split_part(q.anahtar, ':', 2)::uuid and i.durum = 'bekliyor')
     when q.tur = 'hatirlatma_yukleme' then exists (
       select 1 from public.etkinlikler e where e.id = q.etkinlik and e.yukleme_biter = q.son_tarih and p_simdi < q.son_tarih
         and coalesce(array_length(gizli.bos_temalar(e.id, q.kullanici), 1), 0) > 0)
@@ -284,10 +296,18 @@ language sql stable as $$
   end
 $$;
 
+create or replace function gizli.bildirim_omru(p_tur text) returns interval language sql immutable as $$
+  select case when p_tur like 'hatirlatma%' then interval '30 minutes' else interval '6 hours' end
+$$;
+
 create or replace function public.bildirim_gonderilecekler(p_simdi timestamptz default now())
 returns table (kuyruk bigint, endpoint text, p256dh text, auth text, baslik text, govde text, adres text)
 language plpgsql security definer set search_path = public as $$
 begin
+  -- Eski satır geç gitmesin (kesinti, gece ertelemesinden sonra çıkış, abonelik kapanıp açılma):
+  -- hatırlatma 30 dakika, diğerleri 6 saat
+  update public.bildirim_kuyrugu q set gonderildi_at = p_simdi, son_hata = 'eski'
+   where q.gonderildi_at is null and q.zaman <= p_simdi and p_simdi - q.zaman > gizli.bildirim_omru(q.tur);
   update public.bildirim_kuyrugu q set gonderildi_at = p_simdi, son_hata = 'gecersiz'
    where q.gonderildi_at is null and q.zaman <= p_simdi and not gizli.bildirim_gecerli(q, p_simdi);
   return query
@@ -321,12 +341,16 @@ create or replace function gizli.bildirim_tetikle() returns void language plpgsq
 declare adres text; sifre text;
 begin
   perform gizli.bildirim_planla();
-  if not exists (select 1 from public.bildirim_kuyrugu where gonderildi_at is null and zaman <= now() and deneme < 3) then return; end if;
+  -- Aboneliği olmayanın bekleyen satırı Edge Function'ı her 5 dakikada boşuna çağırmasın
+  if not exists (select 1 from public.bildirim_kuyrugu q join public.bildirim_abonelikleri a on a.kullanici = q.kullanici
+                  where q.gonderildi_at is null and q.zaman <= now() and q.deneme < 3
+                    and now() - q.zaman <= gizli.bildirim_omru(q.tur)) then return; end if;
   select decrypted_secret into adres from vault.decrypted_secrets where name = 'bildirim_gonder_url';
   select decrypted_secret into sifre from vault.decrypted_secrets where name = 'bildirim_gizli';
   if adres is null or sifre is null then return; end if;
   perform net.http_post(url := adres, body := '{}'::jsonb,
-    headers := jsonb_build_object('Content-Type', 'application/json', 'x-bildirim-gizli', sifre));
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-bildirim-gizli', sifre),
+    timeout_milliseconds := 30000);
 end $$;
 revoke execute on function gizli.bildirim_tetikle() from public, anon, authenticated;
 
@@ -379,9 +403,13 @@ end $$;
 
 create or replace function public.oneri_geri_cek(p_oneri uuid) returns void
 language plpgsql security definer set search_path = public as $$
+declare n int;
 begin
+  if not public.uye_mi() then raise exception 'yetki_yok'; end if;
   delete from public.oneri_sahipleri s using public.tema_onerileri t
    where s.oneri = p_oneri and s.uye = auth.uid() and t.id = s.oneri and t.durum = 'havuzda';
+  get diagnostics n = row_count;
+  if n = 0 then return; end if;
   delete from public.tema_onerileri t where t.id = p_oneri and t.durum = 'havuzda' and not t.elle
      and not exists (select 1 from public.oneri_sahipleri s where s.oneri = t.id);
 end $$;
@@ -460,3 +488,6 @@ revoke execute on function public.oneri_birak(text, text), public.oneri_geri_cek
   public.havuz(), public.onerileri_bagla(uuid, jsonb) from public, anon;
 grant execute on function public.oneri_birak(text, text), public.oneri_geri_cek(uuid), public.onerilerim(),
   public.havuz(), public.onerileri_bagla(uuid, jsonb) to authenticated;
+
+-- Repodaki alışkanlık (0009, 0014, 0017): gizli yardımcılar uygulamadan çağrılamaz
+revoke execute on all functions in schema gizli from anon, public, authenticated;

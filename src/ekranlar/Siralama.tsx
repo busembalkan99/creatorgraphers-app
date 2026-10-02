@@ -149,8 +149,9 @@ export function Siralama({ uye }: { uye: Uye }) {
           )}
 
           <h2 className="kart-bas">Sıralama<span>İlk {sirali.length}</span></h2>
-          {/* Karar 110: kare kişinin en iyisi, puan bütün karelerinin ortalaması. Satırlarda değil, bir kez (Buse, 2026-09-26). */}
-          <p className="kart-not">Kare, kişinin en iyi karesi; puan, bütün karelerinin ortalaması.</p>
+          {/* Karar 110: kare kişinin en iyisi, puan bütün karelerinin ortalaması. Satırlarda değil, bir kez (Buse, 2026-09-26).
+              0021: puan düzeltilmiş (Bayes) ortalama, iki tabloda da; ikinci cümle onu söylüyor. Metin taslak, Buse son haline getirecek. */}
+          <p className="kart-not">Kare, kişinin en iyi karesi; puan, bütün karelerinin ortalaması. Az karesi olanın ortalaması kulüp ortalamasına yaklaştırılır; kare sayın arttıkça kendi ortalaman öne çıkar.</p>
           {sirali.length === 0 ? (
             <div className="kart bos-kart"><b>Sıralama henüz yok</b><span>Sezonda hiç puan verilmemiş.</span></div>
           ) : (

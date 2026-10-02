@@ -97,7 +97,9 @@ await kare(E1, 1, kisiler.ece, 5);
     JSON.stringify(sirali.map(x => [x.ad, x.sira])));
   bekle('sıralı en yüksek ortalamalı', sirali[0].ad === 'Ayşe Kaya' && sirali[1].ad === 'Barış Ak',
     JSON.stringify(sirali.map(x => x.ad)));
-  bekle('sıralının ortalaması açık', Number(sirali[0].ortalama) === 9 && Number(sirali[1].ortalama) === 8,
+  // 0021: düzeltilmiş puan. Bütün temalar serbest (w 0,5), C = 42,5 / 5,5 = 7,73
+  //   Ayşe (4 kare, 9): (23,18 + 18) / 5 = 8,2   Barış (3 kare, 8): (23,18 + 12) / 4,5 = 7,8
+  bekle('sıralının düzeltilmiş puanı açık', Number(sirali[0].ortalama) === 8.2 && Number(sirali[1].ortalama) === 7.8,
     JSON.stringify(sirali.map(x => x.ortalama)));
   const sirasiz = s.filter(x => !x.sirali);
   bekle('sırasızın ortalaması gizli', sirasiz.every(x => x.ortalama === null), JSON.stringify(sirasiz));
@@ -124,7 +126,8 @@ await kare(E1, 1, kisiler.ece, 5);
   // Can sıralamaya girmiyor: kendi ortalamasını görüyor, sırasını görmüyor
   const s = (await kisiler.can.c.rpc('siralama')).data ?? [];
   const ben = s.find(x => x.benim);
-  bekle('sırasız kendi ortalamasını görüyor', ben?.ad === 'Can Öz' && Number(ben?.ortalama) === 7, JSON.stringify(ben));
+  // Can (2 kare, 7): (23,18 + 7) / 4 = 7,5
+  bekle('sırasız kendi düzeltilmiş puanını görüyor', ben?.ad === 'Can Öz' && Number(ben?.ortalama) === 7.5, JSON.stringify(ben));
   bekle('sırasız kendi sırasını görmüyor', ben?.sira === null, JSON.stringify(ben));
   bekle('başkasının gizli ortalaması yine gizli',
     s.filter(x => !x.sirali && !x.benim).every(x => x.ortalama === null));

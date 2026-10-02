@@ -21,7 +21,10 @@ node testler/davranis-wrapped.mjs             # Wrapped ekranda: kart kümesi, g
 node testler/paylasim.mjs                     # paylaşım kartının kontakt şeridi: afiş izni, sunucu kuralları
 node testler/davranis-paylas.mjs              # paylaşım ekranı: dört düzen, indirilen PNG, kimde düğme var
 node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon ağırlığı, Serbest tablosu, ekranlar
-node testler/bayes.mjs                        # sıralamada düzeltilmiş (Bayes) puan: iki tablo, ağırlık, eşik, boş sezon (0021)
+node testler/bayes.mjs                        # sıralama puanı: temadaki yer, Bayes çekimi 50'ye, iki tablo, ağırlık, eşik, en iyi kare (0021, 0023)
+node testler/sure.mjs                         # bitiş saatlerini değiştirme, oylamayı bitirme, bekleyen bildirimler (0022)
+node testler/sure-ekran.mjs                   # Aşama ekranı: Değiştir, saat kutusu, Oylamayı bitir (sunucu ve geliştirme sunucusu açık)
+node testler/metin.mjs                        # metin yardımcıları (ortak birincilerin adları)
 node testler/kazananlar.mjs                   # arşivdeki kazanan adları, Wrapped'den önce gizli; senin karen / senin yerin kartları
 node testler/webkit.mjs                       # iPhone motorunda taşma ve üst üste binme (siralama.mjs'den sonra)
 node testler/kart.mjs                         # kart sistemi denetimi, 390 ve 320px (siralama.mjs'den sonra; karar 118, 119)

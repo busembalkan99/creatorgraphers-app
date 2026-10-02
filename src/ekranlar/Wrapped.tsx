@@ -26,6 +26,8 @@ const puan = (n: number | null) => (n == null ? '—' : n.toLocaleString('tr-TR'
 const SAYI = ['sıfır', 'bir', 'iki', 'üç']
 const buyuk = (s: string) => s.charAt(0).toLocaleUpperCase('tr-TR') + s.slice(1)
 /** "Selin Arı" → iki satır: ad ve soyad kartta alt alta duruyor */
+/** "Ayşe Kaya ve Barış Ak", üç ve fazlasında "A, B ve C" */
+const adlarYaz = (adlar: string[]) => adlar.length < 2 ? (adlar[0] ?? '') : `${adlar.slice(0, -1).join(', ')} ve ${adlar[adlar.length - 1]}`
 function Ad({ ad, className }: { ad: string; className?: string }) {
   const [on, ...son] = ad.split(' ')
   return <span className={`w-ad ${className ?? ''}`}>{on}{son.length > 0 && <><br />{son.join(' ')}</>}</span>
@@ -212,7 +214,8 @@ function kartlariKur(
               <div className="w-alan p3 w-esit">
                 {w.slice(0, 2).map(k => <div key={k.id} className="cerceve"><Foto k={k} /></div>)}
               </div>
-              <div className="alt-satir"><span className="w-ad p4">{w.length === 2 ? 'İki' : buyuk(SAYI[w.length] ?? String(w.length))} kare<br />eşit puan aldı</span><span className="puan-kutu p5">{puan(w[0].ortalama)}</span></div>
+              {/* Ortak birincilerin hepsinin adı; kartta en çok iki kare görünüyor ama ad kimseyi dışarıda bırakmıyor (Buse, 2026-10-03) */}
+              <div className="alt-satir"><span className="w-ad p4">{adlarYaz(w.map(k => k.sahip_ad))}<br />eşit puan aldı</span><span className="puan-kutu p5">{puan(w[0].ortalama)}</span></div>
             </>
           ) : (
             <>

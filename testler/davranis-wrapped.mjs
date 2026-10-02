@@ -276,6 +276,9 @@ try {
   bekle('oylanmayan temanın kartı açılmıyor', JSON.stringify(s3) === JSON.stringify(['acilis', 'tema', 'temalar', 'kisisel', 'kapanis']), JSON.stringify(s3));
   await ac(P, `wrapped/${E3}`); await sag(P);
   bekle('ortak: tema kartı ortak birinci, iki kare', await var_(P, 'Ortak') && await var_(P, 'eşit puan aldı') && (await P.locator('.k2 .cerceve img, .k2 .cerceve .bos-foto').count()) === 2, (await metin(P)).slice(0, 200));
+  // Ortak birincilerin adları yazıyor (Buse, 2026-10-03: "isimleri yazmıyor")
+  const ortakMetin = (await P.locator('.k2').first().textContent()) ?? '';
+  bekle('ortak: tema kartında iki birincinin de adı var', ortakMetin.includes(foto[0].ad) && ortakMetin.includes(foto[1].ad) && ortakMetin.includes(' ve '), ortakMetin.slice(0, 200));
   await olc(P, '80-wrapped-ortak');
   const P0 = await kisi(foto[0].eposta);
   await ac(P0, `wrapped/${E3}`); await kisiselKartaGit(P0);

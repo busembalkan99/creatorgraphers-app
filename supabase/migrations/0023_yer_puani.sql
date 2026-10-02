@@ -68,7 +68,9 @@ language sql stable security definer set search_path = public as $$
     from kisi
   ),
   -- Satırdaki kare: puanı yerden geldiği için temasında en iyi yeri alan karesi; eşitse ham ortalaması
-  -- yüksek olan, o da eşitse önce yüklenen (kod incelemesi, 2026-10-03). Puan taşımıyor.
+  -- yüksek olan, o da eşitse önce yüklenen (kod incelemesi, 2026-10-03). Puan taşımıyor. Görsel herkese
+  -- açık: kişinin hangi karesinin daha iyi yer aldığını, yani görünmeyen bir karenin yerini görünen bir
+  -- kareye göre kabaca söylüyor. Ham ortalamayla seçerken de aynısı vardı; karar 52 kapsamında kabul.
   eniyi as (
     select distinct on (k.sahip) k.sahip, kr.dosya, kr.genislik, kr.yukseklik
     from kare k

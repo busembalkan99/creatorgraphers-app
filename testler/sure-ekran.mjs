@@ -82,6 +82,11 @@ try {
   await kutuyaYaz(girdiDegeri(saat(50)));
   await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(1200);
   bekle('oy bitişinden sonraya alınan yükleme: anlaşılır hata', /Son oy, son yüklemeden sonra olmalı/.test(await yazi('.hata')), await yazi('.hata'));
+  // Hatadan sonra eski saate dönüp Kaydet: sunucuya gitmeden kapanıyor, eski hata kalmıyor (güvenlik notu 3)
+  await kutuyaYaz(girdiDegeri((await oku()).yukleme_biter));
+  await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(600);
+  bekle('değişmeyen değerle Kaydet: kutu kapandı, eski hata yok', (await p.locator('.kart.saat-kutu').count()) === 0 && (await p.locator('.hata').count()) === 0, await yazi('.hata'));
+  await degistir('Son yükleme').click(); await p.waitForTimeout(300);
   await p.getByRole('button', { name: 'Vazgeç' }).click(); await p.waitForTimeout(400);
   bekle('Vazgeç hatayı da kapatıyor', (await p.locator('.hata').count()) === 0);
 
@@ -127,10 +132,13 @@ try {
     yukleme_baslar: saat(-3), yukleme_biter: saat(-1), oylama_biter: saat(20), kuran: A.id }).select('id').single()).data.id;
   await admin.from('temalar').insert({ etkinlik: E2, ad: 'Portre', sira: 1, bulusmada: true });
   await p.goto(APP + '#/profil'); await p.waitForTimeout(1200); await p.goto(APP + '#/asama'); await p.waitForTimeout(2200);
+  // Aşama sorgusu düşse de sonuçlar ekranına gidiyor (güvenlik notu 4)
+  await p.route('**/rest/v1/rpc/etkinlik_asamasi*', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
   await degistir('Son oy').click(); await p.waitForTimeout(300);
   await kutuyaYaz(girdiDegeri(new Date().toISOString()));
   await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(3500);
-  bekle('son oy şimdi: sonuçlar açıldı ve sonuç ekranına gidiyor', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc' && p.url().includes(`#/sonuc/${E2}`), p.url());
+  await p.unroute('**/rest/v1/rpc/etkinlik_asamasi*');
+  bekle('son oy şimdi: sonuçlar açıldı ve sonuç ekranına gidiyor (aşama sorgusu düşse de)', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc' && p.url().includes(`#/sonuc/${E2}`), p.url());
 
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally {

@@ -70,7 +70,7 @@ export function Asama() {
   async function saatKaydet() {
     if (!e || !duzen) return
     // Değiştirmeden Kaydet: kutu dakikaya yuvarlıyor, gönderilse saniyeler kaybolurdu
-    if (deger === girdiDegeri(duzen === 'yukleme' ? e.yukleme_biter : e.oylama_biter)) return setDuzen(null)
+    if (deger === girdiDegeri(duzen === 'yukleme' ? e.yukleme_biter : e.oylama_biter)) { setHata(null); return setDuzen(null) }
     const iso = girdidenIso(deger)
     if (!iso) return setHata('Bir tarih ve saat seç.')
     setHata(null)
@@ -80,10 +80,13 @@ export function Asama() {
       p_oylama_biter: duzen === 'oy' ? iso : null,
     })
     if (error) return setHata(hataMetni(error))
+    const ne = duzen
     setDuzen(null)
-    // Son oyu şimdiye çekmek de oylamayı bitiriyor: boş "açık etkinlik yok" ekranı yerine sonuçlar
-    const { data: yeniAsama } = await sb.rpc('etkinlik_asamasi', { p_etkinlik: e.id })
-    if (yeniAsama === 'sonuc') return sonucaGec(e.id)
+    // Son oyu şimdiye çekmek de oylamayı bitiriyor: boş "açık etkinlik yok" ekranı yerine sonuçlar.
+    // Aşama sorgusu düşerse kayıttan tahmin: son oy bir dakika içindeyse sonuç açılmıştır (0022 "şimdi"ye çekiyor).
+    const { data: yeniAsama, error: asamaHata } = await sb.rpc('etkinlik_asamasi', { p_etkinlik: e.id })
+    const bitti = asamaHata ? ne === 'oy' && Date.parse(iso) <= Date.now() + 60_000 : yeniAsama === 'sonuc'
+    if (bitti) return sonucaGec(e.id)
     await yukle().catch(x => setHata(hataMetni(x)))
   }
 

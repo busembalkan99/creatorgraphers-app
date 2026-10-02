@@ -51,6 +51,23 @@ bekle('üye oylamayı bitiremiyor', hata(r).includes('yetki_yok'), hata(r));
 r = await A.c.rpc('oylamayi_bitir', { p_etkinlik: E });
 bekle('yönetici oylamayı bitiriyor: sonuçlar açılıyor', !r.error && (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E })).data === 'sonuc', hata(r));
 
+// Kuyruktaki "açıldı" bildirimleri (inceleme F3): saat değişince yeni saati söylüyor, aşama geçince gitmiyor
+{
+  const EB = await yeni(-2, 20, 44);
+  const sat = (tur, zaman) => ({ kullanici: B.id, anahtar: `${tur}:${EB}:${crypto.randomUUID()}`, tur, etkinlik: EB, baslik: 't', govde: 'eski', adres: 'x', zaman });
+  await admin.from('bildirim_kuyrugu').insert([sat('yukleme_acildi', saat(1)), sat('oylama_acildi', saat(30))]);
+  await kur(A, EB, saat(10), saat(40));
+  const q = (await admin.from('bildirim_kuyrugu').select('tur, govde').eq('etkinlik', EB).order('tur')).data ?? [];
+  bekle('saat değişince bekleyen bildirim yeni saati söylüyor', q.find(x => x.tur === 'yukleme_acildi')?.govde.startsWith('Son yükleme: ') && q.find(x => x.tur === 'oylama_acildi')?.govde.startsWith('Son oy: '), JSON.stringify(q));
+  // Yükleme bitti, oylama da bitirildi: sabaha ertelenmiş "açıldı" bildirimleri artık geçersiz
+  await admin.from('bildirim_kuyrugu').update({ zaman: saat(-0.02) }).eq('etkinlik', EB);
+  await kur(A, EB, saat(0), saat(40));
+  await A.c.rpc('oylamayi_bitir', { p_etkinlik: EB });
+  await admin.rpc('bildirim_gonderilecekler');
+  const g = (await admin.from('bildirim_kuyrugu').select('tur, son_hata, gonderildi_at').eq('etkinlik', EB)).data ?? [];
+  bekle('aşaması geçmiş "açıldı" bildirimi gitmiyor (geçersiz)', g.length === 2 && g.every(x => x.gonderildi_at && x.son_hata === 'gecersiz'), JSON.stringify(g));
+}
+
 // Sonuçtan sonra ve iptalde
 r = await kur(A, E, null, saat(48));
 bekle('sonuç açıldıktan sonra saat değişmiyor', hata(r).includes('saat_degismez'), hata(r));

@@ -197,4 +197,15 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   bekle('6: puanlı karesi olmayanın profilinde ortalama yok, profil açılıyor', pB?.ad === 'Ba Ak' && pB.ortalama == null, JSON.stringify(pB));
 }
 
+// ---------------------------------------------- 7. satırdaki en iyi kare yer puanından (kod incelemesi F5)
+// Ge: Sokak'ta 6,5 ile birinci (100), Portre'de 7,0 ile sonuncu (0). Görsel Sokak karesi olmalı, ham ortalaması düşük olsa da.
+{
+  await kur([['ge', 'Ge Ak'], ['ha', 'Ha Ak'], ['ip', 'İp Ak']]);
+  const E1 = await etkinlik(10, [['Sokak', true], ['Portre', true]]);
+  const sokak = await kare(E1, 0, K.ge, [6, 7]); await kare(E1, 0, K.ha, [5, 5]);
+  await kare(E1, 1, K.ge, [7, 7]); await kare(E1, 1, K.ha, [9, 9]); await kare(E1, 1, K.ip, [8, 8]);
+  const dosya = (await admin.from('kareler').select('dosya').eq('id', sokak.id).single()).data.dosya;
+  bekle('7: satırdaki kare temada en iyi yeri alan (ham ortalaması düşük olsa da)', satir(await sira(K.ge), 'Ge Ak')?.dosya === dosya, JSON.stringify(satir(await sira(K.ge), 'Ge Ak')));
+}
+
 rapor();

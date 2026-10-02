@@ -6,6 +6,8 @@
 --
 --   yer puanı = 100 · (n − yer) / (n − 1)    n temadaki puanlı kare, yer kare_siralari'ndaki rank
 --                                           (eşitler aynı yeri alıyor). Temada tek puanlı kare: 50.
+--   Eşitler yukarıdaki yeri alıyor (rank): iki ortak birinci ikisi de 100, Sonuç'taki "ortak birinci"yle aynı.
+--   Bu yüzden eşitlik olan temanın ortası 50'nin biraz üstünde; çekim yine sabit 50. Bilerek.
 --   puan      = (3 · 50 + Σ(w · yer puanı)) / (3 + Σw), tam sayı
 --
 -- Ağırlık (karar 116), Σw, eşik (karar 53), görünürlük (karar 52), imzalar ve sütunlar aynı. Çekim artık
@@ -65,12 +67,13 @@ language sql stable security definer set search_path = public as $$
              then (3 * 50.0 + kisi.toplam) / (3 + kisi.agirlik) end as ort
     from kisi
   ),
-  -- Sezonda en yüksek puanlı karesi; puan eşitse önce yüklenen. Puan taşımıyor.
+  -- Satırdaki kare: puanı yerden geldiği için temasında en iyi yeri alan karesi; eşitse ham ortalaması
+  -- yüksek olan, o da eşitse önce yüklenen (kod incelemesi, 2026-10-03). Puan taşımıyor.
   eniyi as (
     select distinct on (k.sahip) k.sahip, kr.dosya, kr.genislik, kr.yukseklik
     from kare k
     join public.kareler kr on kr.id = k.id
-    order by k.sahip, k.ort desc nulls last, kr.yukleme_at, kr.id
+    order by k.sahip, k.yp desc nulls last, k.ort desc nulls last, kr.yukleme_at, kr.id
   ),
   sirali as (
     select puanli.*,
@@ -139,7 +142,7 @@ language sql stable security definer set search_path = public as $$
   eniyi as (
     select distinct on (k.sahip) k.sahip, kr.dosya, kr.genislik, kr.yukseklik
     from kare k join public.kareler kr on kr.id = k.id
-    order by k.sahip, k.ort desc nulls last, kr.yukleme_at, kr.id
+    order by k.sahip, k.yp desc nulls last, k.ort desc nulls last, kr.yukleme_at, kr.id
   ),
   sirali as (
     select puanli.*,

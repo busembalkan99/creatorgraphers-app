@@ -70,7 +70,7 @@ export function Siralama({ uye }: { uye: Uye }) {
   const satirCiz = (s: Satir, tablo: 'sezon' | 'serbest' = 'sezon') => (
     <button key={s.uye} className={`row ${s.benim ? 'me' : ''} ${s.sira === 1 ? 'lider' : ''}`} data-tablo={tablo} onClick={() => git(`profil/${s.uye}`)}>
       <span className="no">{String(s.sira).padStart(2, '0')}</span>
-      {/* Görsel kişinin en iyi karesi, sayı bütün karelerinin ortalaması (karar 53).
+      {/* Görsel kişinin temasında en iyi yeri alan karesi, sayı sezon puanı (kararlar 53, 125).
           İkisi yan yana durunca sayı o karenin puanı sanılıyordu; iki yarı da ne olduğunu
           söylüyor. Kareninki görselin altında, çünkü kareye ait (karar 110). */}
       {s.url && (
@@ -109,9 +109,9 @@ export function Siralama({ uye }: { uye: Uye }) {
 
       {/* Profil'deki sayılar kartıyla aynı dil: sayı üstte, ne olduğu altında (Buse, 2026-09-26) */}
       {acik && ben && (ben.sirali ? (
-        <div className="kart sen-yeri"><div><b>{ben.sira}</b><span>Sıralaman</span></div><div><b>{puanYaz(ben.ortalama)}</b><span>Puanın</span></div></div>
+        <div className="kart sen-yeri"><div><b>{ben.sira}</b><span>Sıralaman</span></div><div><b>{puanYaz(ben.ortalama)}</b><span>Sezon puanın</span></div></div>
       ) : ben.ortalama != null && (
-        <div className="kart sen-yeri"><div><b>{puanYaz(ben.ortalama)}</b><span>Puanın</span></div>
+        <div className="kart sen-yeri"><div><b>{puanYaz(ben.ortalama)}</b><span>Sezon puanın</span></div>
           <p>Sıralamaya girmedin. Puanını yalnız sen görüyorsun.</p></div>
       ))}
 

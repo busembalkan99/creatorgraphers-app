@@ -126,7 +126,7 @@ try {
   const dSira = ((await K.D.c.rpc('siralama')).data ?? []).find(x => x.benim);
   bekle('Deniz sezonda sıralamaya girmedi (kontrol)', dSira && !dSira.sirali && dSira.ortalama != null, JSON.stringify(dSira));
   await git(D, 'siralama');
-  bekle('senin yerin: sıralamaya girmedin, puanın yalnız sana', /^\d{1,3} ?Puanın ?Sıralamaya girmedin\. Puanını yalnız sen görüyorsun\.$/.test(await yazi(D, '.sen-yeri')), await yazi(D, '.sen-yeri'));
+  bekle('senin yerin: sıralamaya girmedin, puanın yalnız sana', /^\d{1,3} ?Sezon puanın ?Sıralamaya girmedin\. Puanını yalnız sen görüyorsun\.$/.test(await yazi(D, '.sen-yeri')), await yazi(D, '.sen-yeri'));
   // Karesi olmayan üye ne "senin karen" ne "senin yerin" kartı görüyor
   const Z = await sayfa(K.Z);
   await git(Z, `sonuc/${E1.id}`);

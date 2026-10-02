@@ -17,6 +17,8 @@ const dk = iso => Math.round(Date.parse(iso) / 60000);
 
 const b = await webkit.launch(); const hatalar = [];
 const ctx = await b.newContext({ ...devices['iPhone 14'] });
+// Telefonun saati sunucudan 2 sn geride (kod incelemesi F2): Sonuç ekranı yine açılmalı
+await ctx.addInitScript(() => { const asil = Date.now.bind(Date); Date.now = () => asil() - 2000; });
 const p = await ctx.newPage(); p.on('pageerror', e => hatalar.push(String(e)));
 await p.goto(APP); await p.waitForFunction(() => window.__sb, null, { timeout: 20000 });
 await p.evaluate(async () => { const r = await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); if (r.error) throw r.error; });
@@ -55,6 +57,11 @@ try {
   await kutuyaYaz(girdiDegeri(saat(30)));
   await p.getByRole('button', { name: 'Vazgeç' }).click(); await p.waitForTimeout(500);
   bekle('Vazgeç: saat değişmedi, kutu kapandı', (await oku()).yukleme_biter === ilk && (await p.locator('.kart.saat-kutu').count()) === 0);
+
+  // Değiştirmeden Kaydet: sunucuya gitmiyor, saniyeler kaybolmuyor (kod incelemesi F6)
+  await degistir('Son yükleme').click(); await p.waitForTimeout(300);
+  await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(800);
+  bekle('değiştirmeden Kaydet: saat birebir aynı, kutu kapandı', (await oku()).yukleme_biter === ilk && (await p.locator('.kart.saat-kutu').count()) === 0, JSON.stringify({ ilk, simdi: (await oku()).yukleme_biter }));
 
   await degistir('Son yükleme').click(); await p.waitForTimeout(300);
   const yeni = girdiDegeri(saat(30));
@@ -112,6 +119,18 @@ try {
   await p.locator('.kart.kutu').getByRole('button', { name: 'Oylamayı bitir' }).click(); await p.waitForTimeout(2500);
   bekle('onaylayınca sonuçlar açıldı', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E })).data === 'sonuc');
   bekle('onaylayınca sonuçlar ekranına gidiyor', p.url().includes(`#/sonuc/${E}`), p.url());
+  await p.waitForTimeout(1500);
+  bekle('saati geride telefonda da sonuçlar açık (açılmadı demiyor)', !(await p.locator('body').innerText()).replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR').includes('sonuçlar açılmadı'), (await p.locator('body').innerText()).slice(0, 160));
+
+  // ---------------------------------------------- son oyu "şimdi" yapmak da oylamayı bitiriyor (F6)
+  const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }),
+    yukleme_baslar: saat(-3), yukleme_biter: saat(-1), oylama_biter: saat(20), kuran: A.id }).select('id').single()).data.id;
+  await admin.from('temalar').insert({ etkinlik: E2, ad: 'Portre', sira: 1, bulusmada: true });
+  await p.goto(APP + '#/profil'); await p.waitForTimeout(1200); await p.goto(APP + '#/asama'); await p.waitForTimeout(2200);
+  await degistir('Son oy').click(); await p.waitForTimeout(300);
+  await kutuyaYaz(girdiDegeri(new Date().toISOString()));
+  await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(3500);
+  bekle('son oy şimdi: sonuçlar açıldı ve sonuç ekranına gidiyor', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc' && p.url().includes(`#/sonuc/${E2}`), p.url());
 
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally {

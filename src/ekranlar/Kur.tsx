@@ -80,7 +80,7 @@ export function Kur() {
           <button className={serbest ? 'on' : ''} aria-pressed={serbest} onClick={() => setSerbest(true)}>Serbest · ekstra</button>
         </div>
         {serbest && (
-          <div className="ipucu">Sezonun altı etkinliğine sayılmaz, seriyi etkilemez. Bütün temalar serbest: çekim tarihine bakılmaz. Kareler sezon ortalamasına yarım ağırlıkla girer, Sıralama'da ayrı Serbest tablosunda da yer alır. Yoklama yine alınır.</div>
+          <div className="ipucu">Sezonun altı etkinliğine sayılmaz, seriyi etkilemez. Bütün temalar serbest: çekim tarihine bakılmaz. Kareler sezon puanına yarım ağırlıkla girer, Sıralama'da ayrı Serbest tablosunda da yer alır. Yoklama yine alınır.</div>
         )}
       </div>
 

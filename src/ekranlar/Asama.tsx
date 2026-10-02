@@ -69,6 +69,8 @@ export function Asama() {
   // Sunucu yalnız değişen saati alıyor, öteki boş gidiyor (0022). Hata olursa kutu açık kalıyor.
   async function saatKaydet() {
     if (!e || !duzen) return
+    // Değiştirmeden Kaydet: kutu dakikaya yuvarlıyor, gönderilse saniyeler kaybolurdu
+    if (deger === girdiDegeri(duzen === 'yukleme' ? e.yukleme_biter : e.oylama_biter)) return setDuzen(null)
     const iso = girdidenIso(deger)
     if (!iso) return setHata('Bir tarih ve saat seç.')
     setHata(null)
@@ -79,7 +81,19 @@ export function Asama() {
     })
     if (error) return setHata(hataMetni(error))
     setDuzen(null)
+    // Son oyu şimdiye çekmek de oylamayı bitiriyor: boş "açık etkinlik yok" ekranı yerine sonuçlar
+    const { data: yeniAsama } = await sb.rpc('etkinlik_asamasi', { p_etkinlik: e.id })
+    if (yeniAsama === 'sonuc') return sonucaGec(e.id)
     await yukle().catch(x => setHata(hataMetni(x)))
+  }
+
+  // Sunucu oylama_biter'i kendi saatiyle yazdı; telefonun saati biraz gerideyse Sonuç ekranı "açılmadı"
+  // diyordu. O saat telefonda da geçene kadar bekle (en çok 5 sn), sonra git.
+  async function sonucaGec(id: string) {
+    const { data } = await sb.from('etkinlikler').select('oylama_biter').eq('id', id).maybeSingle()
+    const fark = data ? Date.parse(data.oylama_biter) - Date.now() : 0
+    if (fark > -500) await new Promise(r => setTimeout(r, Math.min(fark + 500, 5000)))
+    git(`sonuc/${id}`)
   }
 
   async function oylamayiBitir() {
@@ -88,7 +102,7 @@ export function Asama() {
     const { error } = await sb.rpc('oylamayi_bitir', { p_etkinlik: e.id })
     setSoru(null)
     if (error) return setHata(hataMetni(error))
-    git(`sonuc/${e.id}`)
+    await sonucaGec(e.id)
   }
 
   if (e === undefined) return hata ? <div className="sc"><Kunye sol="Profil" geri="profil" sag="Yönetim" /><Hata metin={hata} /></div> : <Yukleniyor />

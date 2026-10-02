@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
 
+// Karar 126: etkinlikler eski sete sabit (yeni setler davranis-wrapped-setler.mjs'te)
 const APP = 'http://localhost:5180/';
 const SS = '/tmp/cgapp/ss';
 fs.mkdirSync(SS, { recursive: true });
@@ -25,7 +26,7 @@ await admin.from('uyeler').insert(U.slice(1).map(u => ({ id: u.id, ad: u.ad, epo
 
 const bugun = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 const saat = h => new Date(Date.now() + h * 3600000).toISOString();
-const E = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+const E = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
 const T = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', sira: 1, bulusmada: true }).select('id').single()).data.id;
 const kare = [];
 for (const u of U.slice(1, 7)) {

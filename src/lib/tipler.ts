@@ -29,6 +29,7 @@ export interface Etkinlik {
   iptal: boolean
   serbest?: boolean   // karar 116: ekstra etkinlik, sezona sayılmaz
   yoklama_at?: string | null // karar 103: null ise yoklama alınmadı
+  wrapped_set?: 'klasik' | 'kontakt' | 'pano' | null // karar 126: Wrapped seti, boş = eski set (0024)
 }
 
 export interface Tema {

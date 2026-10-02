@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
 
+// Karar 126: etkinlikler eski sete sabit (yeni setler davranis-wrapped-setler.mjs'te)
 const APP = 'http://localhost:5180/';
 const SS = '/tmp/cgapp/ss';
 fs.mkdirSync(SS, { recursive: true });
@@ -33,7 +34,7 @@ const yukle = async (K, E, tema) => {
 };
 
 // ------------------------------------------------ tek temalı etkinlik
-const E = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+const E = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
 const T = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', sira: 1, bulusmada: true }).select('id').single()).data.id;
 const foto = U.slice(1, 10);                  // dokuz fotoğrafçı, sırayla puan alacaklar
 const kare = [];
@@ -46,7 +47,7 @@ for (const u of U.slice(0, 10)) {
 }
 await A.c.rpc('kare_cikar', { p_kare: kare[8], p_neden: 'Buluşmaya katılmadın.' });
 // Sekiz gün önce sonuçlanmış eski bir etkinlik: kendiliğinden açılmamalı (yedi gün penceresi)
-const ESKI = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+const ESKI = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
 const TE = (await admin.from('temalar').insert({ etkinlik: ESKI, ad: 'Eski', sira: 1, bulusmada: true }).select('id').single()).data.id;
 await yukle(foto[0], ESKI, TE);
 await admin.from('etkinlikler').update({ yukleme_baslar: saat(-240), yukleme_biter: saat(-216), oylama_biter: saat(-192) }).eq('id', ESKI);
@@ -204,7 +205,7 @@ try {
   bekle('hareketi azalt: açılış sayıları hemen yerinde', (await PH.locator('.k1 .rulo').first().evaluate(r => getComputedStyle(r).transform)) === 'none');
 
   // ------------------------------------------------ iki temalı etkinlik: tema tema kartı
-  const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-50), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-50), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
   const T2 = (await admin.from('temalar').insert([
     { etkinlik: E2, ad: 'Gece', sira: 1, bulusmada: true }, { etkinlik: E2, ad: 'Pencere', sira: 2, bulusmada: false },
   ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
@@ -253,7 +254,7 @@ try {
   // ------------------------------------------------ ortak birincilik, kimsenin oylamadığı tema, puansız kare
   // Gece: dört kare, ilk ikisi eşit 9 (ortak birinci), üçüncüsü 5, dördüncüsüne kimse puan vermiyor.
   // Pencere: tek kare, kimse oylamıyor (temanın kartı açılmamalı).
-  const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
   const [G, PE] = (await admin.from('temalar').insert([
     { etkinlik: E3, ad: 'Gece', sira: 1, bulusmada: true }, { etkinlik: E3, ad: 'Pencere', sira: 2, bulusmada: false },
   ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
@@ -292,7 +293,7 @@ try {
 
   // ------------------------------------------------ B: birden çok temada sıralamaya girdin
   // İki tema, her birinde beş kare (5 / 2,5 → iki kare sıralamada). Mert iki temada da ikinci.
-  const E4 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const E4 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
   const T4 = (await admin.from('temalar').insert([
     { etkinlik: E4, ad: 'Sis', sira: 1, bulusmada: true }, { etkinlik: E4, ad: 'Duvar', sira: 2, bulusmada: false },
   ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);
@@ -322,7 +323,7 @@ try {
 
   // Bir temayı tek başına kazandı, ötekinde ortak birinci: "İki temayı" değil. Bir de: bir temada
   // ikinci, ötekinde sıralama dışı → ikinci karenin altında "galeride".
-  const E5 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
+  const E5 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-2), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id, wrapped_set: 'klasik' }).select('id').single()).data.id;
   const T5 = (await admin.from('temalar').insert([
     { etkinlik: E5, ad: 'Kıyı', sira: 1, bulusmada: true }, { etkinlik: E5, ad: 'Çatı', sira: 2, bulusmada: false },
   ]).select('id, sira')).data.sort((x, y) => x.sira - y.sira);

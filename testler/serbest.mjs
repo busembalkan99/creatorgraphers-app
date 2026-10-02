@@ -59,14 +59,13 @@ const pB = ((await K.b.c.rpc('profil')).data ?? [])[0];
 bekle('seri buluşmaları sayıyor', Number(pB?.seri) === 1, JSON.stringify(pB));
 
 // ---------------------------------------------- ağırlıklı sezon ortalaması
-// Barış: 8 (buluşma) + 6 (serbest tema) + 9 (serbest etkinlik) → Σw = 2, Σ(w · ort) = 15,5
-// Kulüp ortalaması (0021): C = (8 + 7 + 3 + 4,5 + 5) / 3,5 = 7,857
-// Barış: (3 · 7,857 + 15,5) / 5 = 7,81 → 7,8 (Σw yerine kare sayısı alınsaydı (23,57 + 15,5) / 6 = 6,5)
+// Yer puanı (0023): Sokak Barış 8 > Can 7 → 100, 0. Portre yalnız Barış → 50. Doku Deniz 10 > Barış 9 → 100, 0.
+// Barış: 100 (w 1) + 50 (w 0,5) + 0 (w 0,5) → (150 + 125) / 5 = 55 (Σw yerine kare sayısı alınsaydı 275 / 6 = 46)
 const lB = await sira(K.b);
-bekle('serbest yarım ağırlık: kendi puanın 7,8', Number(satir(lB, 'Barış Ak')?.ortalama) === 7.8, JSON.stringify(satir(lB, 'Barış Ak')));
+bekle('serbest yarım ağırlık: kendi puanın 55', Number(satir(lB, 'Barış Ak')?.ortalama) === 55, JSON.stringify(satir(lB, 'Barış Ak')));
 const lC = await sira(K.c);
-// Can: tek buluşma karesi 7 → (23,57 + 7) / 4 = 7,64 → 7,6
-bekle('yalnız buluşma karesi olanın puanı kulübe doğru çekiliyor (7,6)', Number(satir(lC, 'Can Öz')?.ortalama) === 7.6, JSON.stringify(satir(lC, 'Can Öz')));
+// Can: tek buluşma karesi, sonuncu → 150 / 4 = 37,5 → 38
+bekle('yalnız buluşma karesi olanın puanı 50\'ye doğru çekiliyor (38)', Number(satir(lC, 'Can Öz')?.ortalama) === 38, JSON.stringify(satir(lC, 'Can Öz')));
 // Deniz yalnız serbest etkinlikte: eşik buluşmadan sayılıyor, sıralamaya giremiyor
 const lD = await sira(K.d);
 const d = satir(lD, 'Deniz Yılmaz');
@@ -78,14 +77,13 @@ bekle('sıralı olan en yüksek ağırlıklı ortalama', lA.filter(x => x.sirali
 bekle('sıralama dışında kalanın puanı başkasına gizli (karar 52)', satir(lA, 'Can Öz')?.ortalama == null, JSON.stringify(satir(lA, 'Can Öz')));
 
 // ---------------------------------------------- Serbest tablosu
-// Barış: 6 ve 9; Deniz: 10. C = 25 / 3 = 8,33 (0021)
-// Barış: (25 + 15) / 5 = 8,0; Deniz: (25 + 10) / 4 = 8,75 → 8,8. İki kişi → round(2 / 2,5) = 1 sıralı
+// Barış: Portre 50, Doku 0 → (150 + 50) / 5 = 40. Deniz: Doku 100 → 250 / 4 = 62,5 → 63. İki kişi → 1 sıralı
 const sA = await sira(A, 'serbest_siralama');
 bekle('Serbest tablosu yalnız serbest kareler (Can yok)', sA.length === 2 && !satir(sA, 'Can Öz'), JSON.stringify(sA.map(x => x.ad)));
-bekle('Serbest tablosu: Deniz birinci, düzeltilmiş puanı görünür (8,8)', satir(sA, 'Deniz Yılmaz')?.sira === 1 && Number(satir(sA, 'Deniz Yılmaz')?.ortalama) === 8.8, JSON.stringify(satir(sA, 'Deniz Yılmaz')));
+bekle('Serbest tablosu: Deniz birinci, düzeltilmiş puanı görünür (63)', satir(sA, 'Deniz Yılmaz')?.sira === 1 && Number(satir(sA, 'Deniz Yılmaz')?.ortalama) === 63, JSON.stringify(satir(sA, 'Deniz Yılmaz')));
 bekle('Serbest tablosu: sıralama dışının puanı başkasına gizli', satir(sA, 'Barış Ak')?.ortalama == null && satir(sA, 'Barış Ak')?.sirali === false, JSON.stringify(satir(sA, 'Barış Ak')));
 const sB = await sira(K.b, 'serbest_siralama');
-bekle('Serbest tablosu: kendi puanın sana açık (8,0)', Number(satir(sB, 'Barış Ak')?.ortalama) === 8, JSON.stringify(satir(sB, 'Barış Ak')));
+bekle('Serbest tablosu: kendi puanın sana açık (40)', Number(satir(sB, 'Barış Ak')?.ortalama) === 40, JSON.stringify(satir(sB, 'Barış Ak')));
 bekle('Serbest tablosu: kare sayısı', Number(satir(sB, 'Barış Ak')?.kare_sayisi) === 2);
 
 // ---------------------------------------------- yetkiler
@@ -210,7 +208,7 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   const sez = async n => ((await K.b.c.rpc('serbest_siralama', { p_sezon: n })).data ?? []);
   const s1 = await sez(1), s2 = await sez(2);
   bekle('sezon sınırı: ikinci sezon açıldı', Number(((await A.c.rpc('sezon_ozeti')).data ?? [])[0]?.sezon) === 2, JSON.stringify((await A.c.rpc('sezon_ozeti')).data));
-  bekle('sezon sınırı: sonraki buluşmadan sonraki serbest etkinlik ikinci sezonda', s2.length === 1 && s2[0].ad === 'Barış Ak' && Number(s2[0].ortalama) === 4, JSON.stringify(s2));
+  bekle('sezon sınırı: sonraki buluşmadan sonraki serbest etkinlik ikinci sezonda', s2.length === 1 && s2[0].ad === 'Barış Ak' && Number(s2[0].ortalama) === 50, JSON.stringify(s2));
   bekle('sezon sınırı: önceki serbest etkinlikler birinci sezonda kaldı', !!satir(s1, 'Barış Ak') && !!satir(s1, 'Deniz Yılmaz'), JSON.stringify(s1.map(x => x.ad)));
   bekle('sezon sınırı: hiçbir buluşmadan önceki serbest etkinlik birinci sezonda', Number(satir(await sez(1).then(l => l), 'Deniz Yılmaz')?.kare_sayisi) === 2, JSON.stringify(s1));
   // Arşiv numarası yalnız buluşmaları sayıyor: 7 buluşma 01..07, iki eski serbest EK

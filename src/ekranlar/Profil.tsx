@@ -318,7 +318,8 @@ function KisiselSayilar({ ortalama, uyeId }: { ortalama: number | null; uyeId: s
   if (!n) return null
   return (
     <div className="kisisel">
-      {ortalama != null && <div><b>{puanYaz(ortalama)}</b><span>Ortalaman</span></div>}
+      {/* Karar 125: sıralamadaki puanın aynısı, 100'lük tam sayı; kare puanları (1-10) gibi ondalıklı değil */}
+      {ortalama != null && <div><b>{Math.round(ortalama)}</b><span>Sezon puanın</span></div>}
       {tahmin && <div className={yeni ? 'belir' : undefined}><b>{t!.bilen}/{t!.toplam}</b><span>Tahminde bildin</span></div>}
       <p>{n === 2 ? 'Bu ikisini yalnız sen görüyorsun.' : 'Bunu yalnız sen görüyorsun.'}</p>
     </div>

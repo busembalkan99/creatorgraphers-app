@@ -80,8 +80,8 @@ const A = await oturum('kurucu@test.local');
 // ---------------------------------------------------------------- Sıralama: Müdavim ve boş durum
 {
   await ac(A, 'siralama');
-  // Karar 124: not düzeltilmiş ortalamayı ve nedenini söylüyor (Buse, 2026-10-03)
-  bekle('sıralama notu düzeltmeyi ve nedenini söylüyor', ((await A.locator('.kart-not').first().textContent()) ?? '') === 'Kare, kişinin en iyi karesi. Puan, karelerinin ortalaması; bir iki kareyle öne geçilmesin diye az karesi olanınki kulüp ortalamasına çekilir.', await A.locator('.kart-not').first().textContent());
+  // Karar 125: not puanın nereden geldiğini ve çekimin nedenini söylüyor (Buse, 2026-10-03)
+  bekle('sıralama notu yer puanını ve çekimin nedenini söylüyor', ((await A.locator('.kart-not').first().textContent()) ?? '') === "Kare, kişinin en iyi karesi. Puan, karelerinin temalarındaki yerinden gelir: birinci 100, sonuncu 0. Bir iki kareyle öne geçilmesin diye az karesi olanınki 50'ye çekilir.", await A.locator('.kart-not').first().textContent());
   bekle('Müdavim çok kişilik: sayı yazıyor', (await A.locator('.mud-kart b').textContent())?.includes('2 kişi'));
   bekle('sırasız blokta üç isim', (await A.locator('.kart.isimler:not([data-tablo=serbest]) button').count()) === 3);
 

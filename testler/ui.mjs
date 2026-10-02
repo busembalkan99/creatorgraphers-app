@@ -150,7 +150,7 @@ bekle('yeni üyenin sayaçları sönük', (await B.locator('.stats.zero').count(
 bekle('yeni üyede kare yok', icerir(await metin(B), 'Henüz kare yok'), (await metin(B)).slice(0, 200));
 bekle('yeni üyede başarılar kilitli, nasıl kazanılacağı yazıyor (karar 115)', icerir(await metin(B), '0 / 4') && (await B.locator('.basari-satir.kilitli').count()) === 4 && icerir(await metin(B), 'Bir etkinliğin bütün temalarına kare ver.'), (await metin(B)).slice(0, 300));
 bekle('çekim tarifi üç kareden sonra', icerir(await metin(B), 'Üç kareden sonra'));
-bekle('kendi profilinde ortalama satırı yok', !icerir(await metin(B), 'Ortalaman'));
+bekle('kendi profilinde sezon puanı satırı yok', !icerir(await metin(B), 'Sezon puanın'));
 await olc(B, '12-profil-uye');
 await B.goto(APP + '#/uyeler'); await B.waitForTimeout(600);
 bekle('üye #/uyeler açınca istekleri görmez', !icerir(await metin(B), 'Katılma istekleri'));
@@ -973,7 +973,9 @@ await olc(B, '39-sonuc-uye');
   bekle('sıralı satır var', (await A.locator('.row').count()) > 0, String(await A.locator('.row').count()));
   bekle('sıralı satırda kare görünüyor', (await A.locator('.row img').count()) === (await A.locator('.row').count()),
     `${await A.locator('.row img').count()} / ${await A.locator('.row').count()}`);
-  bekle('sıralı satırda puan var', /\d,\d/.test(await yaz(A, '.row .av')), await yaz(A, '.row .av'));
+  // Karar 125: puan 100'lük, tam sayı
+  { const p = await A.locator('.row .av').evaluateAll(l => l.map(e => e.firstChild?.nodeValue ?? ''));
+    bekle('sıralı satırda puan 0-100 arası tam sayı', p.length > 0 && p.every(x => /^\d{1,3}$/.test(x) && Number(x) <= 100), JSON.stringify(p)); }
   // Görsel en iyi kare, sayı bütün karelerin ortalaması: satır ikisini de söylüyor
   {
     const veri = await A.evaluate(async () => (await window.__sb.rpc('siralama')).data.filter(x => x.sirali));
@@ -1017,7 +1019,7 @@ await olc(B, '39-sonuc-uye');
   bekle('başkasının profilinde sekme çubuğu yok', (await A.locator('.tabs').count()) === 0);
   bekle('başkasının profilinde geri var', (await A.locator('.geri').count()) === 1);
   bekle('başkasının profilinde ayar yok', !icerir(await metin(A), 'Kulüp afişi') && !icerir(await metin(A), 'Çıkış yap'));
-  bekle('başkasının ortalaması yazmıyor', !icerir(await metin(A), 'Ortalaman'));
+  bekle('başkasının sezon puanı yazmıyor', !icerir(await metin(A), 'Sezon puanın'));
   await olc(A, '45-baskasinin-profili');
   await A.locator('.geri').click(); await A.waitForTimeout(1500);
   bekle('geri sıralamaya döner', (await A.locator('.kart-bas', { hasText: 'Sıralama' }).count()) > 0 || icerir(await metin(A), 'İlk sonuçlarla'),
@@ -1025,7 +1027,7 @@ await olc(B, '39-sonuc-uye');
 
   // Kendi profilin: ortalama ve ayarlar burada
   await A.goto(APP + '#/profil'); await A.waitForTimeout(2200);
-  bekle('kendi profilinde ortalaman var', icerir(await metin(A), 'Ortalaman'), (await metin(A)).slice(0, 220));
+  bekle('kendi profilinde sezon puanın var, tam sayı', icerir(await metin(A), 'Sezon puanın') && /^\d{1,3}$/.test((await A.locator('.kisisel b').first().textContent()) ?? ''), (await metin(A)).slice(0, 220));
   bekle('kendi profilinde kareler var', (await A.locator('.grid figure').count()) > 0);
   bekle('kendi profilinde ayarlar var', icerir(await metin(A), 'Kulüp afişi'));
   await olc(A, '46-kendi-profilin');

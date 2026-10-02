@@ -25,7 +25,8 @@ interface Satir {
 }
 interface Mudavim { uye: string; ad: string; benim: boolean; katilim: number; pencere: number }
 
-const puanYaz = (n: number | null) => (n == null ? '' : n.toFixed(1).replace('.', ','))
+// Karar 125: sıralama puanı 100'lük tam sayı (sunucu yuvarlıyor)
+const puanYaz = (n: number | null) => (n == null ? '' : String(Math.round(n)))
 
 export async function siralamaVerisi() {
   const [o, s, m, sr] = await sor(Promise.all([
@@ -108,10 +109,10 @@ export function Siralama({ uye }: { uye: Uye }) {
 
       {/* Profil'deki sayılar kartıyla aynı dil: sayı üstte, ne olduğu altında (Buse, 2026-09-26) */}
       {acik && ben && (ben.sirali ? (
-        <div className="kart sen-yeri"><div><b>{ben.sira}</b><span>Sıralaman</span></div><div><b>{puanYaz(ben.ortalama)}</b><span>Ortalaman</span></div></div>
+        <div className="kart sen-yeri"><div><b>{ben.sira}</b><span>Sıralaman</span></div><div><b>{puanYaz(ben.ortalama)}</b><span>Puanın</span></div></div>
       ) : ben.ortalama != null && (
-        <div className="kart sen-yeri"><div><b>{puanYaz(ben.ortalama)}</b><span>Ortalaman</span></div>
-          <p>Sıralamaya girmedin. Ortalamanı yalnız sen görüyorsun.</p></div>
+        <div className="kart sen-yeri"><div><b>{puanYaz(ben.ortalama)}</b><span>Puanın</span></div>
+          <p>Sıralamaya girmedin. Puanını yalnız sen görüyorsun.</p></div>
       ))}
 
       {!acik ? (
@@ -150,8 +151,8 @@ export function Siralama({ uye }: { uye: Uye }) {
 
           <h2 className="kart-bas">Sıralama<span>İlk {sirali.length}</span></h2>
           {/* Karar 110: kare kişinin en iyisi, puan bütün karelerinin ortalaması. Satırlarda değil, bir kez (Buse, 2026-09-26).
-              Karar 124: puan düzeltilmiş (Bayes) ortalama, iki tabloda da; ikinci cümle onu söylüyor. Satırda yalnız kare sayısı ("5 kare"). Metni Buse seçti (2026-10-03). */}
-          <p className="kart-not">Kare, kişinin en iyi karesi. Puan, karelerinin ortalaması; bir iki kareyle öne geçilmesin diye az karesi olanınki kulüp ortalamasına çekilir.</p>
+              Karar 124: puan düzeltilmiş (Bayes) ortalama, iki tabloda da; ikinci cümle onu söylüyor. Satırda yalnız kare sayısı ("5 kare"). Karar 125: puan karelerin temadaki yerinden, 100'lük (Buse, 2026-10-03). */}
+          <p className="kart-not">Kare, kişinin en iyi karesi. Puan, karelerinin temalarındaki yerinden gelir: birinci 100, sonuncu 0. Bir iki kareyle öne geçilmesin diye az karesi olanınki 50'ye çekilir.</p>
           {sirali.length === 0 ? (
             <div className="kart bos-kart"><b>Sıralama henüz yok</b><span>Sezonda hiç puan verilmemiş.</span></div>
           ) : (

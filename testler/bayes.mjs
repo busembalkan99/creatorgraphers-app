@@ -1,5 +1,6 @@
-// Sıralamada düzeltilmiş (Bayes) ortalama (0021, Buse 2026-10-02): sunucu kuralları.
-//   puan = (3 · C + Σ(w · ort)) / (3 + Σw), C = o tablodaki bütün puanlı karelerin ağırlıklı ortalaması
+// Sıralama puanı (karar 125, 0023, Buse 2026-10-03): sunucu kuralları.
+//   yer puanı = 100 · (n − yer) / (n − 1)   karenin temasındaki yerinden; n temadaki puanlı kare, tek kareyse 50
+//   puan      = (3 · 50 + Σ(w · yer puanı)) / (3 + Σw), tam sayı (Bayes, karar 124; çekim artık sabit 50'ye)
 // Temiz veritabanı ister: her bölüm baştan kuruyor.
 import fs from 'node:fs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
@@ -59,15 +60,15 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
 
 // ---------------------------------------------- 1. tek yüksek kare, çok kareli istikrarı geçemiyor
 // İki tamamlanmış buluşma → eşik 1. Buluşma temaları (w = 1).
-// Xe: tek kare 8,5. Ya: beş kare, ortalama 8,2. Zo: beş kare, ortalama 4,4.
-// C = (8,5 + 41 + 22) / 11 = 6,5
-//   Xe: (3 · 6,5 + 8,5) / 4 = 7,0     Ya: (19,5 + 41) / 8 = 7,5625 → 7,6
-// Eski kuralda Xe (8,5) Ya'nın (8,2) önündeydi.
+// Xe: tek kare, Sokak'ta birinci (100). Ya: beş kare, Sokak'ta ikinci (50), dördünde birinci (100).
+// Zo: beş kare, hepsinde sonuncu (0).
+//   Xe: (150 + 100) / 4 = 62,5 → 63     Ya: (150 + 450) / 8 = 75     Zo: 150 / 8 = 18,75 → 19
+// Çekim olmasaydı Xe (100) Ya'nın (90) önündeydi.
 {
   await kur([['xe', 'Xe Ak'], ['ya', 'Ya Bal'], ['zo', 'Zo Can']]);
   const E1 = await etkinlik(10, [['Sokak', true], ['Portre', true], ['Gece', true]]);
   const E2 = await etkinlik(5, [['Su', true], ['Işık', true]]);
-  await kare(E1, 0, K.xe, [8, 9]);
+  await kare(E1, 0, K.xe, [10, 10]);
   const yer = [[E1, 0], [E1, 1], [E1, 2], [E2, 0], [E2, 1]];
   for (const [[e, i], p] of yer.map((y, j) => [y, [9, 8, 8, 8, 8][j]])) await kare(e, i, K.ya, [p]);
   for (const [[e, i], p] of yer.map((y, j) => [y, [4, 4, 4, 5, 5][j]])) await kare(e, i, K.zo, [p]);
@@ -75,16 +76,15 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   const l = await sira(A);
   const sirali = l.filter(x => x.sirali);
   // Üç kişi → round(3 / 2,5) = 1 sıralı
-  bekle('1: beş kareli (8,2) tek kareliyi (8,5) geçiyor', sirali.length === 1 && sirali[0].ad === 'Ya Bal' && sayi(sirali[0].sira) === 1,
+  bekle('1: beş kareli (90) tek kareliyi (100) geçiyor', sirali.length === 1 && sirali[0].ad === 'Ya Bal' && sayi(sirali[0].sira) === 1,
     JSON.stringify(l.map(x => [x.ad, x.sira, x.ortalama])));
-  bekle('1: sıralının puanı düzeltilmiş (7,6)', sayi(sirali[0]?.ortalama) === 7.6, JSON.stringify(sirali[0]));
-  bekle('1: tek kareli kulüp ortalamasına çekiliyor (8,5 → 7,0)', (await kendi(K.xe)) === 7, String(await kendi(K.xe)));
+  bekle('1: sıralının puanı düzeltilmiş, tam sayı (75)', sayi(sirali[0]?.ortalama) === 75, JSON.stringify(sirali[0]));
+  bekle('1: tek kareli 50\'ye çekiliyor (100 → 63)', (await kendi(K.xe)) === 63, String(await kendi(K.xe)));
   bekle('1: tek kareli eşikte ama sıralı değil', satir(await sira(K.xe), 'Xe Ak')?.esikte === true && satir(await sira(K.xe), 'Xe Ak')?.sirali === false);
-  // Zo: (19,5 + 22) / 8 = 5,1875 → 5,2
-  bekle('1: düşük ortalama kulübe doğru yukarı çekiliyor (4,4 → 5,2)', (await kendi(K.zo)) === 5.2, String(await kendi(K.zo)));
-  // Karar 124: profildeki "Ortalaman" sıralamadaki sayının aynısı; başkasının profilinde yok
+  bekle('1: hep sonuncu olan 50\'ye doğru yukarı çekiliyor (0 → 19)', (await kendi(K.zo)) === 19, String(await kendi(K.zo)));
+  // Karar 124: profildeki "Sezon puanın" sıralamadaki sayının aynısı; başkasının profilinde yok
   const pX = ((await K.xe.c.rpc('profil')).data ?? [])[0];
-  bekle('1: profilde kendi ortalaman sıralamadakiyle aynı (7,0)', sayi(pX?.ortalama) === 7, JSON.stringify(pX));
+  bekle('1: profilde kendi puanın sıralamadakiyle aynı (63)', sayi(pX?.ortalama) === 63, JSON.stringify(pX));
   const pY = ((await K.xe.c.rpc('profil', { p_uye: K.ya.id })).data ?? [])[0];
   bekle('1: başkasının profilinde ortalama yok', pY && pY.ortalama == null, JSON.stringify(pY));
   bekle('1: kare sayısı değişmedi', sayi(satir(l, 'Ya Bal')?.kare_sayisi) === 5 && sayi(satir(l, 'Xe Ak')?.kare_sayisi) === 1);
@@ -92,6 +92,7 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
 
 // ---------------------------------------------- 2. kare sayıları eşitse sıra eskisiyle aynı
 // Beş kişi, ikişer buluşma karesi → round(5 / 2,5) = 2 sıralı. Ham ortalamalar 9 > 7,5 > 7 > 6 > 4.
+// Sokak 9, 8, 7, 6, 4 → 100, 75, 50, 25, 0. Portre 9, 7, 7, 6, 4 → 100, 75, 75, 25, 0 (eşitler aynı yeri alıyor).
 {
   await kur([['a1', 'Bir Ak'], ['a2', 'İki Ak'], ['a3', 'Üç Ak'], ['a4', 'Dört Ak'], ['a5', 'Beş Ak']]);
   const E1 = await etkinlik(10, [['Sokak', true], ['Portre', true]]);
@@ -105,25 +106,25 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   const l = await sira(A);
   bekle('2: sıralı ilk iki eskisiyle aynı', l.filter(x => x.sirali).map(x => x.ad).join() === 'Bir Ak,İki Ak',
     JSON.stringify(l.map(x => [x.ad, x.sira])));
-  // C = 6,7; Bir: (20,1 + 18) / 5 = 7,62 → 7,6; Beş: (20,1 + 8) / 5 = 5,62 → 5,6
-  bekle('2: puanlar kulüp ortalamasına doğru sıkışıyor', puan.a1 === 7.6 && puan.a5 === 5.6, JSON.stringify(puan));
+  // Bir: (150 + 200) / 5 = 70 · İki: 300 / 5 = 60 · Üç: 275 / 5 = 55 · Dört: 200 / 5 = 40 · Beş: 150 / 5 = 30
+  bekle('2: puanlar 0-100 arasında ayrışıyor', JSON.stringify(Object.values(puan)) === JSON.stringify([70, 60, 55, 40, 30]), JSON.stringify(puan));
+  bekle('2: temada eşit olan iki kare aynı yer puanını alıyor (İki ve Üç Portre\'de 75)', puan.a2 - puan.a3 === 5, JSON.stringify(puan));
 }
 
 // ---------------------------------------------- 3. serbest temanın 0,5 ağırlığı hem Σw'de hem C'de
-// Pe: buluşma 8 (w 1) + serbest tema 4 (w 0,5). Qu: buluşma 6.
-// C = (8 + 2 + 6) / 2,5 = 6,4
-//   Pe: (19,2 + 10) / 4,5 = 6,49 → 6,5   (C ağırlıksız olsaydı 6,2; Σw kare sayısı olsaydı 5,8)
-//   Qu: (19,2 + 6) / 4 = 6,3
+// Pe: Sokak'ta birinci (100, w 1) + serbest temada tek kare (50, w 0,5). Qu: Sokak'ta ikinci (0).
+//   Pe: (150 + 100 + 25) / 4,5 = 61,1 → 61   (ağırlık 1 olsaydı 60; Σw kare sayısı olsaydı 55)
+//   Qu: 150 / 4 = 37,5 → 38
 {
   await kur([['pe', 'Pe Ak'], ['qu', 'Qu Ak']]);
   const E1 = await etkinlik(10, [['Sokak', true], ['Serbest', false]]);
   await kare(E1, 0, K.pe, [8]); await kare(E1, 1, K.pe, [4]);
   await kare(E1, 0, K.qu, [6]);
-  bekle('3: serbest kare yarım ağırlıkla Σw\'ye ve C\'ye giriyor (6,5)', (await kendi(K.pe)) === 6.5, String(await kendi(K.pe)));
-  bekle('3: yalnız buluşma karesi olan (6,3)', (await kendi(K.qu)) === 6.3, String(await kendi(K.qu)));
+  bekle('3: serbest kare yarım ağırlıkla giriyor, temada tekse 50 (61)', (await kendi(K.pe)) === 61, String(await kendi(K.pe)));
+  bekle('3: yalnız buluşma karesi olan (38)', (await kendi(K.qu)) === 38, String(await kendi(K.qu)));
   // Puansız kare hesaba girmiyor: Qu'ya oysuz bir serbest kare eklenince puanı aynı
   await kare(E1, 1, K.qu, []);
-  bekle('3: puansız kare ne Σw\'ye ne C\'ye giriyor', (await kendi(K.qu)) === 6.3 && (await kendi(K.pe)) === 6.5,
+  bekle('3: puansız kare ne Σw\'ye ne temadaki kare sayısına giriyor', (await kendi(K.qu)) === 38 && (await kendi(K.pe)) === 61,
     JSON.stringify([await kendi(K.qu), await kendi(K.pe)]));
   bekle('3: puansız kare kare sayısında', sayi(satir(await sira(K.qu), 'Qu Ak')?.kare_sayisi) === 2);
 }
@@ -153,23 +154,23 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
 
 // ---------------------------------------------- 5. Serbest tablosu: tek kare kulüp ortalamasına çekiliyor, eşik yok
 // Yalnız serbest etkinlik, üç serbest tema, hepsi aynı ağırlık.
-// Ra: 10. Sa: 9, 9, 9. Te: 3, 3. Ul: 2. Va: 2.  C = 47 / 8 = 5,875
-//   Sa: (17,625 + 27) / 6 = 7,44 → 7,4    Ra: (17,625 + 10) / 4 = 6,91 → 6,9
+// Doku: Ra 10, Sa 9, Te 3, Ul 2 → 100, 67, 33, 0. Çizgi: Sa 9, Te 3, Va 2 → 100, 50, 0. Renk: Sa 9, Ul 2 → 100, 0.
+//   Sa: (150 + 266,7) / 6 = 69,4 → 69    Ra: (150 + 100) / 4 = 62,5 → 63
 {
   await kur([['ra', 'Ra Ak'], ['sa', 'Sa Ak'], ['te', 'Te Ak'], ['ul', 'Ul Ak'], ['va', 'Va Ak']]);
   const S = await etkinlik(5, [['Doku', false], ['Çizgi', false], ['Renk', false]], true);
   await kare(S, 0, K.ra, [10]);
   for (const i of [0, 1, 2]) await kare(S, i, K.sa, [9]);
   await kare(S, 0, K.te, [3]); await kare(S, 1, K.te, [3]);
-  await kare(S, 0, K.ul, [2]); await kare(S, 1, K.va, [2]);
+  await kare(S, 0, K.ul, [2]); await kare(S, 2, K.ul, [2]); await kare(S, 1, K.va, [2]);
   const l = await sira(A, 'serbest_siralama');
   bekle('5: üç kareli tek karelinin (10) önünde', l.filter(x => x.sirali).map(x => x.ad).join() === 'Sa Ak,Ra Ak',
     JSON.stringify(l.map(x => [x.ad, x.sira, x.ortalama])));
-  bekle('5: puanlar düzeltilmiş (7,4 ve 6,9)', sayi(satir(l, 'Sa Ak')?.ortalama) === 7.4 && sayi(satir(l, 'Ra Ak')?.ortalama) === 6.9,
+  bekle('5: puanlar düzeltilmiş (69 ve 63)', sayi(satir(l, 'Sa Ak')?.ortalama) === 69 && sayi(satir(l, 'Ra Ak')?.ortalama) === 63,
     JSON.stringify(l.map(x => [x.ad, x.ortalama])));
   bekle('5: eşik yok: tek kareli sıralanabiliyor', satir(l, 'Ra Ak')?.sirali === true && sayi(satir(l, 'Ra Ak')?.sira) === 2);
-  // Ul ve Va: (17,625 + 2) / 4 = 4,9; Te: (17,625 + 6) / 5 = 4,7 → düşükler de kulübe doğru yukarı
-  bekle('5: düşük tek kare yukarı çekiliyor (2 → 4,9)', (await kendi(K.ul, 'serbest_siralama')) === 4.9, String(await kendi(K.ul, 'serbest_siralama')));
+  // Va: Çizgi'de sonuncu → 150 / 4 = 37,5 → 38
+  bekle('5: sonuncu tek kare yukarı çekiliyor (0 → 38)', (await kendi(K.va, 'serbest_siralama')) === 38, String(await kendi(K.va, 'serbest_siralama')));
   bekle('5: Serbest tablosunda sırasızın puanı başkasına gizli', l.filter(x => !x.sirali).every(x => x.ortalama == null));
   // Ana tablo: buluşma yok → eşik 0, serbest temalar yarım ağırlık, aynı sıra
   const ana = await sira(A);

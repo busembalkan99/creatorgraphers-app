@@ -97,9 +97,9 @@ await kare(E1, 1, kisiler.ece, 5);
     JSON.stringify(sirali.map(x => [x.ad, x.sira])));
   bekle('sıralı en yüksek ortalamalı', sirali[0].ad === 'Ayşe Kaya' && sirali[1].ad === 'Barış Ak',
     JSON.stringify(sirali.map(x => x.ad)));
-  // 0021: düzeltilmiş puan. Bütün temalar serbest (w 0,5), C = 42,5 / 5,5 = 7,73
-  //   Ayşe (4 kare, 9): (23,18 + 18) / 5 = 8,2   Barış (3 kare, 8): (23,18 + 12) / 4,5 = 7,8
-  bekle('sıralının düzeltilmiş puanı açık', Number(sirali[0].ortalama) === 8.2 && Number(sirali[1].ortalama) === 7.8,
+  // 0023: temadaki yerden puan. Bütün temalar serbest (w 0,5). Ayşe dört temada birinci (100).
+  //   Barış: 0, 50, 67 → (150 + 58,3) / 4,5 = 46,3 → 46   Ayşe: (150 + 200) / 5 = 70
+  bekle('sıralının düzeltilmiş puanı açık', Number(sirali[0].ortalama) === 70 && Number(sirali[1].ortalama) === 46,
     JSON.stringify(sirali.map(x => x.ortalama)));
   const sirasiz = s.filter(x => !x.sirali);
   bekle('sırasızın ortalaması gizli', sirasiz.every(x => x.ortalama === null), JSON.stringify(sirasiz));
@@ -126,8 +126,8 @@ await kare(E1, 1, kisiler.ece, 5);
   // Can sıralamaya girmiyor: kendi ortalamasını görüyor, sırasını görmüyor
   const s = (await kisiler.can.c.rpc('siralama')).data ?? [];
   const ben = s.find(x => x.benim);
-  // Can (2 kare, 7): (23,18 + 7) / 4 = 7,5
-  bekle('sırasız kendi düzeltilmiş puanını görüyor', ben?.ad === 'Can Öz' && Number(ben?.ortalama) === 7.5, JSON.stringify(ben));
+  // Can: 0 ve 33 → (150 + 16,7) / 4 = 41,7 → 42
+  bekle('sırasız kendi düzeltilmiş puanını görüyor', ben?.ad === 'Can Öz' && Number(ben?.ortalama) === 42, JSON.stringify(ben));
   bekle('sırasız kendi sırasını görmüyor', ben?.sira === null, JSON.stringify(ben));
   bekle('başkasının gizli ortalaması yine gizli',
     s.filter(x => !x.sirali && !x.benim).every(x => x.ortalama === null));
@@ -153,8 +153,8 @@ bekle('yabancı sıralamayı göremez', ((await istemci().rpc('siralama')).data 
     Number(p?.etkinlik_sayisi) === 3 && Number(p?.kare_sayisi) === 4 && Number(p?.seri) === 3, JSON.stringify(p));
   bekle('tam set: katıldığı her etkinlikte bütün temalar', p?.tam_set === true, JSON.stringify(p));
   bekle('tema sayısı dört', Number(p?.tema_sayisi) === 4, String(p?.tema_sayisi));
-  // Karar 124: profildeki ortalama sıralamadaki düzeltilmiş puanın aynısı (8,2)
-  bekle('kendi ortalamanı görürsün, sıralamadakiyle aynı', Number(p?.ortalama) === 8.2, String(p?.ortalama));
+  // Karar 124: profildeki puan sıralamadakinin aynısı (70)
+  bekle('kendi puanını görürsün, sıralamadakiyle aynı', Number(p?.ortalama) === 70, String(p?.ortalama));
 }
 {
   const p = (await A.c.rpc('profil', { p_uye: kisiler.baris.id })).data?.[0];

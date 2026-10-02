@@ -20,10 +20,10 @@ async function denetle(p, yol, genislik, ad = `${yol} (${genislik}px)`) {
   const yazi = async sec => ((await p.locator(sec).first().textContent({ timeout: 1000 }).catch(() => '')) ?? '').replace(/\s+/g, ' ').trim();
   if (yol === 'profil') {
     bekle(`${ad}: profil sayıları 26px`, (await boy('.kart.stats b')) >= 26, String(await boy('.kart.stats b')));
-    bekle(`${ad}: ortalaman sayılar kartında`, /Ortalama/.test(await yazi('.kart.stats')) && (await boy('.kart.stats .kisisel b')) >= 26, await yazi('.kart.stats'));
+    bekle(`${ad}: sezon puanın sayılar kartında`, /Sezon puanın/.test(await yazi('.kart.stats')) && (await boy('.kart.stats .kisisel b')) >= 26, await yazi('.kart.stats'));
   }
   if (yol === 'siralama') {
-    bekle(`${ad}: üstte senin yerin`, /^\d+ ?Sıralaman ?\d+,\d ?Ortalaman$|^\d+,\d ?Ortalaman ?Sıralamaya girmedin/.test(await yazi('.sen-yeri')) && (await boy('.sen-yeri b')) >= 26, await yazi('.sen-yeri'));
+    bekle(`${ad}: üstte senin yerin`, /^\d+ ?Sıralaman ?\d{1,3} ?Puanın$|^\d{1,3} ?Puanın ?Sıralamaya girmedin/.test(await yazi('.sen-yeri')) && (await boy('.sen-yeri b')) >= 26, await yazi('.sen-yeri'));
     const lider = await boy('.satir-kartlari .row.lider .av'), diger = await boy('.satir-kartlari .row:not(.lider) .av');
     bekle(`${ad}: liderin puanı diğerlerinden büyük`, lider > diger && diger > 0, `${lider} / ${diger}`);
   }

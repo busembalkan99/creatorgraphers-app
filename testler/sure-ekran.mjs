@@ -138,7 +138,15 @@ try {
   await kutuyaYaz(girdiDegeri(new Date().toISOString()));
   await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(3500);
   await p.unroute('**/rest/v1/rpc/etkinlik_asamasi*');
-  bekle('son oy şimdi: sonuçlar açıldı ve sonuç ekranına gidiyor (aşama sorgusu düşse de)', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E2 })).data === 'sonuc' && p.url().includes(`#/sonuc/${E2}`), p.url());
+  bekle('son oy şimdi (yedek yol): sonuç ekranı', p.url().includes(`#/sonuc/${E2}`), p.url());
+  // Aynısı aşama sorgusu çalışırken (asıl yol)
+  const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }),
+    yukleme_baslar: saat(-3), yukleme_biter: saat(-1), oylama_biter: saat(20), kuran: A.id }).select('id').single()).data.id;
+  await p.goto(APP + '#/profil'); await p.waitForTimeout(1200); await p.goto(APP + '#/asama'); await p.waitForTimeout(2200);
+  await degistir('Son oy').click(); await p.waitForTimeout(300);
+  await kutuyaYaz(girdiDegeri(new Date().toISOString()));
+  await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(3500);
+  bekle('son oy şimdi (asıl yol): sonuçlar açıldı ve sonuç ekranına gidiyor', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E3 })).data === 'sonuc' && p.url().includes(`#/sonuc/${E3}`), p.url());
 
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally {

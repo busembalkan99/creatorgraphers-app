@@ -6,6 +6,7 @@ import { ayAdi } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { paylasilacakKare } from './Paylas'
 import { imzala } from '../lib/imza'
+import { adlarYaz } from '../lib/metin'
 
 /**
  * Wrapped: sonuç açılışı (karar 39). Spec: ideations/creatorgraphers/2026-09-20_wrapped-spec.md
@@ -25,8 +26,6 @@ const iki = (n: number) => String(n).padStart(2, '0')
 const puan = (n: number | null) => (n == null ? '—' : n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }))
 const SAYI = ['sıfır', 'bir', 'iki', 'üç']
 const buyuk = (s: string) => s.charAt(0).toLocaleUpperCase('tr-TR') + s.slice(1)
-/** "Ayşe Kaya ve Barış Ak", üç ve fazlasında "A, B ve C" */
-const adlarYaz = (adlar: string[]) => adlar.length < 2 ? (adlar[0] ?? '') : `${adlar.slice(0, -1).join(', ')} ve ${adlar[adlar.length - 1]}`
 /** "Selin Arı" → iki satır: ad ve soyad kartta alt alta duruyor */
 function Ad({ ad, className }: { ad: string; className?: string }) {
   const [on, ...son] = ad.split(' ')

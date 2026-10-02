@@ -59,6 +59,13 @@ bekle('yönetici oylamayı bitiriyor: sonuçlar açılıyor', !r.error && (await
   await kur(A, EB, saat(10), saat(40));
   const q = (await admin.from('bildirim_kuyrugu').select('tur, govde').eq('etkinlik', EB).order('tur')).data ?? [];
   bekle('saat değişince bekleyen bildirim yeni saati söylüyor', q.find(x => x.tur === 'yukleme_acildi')?.govde.startsWith('Son yükleme: ') && q.find(x => x.tur === 'oylama_acildi')?.govde.startsWith('Son oy: '), JSON.stringify(q));
+  // Aşaması açıkken bekleyen bildirim geçerli kalıyor (gönderilmeye hazır, işaretlenmiyor)
+  await admin.from('bildirim_kuyrugu').update({ zaman: saat(-0.02) }).eq('etkinlik', EB);
+  await admin.rpc('bildirim_gonderilecekler');
+  const acik = (await admin.from('bildirim_kuyrugu').select('tur, son_hata, gonderildi_at').eq('etkinlik', EB)).data ?? [];
+  bekle('aşaması açık "açıldı" bildirimi geçersiz sayılmıyor', acik.length === 2 && acik.every(x => !x.gonderildi_at && x.son_hata == null), JSON.stringify(acik));
+  const govde = (await admin.from('bildirim_kuyrugu').select('govde').eq('etkinlik', EB).eq('tur', 'oylama_acildi').single()).data.govde;
+  bekle('bekleyen bildirim yeni saatin kendisini söylüyor', /^Son oy: \d{1,2} \S+ \d{2}\.\d{2}$/.test(govde), govde);
   // Yükleme bitti, oylama da bitirildi: sabaha ertelenmiş "açıldı" bildirimleri artık geçersiz
   await admin.from('bildirim_kuyrugu').update({ zaman: saat(-0.02) }).eq('etkinlik', EB);
   await kur(A, EB, saat(0), saat(40));

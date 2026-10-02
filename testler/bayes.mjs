@@ -82,6 +82,11 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   bekle('1: tek kareli eşikte ama sıralı değil', satir(await sira(K.xe), 'Xe Ak')?.esikte === true && satir(await sira(K.xe), 'Xe Ak')?.sirali === false);
   // Zo: (19,5 + 22) / 8 = 5,1875 → 5,2
   bekle('1: düşük ortalama kulübe doğru yukarı çekiliyor (4,4 → 5,2)', (await kendi(K.zo)) === 5.2, String(await kendi(K.zo)));
+  // Karar 124: profildeki "Ortalaman" sıralamadaki sayının aynısı; başkasının profilinde yok
+  const pX = ((await K.xe.c.rpc('profil')).data ?? [])[0];
+  bekle('1: profilde kendi ortalaman sıralamadakiyle aynı (7,0)', sayi(pX?.ortalama) === 7, JSON.stringify(pX));
+  const pY = ((await K.xe.c.rpc('profil', { p_uye: K.ya.id })).data ?? [])[0];
+  bekle('1: başkasının profilinde ortalama yok', pY && pY.ortalama == null, JSON.stringify(pY));
   bekle('1: kare sayısı değişmedi', sayi(satir(l, 'Ya Bal')?.kare_sayisi) === 5 && sayi(satir(l, 'Xe Ak')?.kare_sayisi) === 1);
 }
 
@@ -137,6 +142,8 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   bekle('4: eşik altı sırasız ve eşikte değil', ri && ri.esikte === false && ri.sirali === false && ri.sira == null, JSON.stringify(ri));
   bekle('4: eşik altının puanı başkasına gizli', ri?.ortalama == null, JSON.stringify(ri));
   bekle('4: eşik altı kendi puanını görüyor', (await kendi(K.ri)) != null, String(await kendi(K.ri)));
+  bekle('4: eşik altının profilinde de aynı sayı', sayi(((await K.ri.c.rpc('profil')).data ?? [])[0]?.ortalama) === (await kendi(K.ri)),
+    JSON.stringify((await K.ri.c.rpc('profil')).data));
   // Beş kişi → 2 sıralı
   bekle('4: görünürlük round(kişi / 2,5)', l.filter(x => x.sirali).map(x => [x.ad, sayi(x.sira)]).join('|') === 'So Ak,1|Ta Ak,2',
     JSON.stringify(l.map(x => [x.ad, x.sira, x.ortalama])));
@@ -185,6 +192,8 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   bekle('6: oysuz serbest kare puansız', (s.data ?? []).length === 1 && s.data[0].ortalama == null && !s.data[0].sirali, JSON.stringify(s.data));
   const ben = (await K.ba.c.rpc('siralama')).data?.find(x => x.benim);
   bekle('6: puanlı karesi olmayana kulüp ortalaması verilmiyor', ben && ben.ortalama == null, JSON.stringify(ben));
+  const pB = ((await K.ba.c.rpc('profil')).data ?? [])[0];
+  bekle('6: puanlı karesi olmayanın profilinde ortalama yok, profil açılıyor', pB?.ad === 'Ba Ak' && pB.ortalama == null, JSON.stringify(pB));
 }
 
 rapor();

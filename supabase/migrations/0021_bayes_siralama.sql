@@ -1,4 +1,4 @@
--- 0021: sıralamada düzeltilmiş (Bayes) ortalama (Buse, 2026-10-02)
+-- 0021: sıralamada düzeltilmiş (Bayes) ortalama (karar 124, Buse, 2026-10-02)
 --
 -- Sıralama kişinin ağırlıklı kare ortalamasıyla yapılıyordu (karar 116). Katılım eşiği (karar 53)
 -- kare sayısına bakmadığı için sezon başında tek karesi yüksek puan alan biri çok kare verenleri
@@ -16,7 +16,8 @@
 -- Az karesi olanın ortalaması kulüp ortalamasına yaklaşıyor; kare arttıkça kendi ortalaması öne çıkıyor.
 -- Değişmeyenler: eşik (karar 53), görünürlük (karar 52), imzalar ve sütunlar, en iyi kare, yetkiler.
 -- `ortalama` sütunu artık düzeltilmiş puanı bir ondalıkla döndürüyor. Puanlı karesi olmayanın puanı
--- yine boş (kulüp ortalaması verilmiyor). Veriye dokunmuyor, tekrar uygulanabilir.
+-- yine boş (kulüp ortalaması verilmiyor). Profildeki "Ortalaman" da artık aynı sayı: bu sezonun
+-- düzeltilmiş puanı (önceden bütün zamanların düz ortalamasıydı). Veriye dokunmuyor, tekrar uygulanabilir.
 
 create or replace function public.siralama(p_sezon bigint default null)
 returns table (
@@ -153,6 +154,50 @@ language sql stable security definer set search_path = public as $$
            s2.ad collate "tr-TR-x-icu"
 $$;
 
+-- Profil: "Ortalaman" sıralamadaki sayıyla aynı (karar 124). Gövdenin geri kalanı 0005'teki gibi.
+create or replace function public.profil(p_uye uuid default null)
+returns table (
+  uye uuid, ad text, benim boolean, rol text, katildi_at timestamptz,
+  etkinlik_sayisi bigint, kare_sayisi bigint, seri bigint,
+  tam_set boolean, tema_sayisi bigint, ortalama numeric
+)
+language sql stable security definer set search_path = public as $$
+  with hedef as (select coalesce(p_uye, auth.uid()) as id),
+  kare as (select ks.* from gizli.kare_siralari() ks, hedef h where ks.sahip = h.id),
+  -- tamamlanmış etkinlikler, en yenisi 1 numara
+  geri as (
+    select s.etkinlik, row_number() over (order by s.sira desc) as no
+    from gizli.sezonlar() s where s.tamam
+  ),
+  katildi as (
+    select g.no, g.etkinlik, exists (select 1 from kare k where k.etkinlik = g.etkinlik) as var
+    from geri g
+  ),
+  -- Seri kesintisiz (karar 23): en son tamamlanan etkinlikten geriye sayılır
+  seri as (
+    select coalesce(min(no) filter (where not var), (select count(*) from katildi) + 1) - 1 as adet
+    from katildi
+  ),
+  -- Tam set (karar 56): katıldığı her etkinlikte bütün temalara kare verdi
+  eksik as (
+    select 1 from katildi ka
+    where ka.var and (select count(*) from public.temalar t where t.etkinlik = ka.etkinlik)
+                   > (select count(*) from kare k where k.etkinlik = ka.etkinlik)
+  )
+  select h.id, u.ad, h.id = auth.uid(), u.rol, u.katildi_at,
+         (select count(distinct k.etkinlik) from kare k),
+         (select count(*) from kare k),
+         (select adet from seri),
+         (select count(*) from katildi where var) > 0 and not exists (select 1 from eksik),
+         (select count(distinct lower(btrim(k.tema_ad))) from kare k),
+         -- Karar 38: ortalama yalnız kendi profilinde. Karar 124: sıralamadaki sayının aynısı,
+         -- bu sezonun düzeltilmiş puanı (siralama() kendi satırını her zaman puanlı döndürüyor).
+         case when h.id = auth.uid() then (select s.ortalama from public.siralama() s where s.benim) end
+  from hedef h
+  join public.uyeler u on u.id = h.id
+  where public.uye_mi()
+$$;
+
 -- create or replace yetkileri koruyor; yine de 0017'deki gibi açıkça
-revoke execute on function public.siralama(bigint), public.serbest_siralama(bigint) from anon, public;
-grant execute on function public.siralama(bigint), public.serbest_siralama(bigint) to authenticated;
+revoke execute on function public.siralama(bigint), public.serbest_siralama(bigint), public.profil(uuid) from anon, public;
+grant execute on function public.siralama(bigint), public.serbest_siralama(bigint), public.profil(uuid) to authenticated;

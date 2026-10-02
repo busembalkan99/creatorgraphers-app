@@ -153,7 +153,8 @@ bekle('yabancı sıralamayı göremez', ((await istemci().rpc('siralama')).data 
     Number(p?.etkinlik_sayisi) === 3 && Number(p?.kare_sayisi) === 4 && Number(p?.seri) === 3, JSON.stringify(p));
   bekle('tam set: katıldığı her etkinlikte bütün temalar', p?.tam_set === true, JSON.stringify(p));
   bekle('tema sayısı dört', Number(p?.tema_sayisi) === 4, String(p?.tema_sayisi));
-  bekle('kendi ortalamanı görürsün', Number(p?.ortalama) === 9, String(p?.ortalama));
+  // Karar 124: profildeki ortalama sıralamadaki düzeltilmiş puanın aynısı (8,2)
+  bekle('kendi ortalamanı görürsün, sıralamadakiyle aynı', Number(p?.ortalama) === 8.2, String(p?.ortalama));
 }
 {
   const p = (await A.c.rpc('profil', { p_uye: kisiler.baris.id })).data?.[0];

@@ -1,0 +1,26 @@
+# Her PR'da ve main'e her gönderimde: tip denetimi, derleme, lint.
+# Veritabanı testleri (testler/) yerel Supabase istediği için burada koşmuyor.
+name: Denetim
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  denetim:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # package-lock.json iç bir npm aynasını gösteriyor; GitHub'dan ona ulaşılamıyor.
+      # Paketler aynı (bütünlük özetleri kilitte), yalnız adres npmjs'e çevriliyor. Dosya depoda değişmiyor.
+      - name: Paket adresleri
+        run: sed -i 's#http://registry.devops.internal.web/repository/NPM/#https://registry.npmjs.org/#g' package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Tip denetimi ve derleme
+        run: npm run build
+      - name: Lint
+        run: npm run lint

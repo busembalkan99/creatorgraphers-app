@@ -111,8 +111,8 @@ const A = await oturum('kurucu@test.local');
   await ac(A, 'siralama');
   const ilk = A.locator('.row').first();
   bekle('tek kareli sıralı satır: sayının altında "tek kare"', (await ilk.locator('.av small').textContent())?.trim() === 'tek kare');
-  bekle('çok kareli satır: sayının altında "N kare ort.", görselin altında yazı yok', (await A.locator('.row').nth(1).locator('.kr small').count()) === 0
-    && /^\d+ kare ort\.$/.test((await A.locator('.row').nth(1).locator('.av small').textContent())?.trim() ?? ''));
+  bekle('çok kareli satır: sayının altında "N kare" (karar 124), görselin altında yazı yok', (await A.locator('.row').nth(1).locator('.kr small').count()) === 0
+    && /^\d+ kare$/.test((await A.locator('.row').nth(1).locator('.av small').textContent())?.trim() ?? ''));
   await A.unroute('**/rest/v1/rpc/siralama*');
 }
 

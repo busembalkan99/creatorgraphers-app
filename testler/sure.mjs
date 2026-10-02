@@ -11,6 +11,12 @@ const oku = async id => (await admin.from('etkinlikler').select('yukleme_biter, 
 const ms = s => Date.parse(s);
 const kur = (U, id, y, o) => U.c.rpc('etkinlik_saatleri', { p_etkinlik: id, p_yukleme_biter: y, p_oylama_biter: o });
 
+// Olmayan etkinlik
+let r0 = await kur(A, crypto.randomUUID(), saat(30), saat(60));
+bekle('olmayan etkinlik: etkinlik_yok', hata(r0).includes('etkinlik_yok'), hata(r0));
+r0 = await A.c.rpc('oylamayi_bitir', { p_etkinlik: crypto.randomUUID() });
+bekle('olmayan etkinlikte oylama bitirilemiyor', hata(r0).includes('oylama_yok'), hata(r0));
+
 // Yükleme sürerken
 let E = await yeni(-2, 20, 44);
 let r = await kur(B, E, saat(30), saat(60));

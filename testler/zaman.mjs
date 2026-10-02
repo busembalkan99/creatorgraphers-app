@@ -23,5 +23,6 @@ bekle('saat kutusu İstanbul saatini gösteriyor', girdiDegeri('2026-10-03T15:30
 bekle('gece yarısını geçen saat ertesi güne düşüyor', girdiDegeri('2026-10-03T22:15:00.000Z') === '2026-10-04T01:15', girdiDegeri('2026-10-03T22:15:00.000Z'));
 bekle('saat kutusundaki değer İstanbul saati diye okunuyor', girdidenIso('2026-10-04T01:15') === '2026-10-03T22:15:00.000Z', girdidenIso('2026-10-04T01:15'));
 bekle('boş ya da bozuk değer boş dönüyor', girdidenIso('') === null && girdidenIso('dün') === null);
+bekle('biçimi doğru ama olmayan tarih boş dönüyor (hata atmıyor)', girdidenIso('2026-13-01T10:00') === null);
 
 rapor();

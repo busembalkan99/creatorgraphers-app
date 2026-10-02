@@ -46,6 +46,12 @@ try {
   await kartDenetle(p, 'saat kutusu', bekle);
   await ss('90-asama-saat-kutusu');
   bekle('düzenlerken diğer Değiştir gizli', (await p.getByRole('button', { name: 'Değiştir' }).count()) === 0);
+  bekle('düzenlerken 24 saat uzat ve Oylamayı aç gizli', (await p.getByRole('button', { name: '24 saat uzat' }).count()) === 0 && (await p.getByRole('button', { name: 'Oylamayı aç' }).count()) === 0);
+  bekle('kutunun notu kilidi söylüyor', /Oylama açılınca son yükleme artık değişmez\./.test(await yazi('.kart.saat-kutu')));
+  // Boş değer: sunucuya gitmeden uyarı, kutu açık
+  await kutuyaYaz('');
+  await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(600);
+  bekle('boş saat: uyarı, kutu açık, sunucu aynı', /Bir tarih ve saat seç\./.test(await yazi('.hata')) && (await p.locator('.kart.saat-kutu').count()) === 1 && (await oku()).yukleme_biter === ilk, await yazi('.hata'));
   await kutuyaYaz(girdiDegeri(saat(30)));
   await p.getByRole('button', { name: 'Vazgeç' }).click(); await p.waitForTimeout(500);
   bekle('Vazgeç: saat değişmedi, kutu kapandı', (await oku()).yukleme_biter === ilk && (await p.locator('.kart.saat-kutu').count()) === 0);
@@ -65,6 +71,7 @@ try {
   bekle('geçmiş saat: anlaşılır hata', /Geçmiş bir saat seçilemez/.test(await yazi('.hata')), await yazi('.hata'));
   await ss('92-asama-saat-hata');
   bekle('geçmiş saat: kutu açık kalıyor', (await p.locator('.kart.saat-kutu').count()) === 1);
+  bekle('hata bir kez görünüyor (kutunun içinde)', (await p.locator('.hata').count()) === 1 && (await p.locator('.kart.saat-kutu .hata').count()) === 1);
   await kutuyaYaz(girdiDegeri(saat(50)));
   await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(1200);
   bekle('oy bitişinden sonraya alınan yükleme: anlaşılır hata', /Son oy, son yüklemeden sonra olmalı/.test(await yazi('.hata')), await yazi('.hata'));
@@ -72,6 +79,7 @@ try {
   bekle('Vazgeç hatayı da kapatıyor', (await p.locator('.hata').count()) === 0);
 
   await degistir('Son oy').click(); await p.waitForTimeout(300);
+  bekle('son oy kutusu şimdiki son oy saatiyle açılıyor', (await p.locator('input[type=datetime-local]').inputValue()) === girdiDegeri((await oku()).oylama_biter) && /Son oy/.test(await yazi('.kart.saat-kutu .bas')));
   const oy = girdiDegeri(saat(60));
   await kutuyaYaz(oy);
   await p.getByRole('button', { name: 'Kaydet' }).click(); await p.waitForTimeout(1500);
@@ -87,12 +95,19 @@ try {
   bekle('oylamada: oylamayı bitir var', (await p.getByRole('button', { name: 'Oylamayı bitir' }).count()) === 1);
 
   await p.getByRole('button', { name: 'Oylamayı bitir' }).click(); await p.waitForTimeout(300);
+  bekle('onay açıkken Değiştir gizli', (await p.getByRole('button', { name: 'Değiştir' }).count()) === 0);
   bekle('onay: soru ve sonucu söylüyor', /Oylama şimdi bitsin mi\?/.test(await yazi('.kart.kutu')) && /Sonuçlar hemen açılır\. Geri alınamaz\./.test(await yazi('.kart.kutu')), await yazi('.kart.kutu'));
   await kartDenetle(p, 'oylamayı bitir onayı', bekle);
   await ss('91-asama-oylamayi-bitir');
   await p.getByRole('button', { name: 'Vazgeç' }).click(); await p.waitForTimeout(400);
   bekle('Vazgeç: oylama sürüyor', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E })).data === 'oylama');
 
+  // Sunucu reddederse (oylama bu arada bitti): hata, kutu kapalı, sonuç ekranına gitmiyor
+  await p.getByRole('button', { name: 'Oylamayı bitir' }).click(); await p.waitForTimeout(300);
+  await admin.from('etkinlikler').update({ oylama_biter: saat(-0.01) }).eq('id', E);
+  await p.locator('.kart.kutu').getByRole('button', { name: 'Oylamayı bitir' }).click(); await p.waitForTimeout(1200);
+  bekle('reddedilince: hata metni, kutu kapalı, Aşama\'da kalıyor', /Oylama sürmüyor\./.test(await yazi('.hata')) && !/Oylama şimdi bitsin mi/.test(await yazi('.kart.kutu')) && p.url().includes('#/asama'), `${await yazi('.hata')} | ${p.url()}`);
+  await admin.from('etkinlikler').update({ oylama_biter: saat(24) }).eq('id', E);
   await p.getByRole('button', { name: 'Oylamayı bitir' }).click(); await p.waitForTimeout(300);
   await p.locator('.kart.kutu').getByRole('button', { name: 'Oylamayı bitir' }).click(); await p.waitForTimeout(2500);
   bekle('onaylayınca sonuçlar açıldı', (await admin.rpc('etkinlik_asamasi', { p_etkinlik: E })).data === 'sonuc');

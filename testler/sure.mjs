@@ -23,7 +23,7 @@ bekle('yükleme sürerken bitiş öne de alınabiliyor (gelecekte kaldıkça)', 
 r = await kur(A, E, saat(-1), saat(40));
 bekle('yükleme bitişi geçmişe alınamıyor (isimsizlik)', hata(r).includes('gecmise_alinmaz'), hata(r));
 r = await kur(A, E, saat(40), saat(30));
-bekle('oylama bitişi yüklemeden önce olamıyor', hata(r).includes('sure'), hata(r));
+bekle('oylama bitişi yüklemeden önce olamıyor (kendi hata kodu)', hata(r).includes('oy_once'), hata(r));
 r = await kur(A, E, saat(0), saat(24));
 s = await oku(E);
 bekle('yükleme bitişi "şimdi" yapılınca oylama açılıyor', !r.error && Math.abs(ms(s.yukleme_biter) - Date.now()) < 10000
@@ -60,7 +60,7 @@ const E3 = await yeni(5, 30, 60);
 r = await kur(A, E3, saat(40), saat(70));
 bekle('başlamamış etkinliğin bitişleri değişiyor', !r.error, hata(r));
 r = await kur(A, E3, saat(3), saat(70));
-bekle('yükleme bitişi yükleme başlangıcından önce olamıyor', hata(r).includes('sure'), hata(r));
+bekle('yükleme bitişi yükleme başlangıcından önce olamıyor (kendi hata kodu)', hata(r).includes('yukleme_once'), hata(r));
 r = await A.c.rpc('oylamayi_bitir', { p_etkinlik: E3 });
 bekle('başlamamış etkinlikte oylama bitirilemiyor', hata(r).includes('oylama_yok'), hata(r));
 rapor();

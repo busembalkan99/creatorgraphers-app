@@ -38,6 +38,17 @@ export function saatYaz(iso: string) {
   return `${Number(v('day'))} ${AYLAR[Number(v('month')) - 1]} ${v('hour')}.${v('minute')}`
 }
 
+/** Saat kutusu (datetime-local) İstanbul saatiyle: ISO → "2026-10-03T18:30". Türkiye 2016'dan beri hep UTC+3. */
+export function girdiDegeri(iso: string) {
+  return new Date(Date.parse(iso) + 3 * 3_600_000).toISOString().slice(0, 16)
+}
+
+/** yerelIso'nun boş ya da bozuk değerde null dönen hâli (Aşama'daki saat kutusu). */
+export function girdidenIso(deger: string) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(deger) || Number.isNaN(Date.parse(`${deger}:00+03:00`))) return null
+  return yerelIso(deger)
+}
+
 /**
  * Bir sayının Türkçe okunuşunun son kelimesine göre bulunma eki: 16'da, 17'de, 15'te, 40'ta.
  * Son rakama bakmak yetmiyor: 10 "on" ile 20 "yirmi" aynı rakamla bitiyor ama ekleri farklı.

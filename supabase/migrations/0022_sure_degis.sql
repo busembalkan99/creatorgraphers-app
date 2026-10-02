@@ -27,11 +27,11 @@ begin
     -- Geriye alınmaz; birkaç saniyelik saat farkı "şimdi" sayılır
     if yb < simdi - interval '1 minute' then raise exception 'gecmise_alinmaz'; end if;
     yb := greatest(yb, simdi);
-    if yb <= e.yukleme_baslar then raise exception 'sure'; end if;
+    if yb <= e.yukleme_baslar then raise exception 'yukleme_once'; end if;
   end if;
   if ob < simdi - interval '1 minute' then raise exception 'gecmise_alinmaz'; end if;
   ob := greatest(ob, simdi);
-  if ob <= yb then raise exception 'sure'; end if;
+  if ob <= yb then raise exception 'oy_once'; end if;
   update public.etkinlikler set yukleme_biter = yb, oylama_biter = ob where id = p_etkinlik;
 end $$;
 

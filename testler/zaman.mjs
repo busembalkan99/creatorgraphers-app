@@ -1,6 +1,6 @@
 // Türkçe sayı ekleri: ek, sayının okunuşunun son kelimesine göre değişir.
 // Beklenenler okunuştan elle yazıldı; kod son rakama bakarak hesaplarsa kalır.
-import { saatEki, sayiEki } from '../src/lib/zaman.ts';
+import { saatEki, sayiEki, girdiDegeri, girdidenIso } from '../src/lib/zaman.ts';
 import { bekle, rapor } from './ortak.mjs';
 
 // İstanbul saati UTC+3: yerel HH.MM → ISO
@@ -18,5 +18,10 @@ for (const [yil, ek] of [[2026, 'dan'], [2025, 'ten'], [2020, 'den'], [2030, 'da
   [2050, 'den'], [2060, 'tan'], [2070, 'ten'], [2080, 'den'], [2090, 'dan'], [2010, 'dan']])
   bekle(`${yil}'${ek}`, sayiEki(yil % 100) + 'n' === ek, sayiEki(yil % 100) + 'n');
 
+// Aşama'daki saat kutusu (0022): İstanbul saatiyle yazılıyor, makinenin saat diliminden bağımsız
+bekle('saat kutusu İstanbul saatini gösteriyor', girdiDegeri('2026-10-03T15:30:00.000Z') === '2026-10-03T18:30', girdiDegeri('2026-10-03T15:30:00.000Z'));
+bekle('gece yarısını geçen saat ertesi güne düşüyor', girdiDegeri('2026-10-03T22:15:00.000Z') === '2026-10-04T01:15', girdiDegeri('2026-10-03T22:15:00.000Z'));
+bekle('saat kutusundaki değer İstanbul saati diye okunuyor', girdidenIso('2026-10-04T01:15') === '2026-10-03T22:15:00.000Z', girdidenIso('2026-10-04T01:15'));
+bekle('boş ya da bozuk değer boş dönüyor', girdidenIso('') === null && girdidenIso('dün') === null);
 
 rapor();

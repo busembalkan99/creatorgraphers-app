@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema } from '../lib/tipler'
-import { asama, ayAdi, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
+import { asama, ayAdi, girdiDegeri, girdidenIso, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
 import { git } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
@@ -13,7 +13,10 @@ export function Asama() {
   const [temalar, setTemalar] = useState<Tema[]>([])
   const [sayilar, setSayilar] = useState<Record<string, number>>({})
   const [hata, setHata] = useState<string | null>(null)
-  const [soru, setSoru] = useState<'oylama' | 'iptal' | null>(null)
+  const [soru, setSoru] = useState<'oylama' | 'bitir' | 'iptal' | null>(null)
+  // 0022: hangi bitiş saati düzenleniyor, kutudaki değer (İstanbul saati)
+  const [duzen, setDuzen] = useState<'yukleme' | 'oy' | null>(null)
+  const [deger, setDeger] = useState('')
   const [bildirimSayisi, setBildirimSayisi] = useState<{ acik: number; toplam: number } | null>(null)
   const [kopyalandi, setKopyalandi] = useState(false)
   // Yoklama bölümü kare çıkarınca çıkarılanlar listesi de tazelensin
@@ -56,6 +59,38 @@ export function Asama() {
     await yukle().catch(x => setHata(hataMetni(x)))
   }
 
+  function duzenle(ne: 'yukleme' | 'oy') {
+    if (!e) return
+    setHata(null)
+    setDeger(girdiDegeri(ne === 'yukleme' ? e.yukleme_biter : e.oylama_biter))
+    setDuzen(ne)
+  }
+
+  // Sunucu yalnız değişen saati alıyor, öteki boş gidiyor (0022). Hata olursa kutu açık kalıyor.
+  async function saatKaydet() {
+    if (!e || !duzen) return
+    const iso = girdidenIso(deger)
+    if (!iso) return setHata('Bir tarih ve saat seç.')
+    setHata(null)
+    const { error } = await sb.rpc('etkinlik_saatleri', {
+      p_etkinlik: e.id,
+      p_yukleme_biter: duzen === 'yukleme' ? iso : null,
+      p_oylama_biter: duzen === 'oy' ? iso : null,
+    })
+    if (error) return setHata(hataMetni(error))
+    setDuzen(null)
+    await yukle().catch(x => setHata(hataMetni(x)))
+  }
+
+  async function oylamayiBitir() {
+    if (!e) return
+    setHata(null)
+    const { error } = await sb.rpc('oylamayi_bitir', { p_etkinlik: e.id })
+    setSoru(null)
+    if (error) return setHata(hataMetni(error))
+    git(`sonuc/${e.id}`)
+  }
+
   if (e === undefined) return hata ? <div className="sc"><Kunye sol="Profil" geri="profil" sag="Yönetim" /><Hata metin={hata} /></div> : <Yukleniyor />
   if (e === null) {
     return (
@@ -77,6 +112,8 @@ export function Asama() {
       ? `${e.serbest ? 'Ekstra etkinliğin' : `${ay} etkinliğinin`} oylaması açıldı. Her kareye puan vermeyi unutmayın.\nSon oy: ${saatYaz(e.oylama_biter)}\n${link}`
       : `${e.serbest ? 'Ekstra etkinlik' : `${ay} etkinliği`}: buluşma ${gunYaz(e.bulusma_gunu)}.\nTemalar: ${temaListesi}\nYükleme açılışı: ${saatYaz(e.yukleme_baslar)}\nSon yükleme: ${saatYaz(e.yukleme_biter)}\n${link}`
 
+  // Aynı anda tek iş: bir soru ya da bir saat kutusu açıkken öteki düğmeler gizli
+  const bos = soru === null && duzen === null
   const durum =
     a === 'baslamadi' ? { etiket: 'Yükleme açılışı', deger: saatYaz(e.yukleme_baslar) }
       : a === 'yukleme' ? { etiket: 'Yükleme açık · kalan', deger: kalanYaz(e.yukleme_biter) }
@@ -100,14 +137,48 @@ export function Asama() {
             <span className="v sayi" style={{ marginLeft: 'auto' }}>{sayilar[t.id] ?? 0} kare</span>
           </div>
         ))}
-        <div><span className="k">Son yükleme</span><span className="v">{saatYaz(e.yukleme_biter)}</span></div>
-        <div><span className="k">Son oy</span><span className="v">{saatYaz(e.oylama_biter)}</span></div>
+        {/* 0022: bitişler sonradan da değişiyor. Son yükleme oylama açılınca kilitli: oy ilerlemesinin
+            ölçüsü ona sabit (karar 105), geriye çekilirse kimin kare çıkardığı okunabilirdi. */}
+        <div><span className="k">Son yükleme</span><span className="v">{saatYaz(e.yukleme_biter)}</span>
+          {a !== 'oylama' && bos && <button className="degistir" onClick={() => duzenle('yukleme')}>Değiştir</button>}</div>
+        <div><span className="k">Son oy</span><span className="v">{saatYaz(e.oylama_biter)}</span>
+          {bos && <button className="degistir" onClick={() => duzenle('oy')}>Değiştir</button>}</div>
       </div>
 
-      {a === 'yukleme' && soru === null && (
+      {duzen && (
+        <div className="kart kutu saat-kutu">
+          <div className="bas"><span>{duzen === 'yukleme' ? 'Son yükleme' : 'Son oy'}</span></div>
+          <div className="alan" style={{ marginTop: 4 }}>
+            <input type="datetime-local" aria-label={duzen === 'yukleme' ? 'Son yükleme' : 'Son oy'} value={deger} onChange={x => setDeger(x.target.value)} />
+          </div>
+          {duzen === 'yukleme' && <p>Oylama açılınca son yükleme artık değişmez.</p>}
+          <Hata metin={hata} />
+          <div className="akt">
+            <button className="btn ik" onClick={() => { setDuzen(null); setHata(null) }}>Vazgeç</button>
+            <button className="btn" onClick={saatKaydet}>Kaydet</button>
+          </div>
+        </div>
+      )}
+
+      {a === 'yukleme' && bos && (
         <div className="akt" style={{ marginTop: 14 }}>
           <button className="btn ik" onClick={() => cagir('yukleme_uzat', { p_etkinlik: e.id, p_saat: 24 })}>24 saat uzat</button>
           <button className="btn ik" onClick={() => setSoru('oylama')}>Oylamayı aç</button>
+        </div>
+      )}
+      {a === 'oylama' && bos && (
+        <div className="akt" style={{ marginTop: 14 }}>
+          <button className="btn ik" onClick={() => setSoru('bitir')}>Oylamayı bitir</button>
+        </div>
+      )}
+      {soru === 'bitir' && (
+        <div className="kart kutu">
+          <div className="bas"><span>Oylama şimdi bitsin mi?</span></div>
+          <p>Sonuçlar hemen açılır. Geri alınamaz.</p>
+          <div className="akt">
+            <button className="btn ik" onClick={() => setSoru(null)}>Vazgeç</button>
+            <button className="btn" onClick={oylamayiBitir}>Oylamayı bitir</button>
+          </div>
         </div>
       )}
       {soru === 'oylama' && (
@@ -150,7 +221,7 @@ export function Asama() {
       {/* Karar 120: WhatsApp yedek; kaç kişiye bildirim gidiyor (yalnız sayı) */}
       {bildirimSayisi && <p className="veri">Bildirim açık: <b>{bildirimSayisi.acik} / {bildirimSayisi.toplam}</b> üye</p>}
 
-      <Hata metin={hata} />
+      {!duzen && <Hata metin={hata} />}
 
       {(a === 'baslamadi' || a === 'yukleme') && (
         <>

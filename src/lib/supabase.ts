@@ -44,6 +44,13 @@ const HATALAR: Record<string, string> = {
   oylama_basladi: 'Oylama başladı, bu artık değişmiyor.',
   kare_yok: 'Bu kare artık yok.',
   etkinlik_yok: 'Etkinlik bulunamadı.',
+  // 0022: Aşama'da saat değiştirme ve oylamayı bitirme
+  gecmise_alinmaz: 'Geçmiş bir saat seçilemez.',
+  yukleme_kilitli: 'Oylama başladı, son yükleme artık değişmiyor.',
+  yukleme_once: 'Son yükleme, yükleme açılışından sonra olmalı.',
+  oy_once: 'Son oy, son yüklemeden sonra olmalı.',
+  saat_degismez: 'Bu etkinliğin saatleri artık değişmiyor.',
+  oylama_yok: 'Oylama sürmüyor.',
 }
 
 /**

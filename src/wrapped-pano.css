@@ -5,7 +5,7 @@
    geçiş harfinden başlayıp son harfte duruyor, bir kez. Hareketi azaltta
    wrapped.css'teki kural animasyonu kapatıyor, son harf kalıyor.
    ========================================================== */
-.wr .tel.set-pano{--zemin:#0e1013;--m:#eef0f2;--soluk:#7f8792;--vurgu:#f3c240;--kutu:#1c2026;--hw:25px;--hh:34px;
+.wr .tel.set-pano{--zemin:#0e1013;--m:#eef0f2;--soluk:#7f8792;--vurgu:#f3c240;--kutu:#1c2026;--hw:26px;--hh:40px;
   background:var(--zemin);background-image:none;color:var(--m)}
 .wr .tel.set-pano .doku,.wr .tel.set-pano .bant-ust,.wr .tel.set-pano .bant-alt{display:none}
 .wr .set-pano .w-kunye,.wr .set-pano .atla,.wr .set-pano .sayac{font-family:'Overpass Mono',monospace;color:var(--soluk)}
@@ -30,15 +30,18 @@
 .wr .set-pano .pano-eti{display:block;font:600 9px/1 'Overpass Mono',monospace;letter-spacing:.16em;text-transform:uppercase;
   color:var(--soluk);margin:0 0 5px 1px}
 
-.wr .set-pano .pano-satir{display:flex;gap:3px}
-.wr .set-pano .h{position:relative;flex:none;width:var(--hw);height:var(--hh);border-radius:3px;background:var(--kutu);
-  overflow:hidden;text-align:center}
-/* Kutunun ortasındaki ince yarık: mekanik panonun iki yarım kanadı */
-.wr .set-pano .h::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:var(--zemin);opacity:.9}
-.wr .set-pano .h b{display:flex;flex-direction:column;font:700 22px/var(--hh) Overpass,sans-serif;color:var(--m);
+.wr .set-pano .pano-satir{display:flex;gap:2.5px}
+/* Kutunun ortasındaki ince yarık (mekanik panonun iki kanadı) harfin arkasında: üstünden geçince "I" "!" gibi okunuyordu */
+.wr .set-pano .h{position:relative;flex:none;width:var(--hw);height:var(--hh);border-radius:3px;overflow:hidden;text-align:center;
+  background:linear-gradient(var(--kutu) calc(50% - .5px),var(--zemin) calc(50% - .5px) calc(50% + .5px),var(--kutu) calc(50% + .5px))}
+.wr .set-pano .h b{display:flex;flex-direction:column;font:700 calc(var(--hh) * .6)/var(--hh) Overpass,sans-serif;color:var(--m);
   animation:pano-don .85s cubic-bezier(.55,0,.35,1) backwards}
 .wr .set-pano .h i{display:block;font-style:normal;height:var(--hh)}
 .wr .set-pano .pano-satir.vurgu b{color:var(--vurgu)}
+/* Açılışta üç sayı, kapanışta üç kelime: büyük kutular */
+.wr .tel.p-acilis{--hw:54px;--hh:78px}
+.wr .tel.p-kapanis{--hw:31px;--hh:48px}
+.wr .tel.p-acilis .pano{gap:22px;margin-top:40px}
 @keyframes pano-don{from{transform:translateY(calc(-4 * var(--hh)))}to{transform:none}}
 
 .wr .set-pano .pano-dip{margin-top:auto;padding-top:16px;font:600 11px/1.6 'Overpass Mono',monospace;color:var(--soluk);letter-spacing:.04em}

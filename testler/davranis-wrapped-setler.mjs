@@ -90,6 +90,7 @@ async function olc(p, ad) {
     const tel = document.querySelector('.wr .tel').getBoundingClientRect();
     const tasma = [...document.querySelectorAll('.wr .w-ic *')].filter(e => {
       if (e.closest('.serit-pencere')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
+      if (e.closest('.h')) return false;               // pano kutusundaki dönüş harfleri kutunun içinde gizli (overflow)
       const b = e.getBoundingClientRect(); return b.width && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1);
     }).map(e => e.className).slice(0, 3);
     const kucuk = [...document.querySelectorAll('.wr button')].filter(e => { const b = e.getBoundingClientRect(); return b.width && b.height < 44; }).map(e => e.textContent.trim()).slice(0, 3);
@@ -114,7 +115,7 @@ try {
       bekle('pano/açılış: harfler son hâlinde (kişi, kare, puan)', /^\d+\|\d+\|\d+$/.test(await panoMetni(P)), await panoMetni(P));
       bekle('pano/açılış: ekran okuyucu satırı düz okuyor', /^\d+$/.test((await P.locator('.set-pano .pano-satir').first().getAttribute('aria-label')) ?? ''));
     } else {
-      bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /\d+ kişi · \d+ kare · \d+ puan/i.test(await metin(P)), await metin(P));
+      bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /\d+ kişi · \d+ kare · \d+ puan/.test((await metin(P)).toLocaleLowerCase('tr-TR')), await metin(P));
     }
 
     await sag(P);

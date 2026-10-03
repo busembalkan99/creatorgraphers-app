@@ -5,7 +5,7 @@
    Dinlenme hâli son hâl: şerit yerinde, daire çizili, not görünür. Hareket
    bunlara doğru bir kez oynuyor; hareketi azaltta hiç oynamıyor.
    ========================================================== */
-.wr .tel.set-kontakt{--zemin:#efeae0;--m:#141210;--soluk:#6d655b;--kalem:#b52d12;--kenar-rengi:#e3a13b;--kw:208px;
+.wr .tel.set-kontakt{--zemin:#efeae0;--m:#141210;--soluk:#6d655b;--kalem:#b52d12;--kenar-rengi:#e3a13b;--kw:250px;
   background:var(--zemin);background-image:none;color:var(--m)}
 .wr .tel.set-kontakt .bant-ust,.wr .tel.set-kontakt .bant-alt{display:none}
 .wr .tel.set-kontakt .doku{opacity:.16}
@@ -20,7 +20,9 @@
 
 /* Şerit: pencere telefonun iki kenarına taşıyor, kareler ortalı */
 .wr .set-kontakt .serit-pencere{margin:30px calc(-1 * var(--kenar)) 0;overflow:hidden;display:flex;justify-content:center}
-.wr .set-kontakt .serit-pencere.kucuk{--kw:150px}
+.wr .set-kontakt .serit-pencere.kucuk{--kw:168px}
+/* Açılışta şerit sayfanın ortasında: altı boş kalmasın */
+.wr .tel.kt-acilis .serit-pencere{margin-block:auto}
 .wr .set-kontakt .serit{position:relative;flex:none;display:flex;gap:10px;padding:24px 12px;background:#161412;
   animation:serit-kay 1.1s cubic-bezier(.2,.7,.2,1) backwards}
 .wr .set-kontakt .serit::before,.wr .set-kontakt .serit::after{content:"";position:absolute;left:0;right:0;height:8px;
@@ -33,17 +35,16 @@
 .wr .set-kontakt .kare .bos-kare{display:block;width:100%;height:100%;background:#24201c}
 /* Film kenarı baskısı: ince, turuncu, dar */
 .wr .set-kontakt .kenar{font:700 9px/1 Archivo,sans-serif;font-stretch:75%;letter-spacing:.1em;text-transform:uppercase;color:var(--kenar-rengi);white-space:nowrap}
-.wr .set-kontakt .serit .kenar{position:absolute;left:50%;transform:translateX(-50%)}
+.wr .set-kontakt .serit .kenar{position:absolute;left:calc(50% - var(--kw) / 2)}
 .wr .set-kontakt .serit .kenar.ust{top:15px}
-.wr .set-kontakt .serit .kenar.alt{bottom:15px}
 .wr .set-kontakt .kare-no{position:absolute;left:2px;bottom:-11px;font:700 9px/1 Archivo,sans-serif;font-stretch:75%;color:var(--kenar-rengi)}
-.wr .set-kontakt .serit .kenar.alt{opacity:.6}
 
 /* Yağlı kalem: daire, köşedeki numara, not */
 .wr .set-kontakt .kalem-daire{position:absolute;inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px);overflow:visible;pointer-events:none}
 .wr .set-kontakt .kalem-daire path{fill:none;stroke:var(--kalem);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;
   stroke-dasharray:1;stroke-dashoffset:0;vector-effect:non-scaling-stroke;animation:kalem-ciz .9s ease-in-out backwards}
-.wr .set-kontakt .kalem-no{position:absolute;right:-4px;top:-34px;font:400 38px/1 Mansalva,cursive;color:var(--kalem);
+/* Numara karenin köşesine, kâğıt etiketin üstüne: kenar yazısıyla çakışmasın */
+.wr .set-kontakt .kalem-no{position:absolute;right:6px;top:4px;padding:0 6px;background:var(--zemin);border-radius:2px;font:400 32px/1.05 Mansalva,cursive;color:var(--kalem);transform:rotate(4deg);
   animation:kalem-bel .3s ease-out backwards}
 .wr .set-kontakt .notlar{display:flex;flex-direction:column;gap:6px;margin-top:22px}
 .wr .set-kontakt .kalem-not{font:400 27px/1.05 Mansalva,cursive;color:var(--kalem);transform:rotate(-2.5deg);transform-origin:left center;

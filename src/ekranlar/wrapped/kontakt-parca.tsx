@@ -34,7 +34,6 @@ export function Serit({ kareler, kenar, secili = [], kucuk, gecikme = 1.1 }:
             </>}
           </div>
         ))}
-        <span className="kenar alt">Creatorgraphers</span>
       </div>
     </div>
   )

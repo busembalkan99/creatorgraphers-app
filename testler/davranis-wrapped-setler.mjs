@@ -115,6 +115,7 @@ try {
       bekle('pano/açılış: harfler son hâlinde (kişi, kare, puan)', /^\d+\|\d+\|\d+$/.test(await panoMetni(P)), await panoMetni(P));
       bekle('pano/açılış: ekran okuyucu satırı düz okuyor', /^\d+$/.test((await P.locator('.set-pano .pano-satir').first().getAttribute('aria-label')) ?? ''));
     } else {
+      bekle('kontakt/açılış: kazanan söylenmiyor (fotoğraf ve sıra numarası yok)', (await P.locator('.set-kontakt img').count()) === 0 && (await P.locator('.set-kontakt .kare-no').count()) === 0, String(await P.locator('.set-kontakt img').count()));
       bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /\d+ kişi · \d+ kare · \d+ puan/.test((await metin(P)).toLocaleLowerCase('tr-TR')), await metin(P));
     }
 
@@ -131,6 +132,8 @@ try {
       bekle('kontakt/tema: başlık', await var_(P, 'Sokak temasının birincisi'));
       const not = (await P.locator('.set-kontakt .kalem-not').first().innerText()).replace(/\s+/g, ' ');
       bekle('kontakt/tema: kalem notu isim ve puan, ünlemsiz', /^Muhammed Mustafa Karaosmanoğlu \d+,\d$/.test(not) && !(await metin(P)).includes('!'), not);
+      const pay = await P.locator('.set-kontakt .serit > div').first().evaluate(e => getComputedStyle(e).paddingTop + ' ' + getComputedStyle(e).paddingBottom);
+      bekle('kontakt: film karesine uygulamanın genel .kare payı (çentik payı) karışmıyor', pay === '0px 0px', pay);
       bekle('kontakt/tema: kazanan karede daire ve "1"', (await P.locator('.set-kontakt .kalem-daire').count()) === 1 && (await P.locator('.set-kontakt .kalem-no').first().innerText()) === '1');
       const nolar = await P.locator('.set-kontakt .kare-no').allInnerTexts();
       bekle('kontakt/tema: film kenarında sıra numarası', nolar.length >= 1 && nolar.every(t => /^▸ \d{2}$/.test(t)) && nolar.includes('▸ 01'), JSON.stringify(nolar));
@@ -153,6 +156,8 @@ try {
     bekle(`${SET}/kişisel: kart var`, await kartaGit(P, 'kisisel'));
     await olc(P, `${no + 3}-${SET}-kisisel-birinci`);
     bekle(`${SET}/kişisel: "Senin karen birinci"`, await var_(P, 'Senin karen birinci'), await metin(P));
+    if (SET === 'pano') bekle('pano/kişisel: senin satırın vurgulu', (await P.locator('.set-pano .vurgu-kayit .h').first().evaluate(e => getComputedStyle(e).boxShadow)) !== 'none');
+    bekle(`${SET}/kişisel: eski setin pembe kişisel kart rengi sızmıyor`, (await P.locator('.wr .tel').evaluate(e => getComputedStyle(e).backgroundColor)) === (SET === 'pano' ? 'rgb(14, 16, 19)' : 'rgb(239, 234, 224)'), await P.locator('.wr .tel').evaluate(e => getComputedStyle(e).backgroundColor));
     bekle(`${SET}/kapanış: kart ve düğmeler`, await kartaGit(P, 'kapanis') && await var_(P, 'Sonuçlara geç') && await var_(P, 'Tekrar izle'));
     await olc(P, `${no + 4}-${SET}-kapanis`);
     if (SET === 'pano') bekle('pano/kapanış: üç satır', (await panoMetni(P)) === 'SIRADAKİ|ETKİNLİKTE|GÖRÜŞÜRÜZ', await panoMetni(P));
@@ -175,9 +180,19 @@ try {
     bekle(`${SET}/girmedi: kişisel kart`, await kartaGit(S, 'kisisel'));
     await olc(S, `${no + 7}-${SET}-kisisel-girmedi`);
     bekle(`${SET}/girmedi: gizlilik cümlesi`, await var_(S, 'Puanını yalnız sen görüyorsun'), await metin(S));
+    if (SET === 'pano') bekle('pano/girmedi: boş satır ekran okuyucuya isimsiz resim olarak gitmiyor', (await S.locator('.set-pano .pano-satir[role=img][aria-label=""]').count()) === 0);
     if (SET === 'pano') bekle('pano/girmedi: durum boş', /\|$/.test(await panoMetni(S)) || (await panoMetni(S)).split('|').pop() === '', await panoMetni(S));
     else bekle('kontakt/girmedi: daire yok, numara yok', (await S.locator('.set-kontakt .kalem-daire').count()) === 0 && (await S.locator('.set-kontakt .kare-no').count()) === 0);
 
+    // Dar telefon (360 px): 12 harflik satır kenar boşluğunu aşmıyor
+    if (SET === 'pano') {
+      const D = await kisi(foto[0].eposta); await D.setViewportSize({ width: 360, height: 760 });
+      await ac(D, `wrapped/${E1}`); await sag(D); await D.waitForTimeout(2500);
+      const t = await D.evaluate(() => { const tel = document.querySelector('.wr .tel').getBoundingClientRect(); const s = [...document.querySelectorAll('.set-pano .pano-satir .h')].map(h => h.getBoundingClientRect().right); return { sag: Math.max(...s), sinir: tel.right - 20 }; });
+      bekle('pano/360 px: en uzun satır kenar boşluğunda kalıyor', t.sag <= t.sinir, JSON.stringify(t));
+      await D.screenshot({ path: `${SS}/118-pano-360.png` });
+      await D.context().close();
+    }
     // Hareketi azalt: animasyon yok, son hâl görünüyor
     const R = await kisi(foto[0].eposta, 'reduce');
     await ac(R, `wrapped/${E1}`); await sag(R); await R.waitForTimeout(300);

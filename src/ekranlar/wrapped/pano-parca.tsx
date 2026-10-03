@@ -12,7 +12,7 @@ export function Satir({ metin, en, vurgu, gecikme = 0 }: { metin: string; en?: n
   const kutu = Math.max(en ?? harfler.length, 1)
   const dolu = [...harfler, ...Array(Math.max(0, kutu - harfler.length)).fill(' ')].slice(0, kutu)
   return (
-    <div className={`pano-satir${vurgu ? ' vurgu' : ''}`} role="img" aria-label={metin}>
+    <div className={`pano-satir${vurgu ? ' vurgu' : ''}`} {...(metin.trim() ? { role: 'img', 'aria-label': metin } : { 'aria-hidden': true })}>
       {dolu.map((c, i) => (
         <span key={i} className="h" aria-hidden="true">
           <b style={{ animationDelay: `${(gecikme + i * 0.06).toFixed(2)}s` }}>

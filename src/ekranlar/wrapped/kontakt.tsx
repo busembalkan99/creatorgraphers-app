@@ -41,10 +41,8 @@ export const KONTAKT: SetTanimi = {
     for (const p of plan) {
       if (p.tur === 'acilis') {
         const o = v.ozet
-        // Açılışta kazananların kareleri, çizgi yok: sonuçlar henüz söylenmiyor
-        const kazananlar = b.yarisan.filter(k => k.sirali && k.sira === 1).slice(0, 3)
-        // İlk temanın birincisi ortada; kimse oylanmadıysa boş kareler
-        const kareler = kazananlar.length ? ortala(kazananlar.slice(1, 2), kazananlar.slice(0, 1), kazananlar.slice(2, 3)).kareler : [null, null, null]
+        // Açılış kazananı söylemiyor (karar 39'un sürprizi, eski set de fotoğraf göstermiyor): boş kareler
+        const kareler = [null, null, null]
         K.push({
           ad: 'acilis', sinif: 'kt-acilis', sag: `${ay} · ${yil}`,
           govde: govde(etkinlikAdi, 'Oylar sayıldı',
@@ -107,7 +105,7 @@ export const KONTAKT: SetTanimi = {
 /** Kişinin kartı. Metinler spec'ten (birinci, sırada, girmedi); öteki durumlarda eski setin cümleleri. */
 function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy: string; ozet: Ozet; temaSayisi: number }): Kart {
   const kart = (baslik: string, sag: string, icerik: ReactNode, alt?: ReactNode): Kart =>
-    ({ ad: 'kisisel', sinif: 'kt-kisisel', kisi: true, sag, govde: govde(`Sen · ${c.ay}`, baslik, icerik, alt) })
+    ({ ad: 'kisisel', sinif: 'kt-kisisel', sag, govde: govde(`Sen · ${c.ay}`, baslik, icerik, alt) })
   // Kişinin kareleri şeritte; sırada olan(lar) çizili. Sıraya girmeyen çizilmiyor, numarası da yok (karar 52).
   const serit = (l: (SK | null)[], cizili: boolean) => {
     const kareler = l.filter(Boolean) as SK[]

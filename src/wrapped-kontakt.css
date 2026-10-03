@@ -29,15 +29,15 @@
   background:repeating-linear-gradient(90deg,#161412 0 7px,var(--zemin) 7px 13px,#161412 13px 19px)}
 .wr .set-kontakt .serit::before{top:6px}
 .wr .set-kontakt .serit::after{bottom:6px}
-.wr .set-kontakt .kare{position:relative;flex:none;width:var(--kw);aspect-ratio:3/2;background:#2a2622}
-.wr .set-kontakt .kare img,.wr .set-kontakt .kare .bos-foto{display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;
+.wr .set-kontakt .k-kare{position:relative;flex:none;width:var(--kw);aspect-ratio:3/2;background:#2a2622}
+.wr .set-kontakt .k-kare img,.wr .set-kontakt .k-kare .bos-foto{display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;
   filter:grayscale(1) contrast(1.06)}
-.wr .set-kontakt .kare .bos-kare{display:block;width:100%;height:100%;background:#24201c}
+.wr .set-kontakt .k-kare .bos-kare{display:block;width:100%;height:100%;background:#24201c}
 /* Film kenarı baskısı: ince, turuncu, dar */
 .wr .set-kontakt .kenar{font:700 9px/1 Archivo,sans-serif;font-stretch:75%;letter-spacing:.1em;text-transform:uppercase;color:var(--kenar-rengi);white-space:nowrap}
 .wr .set-kontakt .serit .kenar{position:absolute;left:calc(50% - var(--kw) / 2)}
 .wr .set-kontakt .serit .kenar.ust{top:15px}
-.wr .set-kontakt .kare-no{position:absolute;left:2px;bottom:-11px;font:700 9px/1 Archivo,sans-serif;font-stretch:75%;color:var(--kenar-rengi)}
+.wr .set-kontakt .k-kare-no{position:absolute;left:2px;bottom:-11px;font:700 9px/1 Archivo,sans-serif;font-stretch:75%;color:var(--kenar-rengi)}
 
 /* Yağlı kalem: daire, köşedeki numara, not */
 .wr .set-kontakt .kalem-daire{position:absolute;inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px);overflow:visible;pointer-events:none}
@@ -49,7 +49,8 @@
 .wr .set-kontakt .notlar{display:flex;flex-direction:column;gap:6px;margin-top:22px}
 .wr .set-kontakt .kalem-not{font:400 27px/1.05 Mansalva,cursive;color:var(--kalem);transform:rotate(-2.5deg);transform-origin:left center;
   overflow-wrap:anywhere;animation:kalem-bel .4s ease-out backwards}
-.wr .set-kontakt .gri .kare img,.wr .set-kontakt .gri .kare .bos-foto{opacity:.5}
+/* Soluklaştırma filtreyle: hareketi azalt kuralı opacity'yi 1'e zorluyor (wrapped.css) */
+.wr .set-kontakt .gri .k-kare img,.wr .set-kontakt .gri .k-kare .bos-foto{filter:grayscale(1) opacity(.5)}
 
 /* Temalar: her tema bir şerit, boyu kare sayısı kadar */
 .wr .set-kontakt .tema-seritler{display:flex;flex-direction:column;gap:26px;margin-top:32px}

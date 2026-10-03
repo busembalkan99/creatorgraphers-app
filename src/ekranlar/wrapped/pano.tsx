@@ -117,7 +117,7 @@ export const PANO: SetTanimi = {
 /** Kişinin kartı. Metinler spec'ten (birinci, sırada, girmedi); öteki durumlarda eski setin cümleleri. */
 function kisisel(d: KisiselDurum, c: { ay: string; yil: string; etkinlikAdi: string; ozet: Ozet; temaSayisi: number }): Kart {
   const kart = (baslik: string, sag: string, pano: ReactNode, ek?: { foto?: ReactNode; dip?: ReactNode }): Kart =>
-    ({ ad: 'kisisel', sinif: 'p-kisisel', kisi: true, sag, govde: govde(`Sen · ${c.ay}`, baslik, pano, ek) })
+    ({ ad: 'kisisel', sinif: 'p-kisisel', sag, govde: govde(`Sen · ${c.ay}`, baslik, pano, ek) })
   // Senin karen: tema, puan, durum. Sıraya girmeyenin durumu boş (karar 52); puanı yalnız ona açık.
   const kayit = (k: SK, j = 0) => (
     <div key={k.id} className="pano-kayit vurgu-kayit">

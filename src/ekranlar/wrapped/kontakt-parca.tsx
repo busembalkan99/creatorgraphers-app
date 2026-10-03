@@ -3,7 +3,8 @@ import type { SK } from './plan'
 import { Foto } from './ortak'
 import { iki } from './bicim'
 
-/** Kontakt baskının parçaları (karar 126). Set kontakt.tsx'te. */
+/** Kontakt baskının parçaları (karar 126). Set kontakt.tsx'te. Film karesinin sınıfı k-kare: uygulamanın genel
+ *  .kare kuralı (index.css) çentik payı ekliyor, ana ekrandaki iPhone'da fotoğrafı yok ediyordu. */
 
 /** Yağlı kalemle elle çizilmiş daire. Dinlenme hâli çizili; hareket çizgiyi baştan çiziyor (stroke-dashoffset). */
 export const Daire = ({ gecikme = 0 }: { gecikme?: number }) => (
@@ -25,7 +26,7 @@ export function Serit({ kareler, kenar, secili = [], kucuk, gecikme = 1.1 }:
       <div className="serit">
         <span className="kenar ust">{kenar}</span>
         {kareler.map((k, j) => (
-          <div key={k?.id ?? `bos${j}`} className={`kare${secili.includes(j) ? ' secili' : ''}`}>
+          <div key={k?.id ?? `bos${j}`} className={`k-kare${secili.includes(j) ? ' secili' : ''}`}>
             {k ? <Foto k={k} /> : <span className="bos-kare" />}
             {k?.sirali && k.sira != null && <span className="kare-no">▸ {iki(k.sira)}</span>}
             {secili.includes(j) && k && <>

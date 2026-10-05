@@ -33,6 +33,7 @@
   color:var(--soluk);margin:0 0 5px 1px}
 
 .wr .set-pano .pano-satir{display:flex;gap:2.5px}
+.wr .set-pano .pano-satir + .pano-satir{margin-top:4px}
 /* Kutunun ortasındaki ince yarık (mekanik panonun iki kanadı) harfin arkasında: üstünden geçince "I" "!" gibi okunuyordu */
 .wr .set-pano .h{position:relative;flex:none;width:var(--hw);height:var(--hh);border-radius:3px;overflow:hidden;text-align:center;
   background:linear-gradient(var(--kutu) calc(50% - .5px),var(--zemin) calc(50% - .5px) calc(50% + .5px),var(--kutu) calc(50% + .5px))}

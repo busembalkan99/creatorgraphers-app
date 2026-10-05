@@ -1,6 +1,6 @@
 // Wrapped kart planı (karar 126): hangi kart var, kişisel kart hangi durumda. Eski setin kuralları aynen.
-import { kartPlani, adlarYaz } from '../src/ekranlar/wrapped/plan.ts';
-import { panoKisalt, panoHarfleri, panoSigdir } from '../src/ekranlar/wrapped/pano-metin.ts';
+import { kartPlani, adlarYaz, acilisKareleri } from '../src/ekranlar/wrapped/plan.ts';
+import { panoKisalt, panoHarfleri, panoBol } from '../src/ekranlar/wrapped/pano-metin.ts';
 import { bekle, rapor } from './ortak.mjs';
 const e = { id: 'e', bulusma_gunu: '2026-10-03', yukleme_baslar: '', yukleme_biter: '', oylama_biter: '', iptal: false };
 const T1 = { id: 't1', ad: 'Sokak', sira: 1 }, T2 = { id: 't2', ad: 'Portre', sira: 2 };
@@ -55,5 +55,18 @@ bekle('pano: o da sığmazsa ilk ad, 12 harfte', panoKisalt('Abdurrahmanoğullar
 bekle('pano: fazla boşluk tek', panoKisalt('  Can   Öz ') === 'CAN ÖZ', panoKisalt('  Can   Öz '));
 bekle('pano: geçiş harfleri belirlenimli, dört tane, son harf aralarında değil', JSON.stringify(panoHarfleri('A', 3)) === JSON.stringify(panoHarfleri('A', 3)) && panoHarfleri('A', 3).length === 4 && !panoHarfleri('A', 3).includes('A'));
 bekle('pano: boşluk ve noktalama için de geçiş harfi var', panoHarfleri(' ', 0).length === 4 && panoHarfleri(',', 1).length === 4);
-bekle('pano: uzun tema adı kelime sınırında', panoSigdir('Sokak fotoğrafçılığı') === 'SOKAK' && panoSigdir('Işık ve gölge oyunu') === 'IŞIK VE' && panoSigdir('Portre') === 'PORTRE' && panoSigdir('Fotoğrafçılıklarımız') === 'FOTOĞRAFÇILI', [panoSigdir('Sokak fotoğrafçılığı'), panoSigdir('Işık ve gölge oyunu'), panoSigdir('Fotoğrafçılıklarımız')].join('|'));
+bekle('pano: sığan tema adı tek satır', JSON.stringify(panoBol('Portre')) === '["PORTRE"]', JSON.stringify(panoBol('Portre')));
+bekle('pano: "Işık ve gölge oyunu" → IŞIK VE / GÖLGE OYUNU', JSON.stringify(panoBol('Işık ve gölge oyunu')) === '["IŞIK VE","GÖLGE OYUNU"]', JSON.stringify(panoBol('Işık ve gölge oyunu')));
+bekle('pano: tek uzun kelime iki satıra kesiliyor', JSON.stringify(panoBol('Fotoğrafçılıklarımızdan')) === '["FOTOĞRAFÇILI","KLARIMIZDAN"]', JSON.stringify(panoBol('Fotoğrafçılıklarımızdan')));
+bekle('pano: en çok iki satır', panoBol('Bir iki üç dört beş altı yedi sekiz dokuz on on bir').length === 2);
+
+// Kontakt açılışı: etkinliğe bağlı rastgele kareler (her izleyişte aynı), çıkarılan yok, en çok üç
+{
+  const l = Array.from({ length: 8 }, (_, j) => k({ id: `a${j}`, cikarildi: j === 0 }));
+  const a1 = acilisKareleri({ id: 'etk-1' }, l), a2 = acilisKareleri({ id: 'etk-1' }, l), b1 = acilisKareleri({ id: 'etk-2' }, l);
+  bekle('açılış kareleri: üç tane, aynı etkinlikte hep aynı', a1.length === 3 && a1.map(x => x.id).join() === a2.map(x => x.id).join(), JSON.stringify(a1.map(x => x.id)));
+  bekle('açılış kareleri: çıkarılan kare yok', !a1.some(x => x.cikarildi) && !b1.some(x => x.cikarildi));
+  bekle('açılış kareleri: başka etkinlikte başka seçim', a1.map(x => x.id).join() !== b1.map(x => x.id).join(), JSON.stringify([a1.map(x => x.id), b1.map(x => x.id)]));
+  bekle('açılış kareleri: az karede olanlar kadar', acilisKareleri({ id: 'x' }, l.slice(0, 3)).length === 2 && acilisKareleri({ id: 'x' }, []).length === 0);
+}
 rapor();

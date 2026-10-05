@@ -4,7 +4,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik } from '../lib/tipler'
 import { git } from '../lib/yol'
 import { imzala } from '../lib/imza'
-import type { Ozet, SK, Tema } from './wrapped/plan'
+import { acilisKareleri, type Ozet, type SK, type Tema } from './wrapped/plan'
 import { iki } from './wrapped/bicim'
 import { setSec } from './wrapped/kutuphane'
 
@@ -78,7 +78,9 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
       if (!e || !ozet || Number(ozet.kare) === 0) return git(`sonuc/${etkinlikId}`)
       const kareler = (sk.data ?? []) as SK[]
       // Fotoğraflar önce: kazananlar, kürsü ve kişinin kendi kareleri
-      const gerek = kareler.filter(k => k.benim || (k.sira != null && k.sira <= 3 && !k.cikarildi))
+      // Kontakt baskının açılış şeridi rastgele kareler gösteriyor (karar 126): onlar da
+      const acilis = new Set(setSec(e).ad === 'kontakt' ? acilisKareleri(e, kareler).map(k => k.id) : [])
+      const gerek = kareler.filter(k => k.benim || acilis.has(k.id) || (k.sira != null && k.sira <= 3 && !k.cikarildi))
       const imza = gerek.length ? await imzala(gerek.map(k => k.dosya)) : []
       const url = new Map(gerek.map((k, j) => [k.id, imza[j]?.signedUrl ?? null]))
       await Promise.race([

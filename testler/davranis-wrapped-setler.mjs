@@ -16,6 +16,7 @@ const KISI = [
   ['k10@test.local', 'Muhammed Mustafa Karaosmanoğlu'], ['k1@test.local', 'Selin Arı'], ['k2@test.local', 'Can Öz'],
   ['k3@test.local', 'Deniz Akın'], ['k4@test.local', 'Elif Sunar'], ['k5@test.local', 'Mert Demir'],
   ['k6@test.local', 'Pelin Er'], ['k7@test.local', 'Onur Tek'],
+  ['yusuf@test.local', 'Yusuf Ak'],   // hiçbir şey yapmıyor: kişisel kart "sensiz geçti"
 ];
 // Sekiz kare: round(8 / 2,5) = 3 kare sıraya giriyor (karar 52), kürsüde ikinci ve üçüncü var
 const U = [];
@@ -38,17 +39,19 @@ const etkinlik = async (temalar) => {
   for (const [i, ad] of temalar.entries()) T.push((await admin.from('temalar').insert({ etkinlik: E, ad, sira: i + 1, bulusmada: true }).select('id').single()).data.id);
   return { E, T };
 };
-const foto = U.slice(1);
+const Y = U[U.length - 1];
+const foto = U.slice(1, -1);
 
 // E1: tek tema, sekiz kare, puan sırası 10 - j (birinci uzun isimli). Kürsü kartı çıkıyor.
 const { E: E1, T: [T1] } = await etkinlik(['Sokak']);
 const k1 = []; for (const u of foto) k1.push(await yukle(u, E1, T1));
 // E2: iki tema; Portre'de ilk iki kare eşit puanla birinci
-const { E: E2, T: [T2a, T2b] } = await etkinlik(['Işık', 'Portre']);
+// Uzun tema adı: panoda iki satıra bölünüyor
+const { E: E2, T: [T2a, T2b] } = await etkinlik(['Işık ve gölge oyunu', 'Portre']);
 const k2a = [], k2b = [];
 for (const u of foto) { k2a.push(await yukle(u, E2, T2a)); k2b.push(await yukle(u, E2, T2b)); }
 await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).in('id', [E1, E2]);
-for (const u of U) {
+for (const u of U.filter(u => u !== Y)) {
   for (const E of [E1, E2]) {
     const l = (await u.c.rpc('oylama_kareleri', { p_etkinlik: E })).data ?? [];
     for (const k of l) {
@@ -58,6 +61,8 @@ for (const u of U) {
     }
   }
 }
+// Son fotoğrafçının karesi yarışmadan çıkarılıyor: kişisel kart "karen sayılmadı"
+await A.c.rpc('kare_cikar', { p_kare: k1[k1.length - 1], p_neden: 'Buluşmaya katılmadın.' });
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.5) }).in('id', [E1, E2]);
 
 const b = await chromium.launch();
@@ -115,7 +120,8 @@ try {
       bekle('pano/açılış: harfler son hâlinde (kişi, kare, puan)', /^\d+\|\d+\|\d+$/.test(await panoMetni(P)), await panoMetni(P));
       bekle('pano/açılış: ekran okuyucu satırı düz okuyor', /^\d+$/.test((await P.locator('.set-pano .pano-satir').first().getAttribute('aria-label')) ?? ''));
     } else {
-      bekle('kontakt/açılış: kazanan söylenmiyor (fotoğraf ve sıra numarası yok)', (await P.locator('.set-kontakt img').count()) === 0 && (await P.locator('.set-kontakt .kare-no').count()) === 0, String(await P.locator('.set-kontakt img').count()));
+      bekle('kontakt/açılış: rastgele üç kare görünüyor', (await P.locator('.set-kontakt img').count()) === 3, String(await P.locator('.set-kontakt img').count()));
+      bekle('kontakt/açılış: kazanan söylenmiyor (sıra numarası, daire yok)', (await P.locator('.set-kontakt .kare-no').count()) === 0 && (await P.locator('.set-kontakt .kalem-daire').count()) === 0);
       bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /\d+ kişi · \d+ kare · \d+ puan/.test((await metin(P)).toLocaleLowerCase('tr-TR')), await metin(P));
     }
 
@@ -172,10 +178,11 @@ try {
     if (SET === 'pano') bekle('pano/eşit: iki satır EŞİT', ((await panoMetni(P)).match(/\|EŞİT/g) ?? []).length === 2, await panoMetni(P));
     else bekle('kontakt/eşit: iki daire, iki not, "Eşit puan aldılar"', (await P.locator('.set-kontakt .kalem-daire').count()) === 2 && (await P.locator('.set-kontakt .kalem-not').count()) === 2 && await var_(P, 'Eşit puan aldılar'));
     bekle(`${SET}/temalar: iki temalı etkinlikte kart var`, await kartaGit(P, 'temalar'));
+    if (SET === 'pano') bekle('pano/temalar: uzun tema adı iki satırda', (await panoMetni(P)).startsWith('IŞIK VE|GÖLGE OYUNU|'), await panoMetni(P));
     await olc(P, `${no + 6}-${SET}-temalar`);
 
-    // Sıraya girmeyen (en düşük puanlı fotoğrafçı): sırası yazmıyor, puanı yalnız ona
-    const S = await kisi(foto[foto.length - 1].eposta);
+    // Sıraya girmeyen (sondan ikinci fotoğrafçı; sonuncunun karesi çıkarıldı): sırası yazmıyor, puanı yalnız ona
+    const S = await kisi(foto[foto.length - 2].eposta);
     await ac(S, `wrapped/${E1}`);
     bekle(`${SET}/girmedi: kişisel kart`, await kartaGit(S, 'kisisel'));
     await olc(S, `${no + 7}-${SET}-kisisel-girmedi`);
@@ -193,6 +200,24 @@ try {
       await D.screenshot({ path: `${SS}/118-pano-360.png` });
       await D.context().close();
     }
+    // Kişisel kartın öteki durumları, setin kendi sesiyle (Buse onayladı, 2026-10-05)
+    const kisiselMetin = async (eposta) => { const X = await kisi(eposta); await ac(X, `wrapped/${E1}`); await kartaGit(X, 'kisisel'); return X; };
+    const O = await kisiselMetin(A.eposta);   // oy verdi, kare vermedi
+    await olc(O, `${no + 8}-${SET}-kisisel-oyverdi`);
+    if (SET === 'kontakt') bekle('kontakt/oy verdin: başlık, kalem notu, alt', await var_(O, 'Bu sefer oylayan sendin') && /\d+ kareye puan verdin|Bütün kareleri puanladın/.test(await O.locator('.set-kontakt .kalem-not').first().innerText()) && await var_(O, 'Sıradaki etkinlikte senin karen de şeritte olsun'), await metin(O));
+    else bekle('pano/oy verdin: başlık, pano, alt', await var_(O, 'Oy verdin') && /^\d+\|\d+$/.test(await panoMetni(O)) && await var_(O, 'Sıradaki etkinlikte panoda senin satırın da olsun'), `${await metin(O)} | ${await panoMetni(O)}`);
+    const Yp = await kisiselMetin(Y.eposta);   // hiç katılmadı
+    await olc(Yp, `${no + 9}-${SET}-kisisel-yoktun`);
+    bekle(`${SET}/sensiz: "Bu sefer yoktun" ve davet`, await var_(Yp, 'Bu sefer yoktun') && await var_(Yp, 'Bir sonraki buluşmada seni de aramızda görmek isteriz'), await metin(Yp));
+    if (SET === 'kontakt') bekle('kontakt/sensiz: kalem notunda kare ve tema sayısı', /^\d+ kare, \d+ tema$/.test((await Yp.locator('.set-kontakt .kalem-not').first().innerText()).trim()), await Yp.locator('.set-kontakt .kalem-not').first().innerText());
+    else bekle('pano/sensiz: kare ve tema', /^\d+\|\d+$/.test(await panoMetni(Yp)), await panoMetni(Yp));
+    const C = await kisiselMetin(foto[foto.length - 1].eposta);   // karesi çıkarıldı
+    await olc(C, `${no + 10}-${SET}-kisisel-cikarildi`);
+    bekle(`${SET}/çıkarıldı: "Karen sayılmadı", neden ve yönetici`, await var_(C, 'Karen sayılmadı') && await var_(C, 'Buluşmaya katılmadın') && await var_(C, 'Yöneticiyle konuşabilirsin'), await metin(C));
+    if (SET === 'kontakt') bekle('kontakt/çıkarıldı: daire yok, kare soluk', (await C.locator('.set-kontakt .kalem-daire').count()) === 0 && (await C.locator('.set-kontakt .gri').count()) === 1);
+    else bekle('pano/çıkarıldı: durum ÇIKARILDI', (await panoMetni(C)).endsWith('|ÇIKARILDI'), await panoMetni(C));
+    await O.context().close(); await Yp.context().close(); await C.context().close();
+
     // Hareketi azalt: animasyon yok, son hâl görünüyor
     const R = await kisi(foto[0].eposta, 'reduce');
     await ac(R, `wrapped/${E1}`); await sag(R); await R.waitForTimeout(300);

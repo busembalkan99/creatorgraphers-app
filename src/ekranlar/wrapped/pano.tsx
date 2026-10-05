@@ -3,8 +3,8 @@ import type { ReactNode } from 'react'
 import { kartPlani, type KisiselDurum, type Ozet, type SK } from './plan'
 import { Dugmeler, Foto, type Kart, type SetTanimi } from './ortak'
 import { puan } from './bicim'
-import { panoKisalt, panoSigdir } from './pano-metin'
-import { Alan, Satir, Yan } from './pano-parca'
+import { panoKisalt } from './pano-metin'
+import { Alan, Satir, TemaSatirlari, Yan } from './pano-parca'
 import { paylasilacakKare } from '../Paylas'
 
 /**
@@ -52,7 +52,7 @@ export const PANO: SetTanimi = {
         K.push({
           ad: 'tema', sinif: 'p-tema', sag: tek ? 'Temada tek kare' : `${w[0].oy_sayisi ?? 0} kişi puanladı`,
           govde: govde(etkinlikAdi, esit ? `${tema.ad} temasında ${w.length === 2 ? 'iki' : w.length} birinci` : `${tema.ad} temasının birincisi`, <>
-            <Alan ad="Tema"><Satir metin={panoSigdir(tema.ad)} en={EN} /></Alan>
+            <Alan ad="Tema"><TemaSatirlari ad={tema.ad} /></Alan>
             {w.map((k, j) => (
               <div key={k.id} className="pano-kayit">
                 <Alan ad="Birinci"><Satir metin={panoKisalt(k.sahip_ad)} en={EN} gecikme={0.3 + j * 0.4} /></Alan>
@@ -71,7 +71,7 @@ export const PANO: SetTanimi = {
         K.push({
           ad: 'kursu', sinif: 'p-kursu', sag: `Sıralamaya ${p.girdi} kare girdi`,
           govde: govde(etkinlikAdi, p.az ? 'Az farkla' : 'Kürsünün kalanı', <>
-            <Alan ad="Tema"><Satir metin={panoSigdir(p.tema.ad)} en={EN} /></Alan>
+            <Alan ad="Tema"><TemaSatirlari ad={p.tema.ad} /></Alan>
             {p.kursu.map((k, j) => (
               <div key={k.id} className="pano-kayit">
                 <Alan ad={j ? 'Üçüncü' : 'İkinci'}><Satir metin={panoKisalt(k.sahip_ad)} en={EN} gecikme={0.3 + j * 0.5} /></Alan>
@@ -89,7 +89,7 @@ export const PANO: SetTanimi = {
           ad: 'temalar', sinif: 'p-temalar', sag: `${p.toplam} kare`,
           govde: govde(etkinlikAdi, 'Temalar', p.satirlar.map(({ tema, adet, enYuksek }, j) => (
             <div key={tema.id} className="pano-kayit">
-              <Alan ad="Tema"><Satir metin={panoSigdir(tema.ad)} en={EN} gecikme={j * 0.5} /></Alan>
+              <Alan ad="Tema"><TemaSatirlari ad={tema.ad} gecikme={j * 0.5} /></Alan>
               <Yan>
                 <Alan ad="Kare"><Satir metin={String(adet)} en={3} gecikme={0.3 + j * 0.5} /></Alan>
                 <Alan ad="En yüksek"><Satir metin={enYuksek ? puan(enYuksek.ortalama) : '—'} en={4} gecikme={0.5 + j * 0.5} vurgu /></Alan>
@@ -121,7 +121,7 @@ function kisisel(d: KisiselDurum, c: { ay: string; yil: string; etkinlikAdi: str
   // Senin karen: tema, puan, durum. Sıraya girmeyenin durumu boş (karar 52); puanı yalnız ona açık.
   const kayit = (k: SK, j = 0) => (
     <div key={k.id} className="pano-kayit vurgu-kayit">
-      <Alan ad="Tema"><Satir metin={panoSigdir(k.tema_ad)} en={EN} gecikme={j * 0.5} /></Alan>
+      <Alan ad="Tema"><TemaSatirlari ad={k.tema_ad} gecikme={j * 0.5} /></Alan>
       <Yan>
         <Alan ad="Puan"><Satir metin={puan(k.ortalama)} en={4} gecikme={0.3 + j * 0.5} /></Alan>
         <Alan ad="Durum"><Satir metin={k.sirali && k.sira != null ? `${k.sira}.` : ''} en={4} gecikme={0.5 + j * 0.5} vurgu /></Alan>
@@ -152,19 +152,24 @@ function kisisel(d: KisiselDurum, c: { ay: string; yil: string; etkinlikAdi: str
       return kart('Senin karen', `${c.ay} · ${d.kare.tema_ad}`, kayit(d.kare), {
         foto: fotolar([d.kare]), dip: <>Bu temayı kimse oylamamış<br />Temada {d.n} kare vardı</>,
       })
+    // Öteki durumlar setin kendi sesiyle (Buse onayladı, 2026-10-05)
     case 'cikarildi':
-      return kart('Karen yarışmada yok', `${c.ay} · ${d.kare.tema_ad}`, <Alan ad="Tema"><Satir metin={panoSigdir(d.kare.tema_ad)} en={EN} /></Alan>, {
+      return kart('Karen sayılmadı', `${c.ay} · ${d.kare.tema_ad}`, <>
+        <Alan ad="Tema"><TemaSatirlari ad={d.kare.tema_ad} /></Alan>
+        <Alan ad="Durum"><Satir metin="Çıkarıldı" en={9} gecikme={0.4} vurgu /></Alan>
+      </>, {
         foto: fotolar([d.kare], true),
-        dip: <>Yarışmadan çıkarıldı{d.kare.cikarma_nedeni ? `: ${d.kare.cikarma_nedeni}` : ''}<br />Puan sayılmadı. Yöneticiyle konuşabilirsin</>,
+        dip: <>{d.kare.cikarma_nedeni || 'Yarışmadan çıkarıldı'}<br />Yöneticiyle konuşabilirsin</>,
       })
     case 'oyverdi':
-      return kart('Bu ay oy verdin', `${d.adet} / ${c.ozet.kare} kare`, <Alan ad="Puanladığın kare"><Satir metin={String(d.adet)} en={4} vurgu /></Alan>, {
-        dip: <>{d.hepsi ? 'Bütün kareleri puanladın' : `${d.adet} kareyi puanladın`}<br />Kare vermedin. Sıradaki etkinliğe mutlaka gel</>,
-      })
+      return kart('Oy verdin', `${d.adet} / ${c.ozet.kare} kare`, <Yan>
+        <Alan ad="Puanladığın"><Satir metin={String(d.adet)} en={4} vurgu /></Alan>
+        <Alan ad="Kare"><Satir metin={String(c.ozet.kare)} en={4} gecikme={0.3} /></Alan>
+      </Yan>, { dip: 'Sıradaki etkinlikte panoda senin satırın da olsun' })
     default:
-      return kart('Bu etkinlik sensiz geçti', `${c.ay} · ${c.yil}`, <>
-        <Alan ad="Kulübün karesi"><Satir metin={String(c.ozet.kare)} en={4} /></Alan>
-        <Alan ad="Tema"><Satir metin={String(c.temaSayisi)} en={4} gecikme={0.3} /></Alan>
-      </>, { dip: 'Bir sonraki buluşmada seni de aramızda görmek isteriz' })
+      return kart('Bu sefer yoktun', `${c.ay} · ${c.yil}`, <Yan>
+        <Alan ad="Kare"><Satir metin={String(c.ozet.kare)} en={4} /></Alan>
+        <Alan ad="Tema"><Satir metin={String(c.temaSayisi)} en={3} gecikme={0.3} /></Alan>
+      </Yan>, { dip: 'Bir sonraki buluşmada seni de aramızda görmek isteriz' })
   }
 }

@@ -19,8 +19,8 @@ export const Daire = ({ gecikme = 0 }: { gecikme?: number }) => (
  * Kareler ortalanıyor; hedef kare(ler) ortada kalsın diye çağıran baştan ve sondan eşit sayıda kare veriyor.
  * Kenardaki numara sıralamadaki yer; sıraya girmeyen karenin numarası yok (karar 52).
  */
-export function Serit({ kareler, kenar, secili = [], kucuk, gecikme = 1.1 }:
-  { kareler: (SK | null)[]; kenar: string; secili?: number[]; kucuk?: boolean; gecikme?: number }) {
+export function Serit({ kareler, kenar, secili = [], kucuk, gecikme = 1.1, numarasiz }:
+  { kareler: (SK | null)[]; kenar: string; secili?: number[]; kucuk?: boolean; gecikme?: number; numarasiz?: boolean }) {
   return (
     <div className={`serit-pencere${kucuk ? ' kucuk' : ''}`}>
       <div className="serit">
@@ -28,7 +28,7 @@ export function Serit({ kareler, kenar, secili = [], kucuk, gecikme = 1.1 }:
         {kareler.map((k, j) => (
           <div key={k?.id ?? `bos${j}`} className={`k-kare${secili.includes(j) ? ' secili' : ''}`}>
             {k ? <Foto k={k} /> : <span className="bos-kare" />}
-            {k?.sirali && k.sira != null && <span className="kare-no">▸ {iki(k.sira)}</span>}
+            {!numarasiz && k?.sirali && k.sira != null && <span className="kare-no">▸ {iki(k.sira)}</span>}
             {secili.includes(j) && k && <>
               <Daire gecikme={gecikme + secili.indexOf(j) * 0.5} />
               <span className="kalem-no" style={{ animationDelay: `${gecikme + 0.8 + secili.indexOf(j) * 0.5}s` }}>{k.sira ?? ''}</span>

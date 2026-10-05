@@ -123,3 +123,14 @@ function kisiselDurum(kareler: SK[], yarisan: SK[], ozet: Ozet): KisiselDurum {
   // E · Hiç katılmadın (kulübe sonradan katılan da bunu görür)
   return { tur: 'katilmadi' }
 }
+
+/**
+ * Kontakt baskının açılış şeridi: etkinlikten rastgele kareler, numarasız (Buse, 2026-10-05). Rastgele ama
+ * etkinliğe bağlı: aynı etkinlikte her izleyişte aynı kareler. Çıkarılan kare yok.
+ */
+export function acilisKareleri(e: { id: string }, kareler: SK[], n = 3): SK[] {
+  let t = 0
+  for (const c of e.id) t = (t * 31 + c.charCodeAt(0)) >>> 0
+  const puanla = (id: string) => { let h = t; for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 2654435761) >>> 0; return h }
+  return kareler.filter(k => !k.cikarildi).map(k => ({ k, p: puanla(k.id) })).sort((a, b) => a.p - b.p).slice(0, n).map(x => x.k)
+}

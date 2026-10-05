@@ -1,6 +1,6 @@
 import '../../wrapped-kontakt.css'
 import type { ReactNode } from 'react'
-import { kartPlani, type KisiselDurum, type Ozet, type SK } from './plan'
+import { acilisKareleri, kartPlani, type KisiselDurum, type Ozet, type SK } from './plan'
 import { Dugmeler, type Kart, type SetTanimi } from './ortak'
 import { puan } from './bicim'
 import { Not, Serit } from './kontakt-parca'
@@ -41,12 +41,13 @@ export const KONTAKT: SetTanimi = {
     for (const p of plan) {
       if (p.tur === 'acilis') {
         const o = v.ozet
-        // Açılış kazananı söylemiyor (karar 39'un sürprizi, eski set de fotoğraf göstermiyor): boş kareler
-        const kareler = [null, null, null]
+        // Etkinlikten rastgele kareler, numarasız ve çizgisiz: kazananı söylemiyor (karar 39'un sürprizi; Buse, 2026-10-05)
+        const sec = acilisKareleri(v.e, v.kareler)
+        const kareler = sec.length ? ortala(sec.slice(1, 2), sec.slice(0, 1), sec.slice(2, 3)).kareler : [null, null, null]
         K.push({
           ad: 'acilis', sinif: 'kt-acilis', sag: `${ay} · ${yil}`,
           govde: govde(etkinlikAdi, 'Oylar sayıldı',
-            <Serit kareler={kareler} kenar={`${o.kisi} kişi · ${o.kare} kare · ${o.puan} puan`} />,
+            <Serit kareler={kareler} numarasiz kenar={`${o.kisi} kişi · ${o.kare} kare · ${o.puan} puan`} />,
             `${kenarAy} · ${v.temalar.map(t => t.ad).join(', ')}`),
         })
       } else if (p.tur === 'tema') {
@@ -130,16 +131,18 @@ function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy:
     case 'oylanmamis':
       return kart('Senin karen', `${c.ay} · ${d.kare.tema_ad}`, serit([d.kare, d.ikinci], false),
         <>Bu temayı kimse oylamamış · Temada {d.n} kare vardı</>)
+    // Öteki durumlar setin kendi sesiyle (Buse onayladı, 2026-10-05). Çıkarılan kare soluk, üstünde çizgi yok.
     case 'cikarildi':
-      return kart('Karen yarışmada yok', `${c.ay} · ${d.kare.tema_ad}`, <div className="gri">{serit([d.kare], false)}</div>,
-        <>Yarışmadan çıkarıldı{d.kare.cikarma_nedeni ? `: ${d.kare.cikarma_nedeni}` : ''}. Puan sayılmadı, yöneticiyle konuşabilirsin.</>)
+      return kart('Karen sayılmadı', `${c.ay} · ${d.kare.tema_ad}`,
+        <><div className="gri">{serit([d.kare], false)}</div><div className="notlar"><Not>{d.kare.cikarma_nedeni || 'Yarışmadan çıkarıldı'}</Not></div></>,
+        'Yöneticiyle konuşabilirsin')
     case 'oyverdi':
-      return kart('Bu ay oy verdin', `${d.adet} / ${c.ozet.kare} kare`,
-        <div className="notlar"><Not gecikme={0.6}>{d.hepsi ? 'Bütün kareleri puanladın' : `${d.adet} kareyi puanladın`}</Not></div>,
-        'Kare vermedin. Sıradaki etkinliğe mutlaka gel')
+      return kart('Bu sefer oylayan sendin', `${d.adet} / ${c.ozet.kare} kare`,
+        <div className="notlar"><Not gecikme={0.6}>{d.hepsi ? 'Bütün kareleri puanladın' : `${d.adet} kareye puan verdin`}</Not></div>,
+        'Sıradaki etkinlikte senin karen de şeritte olsun')
     default:
-      return kart('Bu etkinlik sensiz geçti', c.etkinlikAdi,
-        <Serit kareler={[null, null, null]} kenar={`${c.ozet.kare} kare · ${c.temaSayisi} tema`} />,
+      return kart('Bu sefer yoktun', c.etkinlikAdi,
+        <><Serit kareler={[null, null, null]} kenar={c.kenarAy} /><div className="notlar"><Not>{c.ozet.kare} kare, {c.temaSayisi} tema</Not></div></>,
         'Bir sonraki buluşmada seni de aramızda görmek isteriz')
   }
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { panoHarfleri } from './pano-metin'
+import { panoBol, panoHarfleri } from './pano-metin'
 
 /** Kalkış tabelasının parçaları (karar 126). Set pano.tsx'te. */
 const tr = (s: string) => s.toLocaleUpperCase('tr-TR')
@@ -28,3 +28,8 @@ export const Alan = ({ ad, children }: { ad: string; children: ReactNode }) => (
   <div className="pano-alan"><span className="pano-eti">{ad}</span>{children}</div>
 )
 export const Yan = ({ children }: { children: ReactNode }) => <div className="pano-yan">{children}</div>
+
+/** Tema adı: 12 harfi aşarsa iki satır (Buse, 2026-10-05), kelime kaybolmasın */
+export const TemaSatirlari = ({ ad, gecikme = 0 }: { ad: string; gecikme?: number }) => (
+  <>{panoBol(ad).map((s, i) => <Satir key={i} metin={s} en={12} gecikme={gecikme + i * 0.3} />)}</>
+)

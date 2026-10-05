@@ -23,6 +23,8 @@ const yuklemeRet = async (b: Baglam, yol: string) => {
 }
 
 export async function isle(g: Govde, b: Baglam) {
+  // Yolu olmayan ya da metin olmayan yükleme isteği izne bile gitmiyor
+  if ((g?.is === 'yukle' || g?.is === 'onayla') && typeof g.yol !== 'string') return cevap(400, { hata: 'yol_yok' })
   switch (g?.is) {
     case 'oku': {
       // Sıra korunuyor; izinsiz yola null (ekran karesiz çiziyor)

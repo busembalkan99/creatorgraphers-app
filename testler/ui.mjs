@@ -1,6 +1,6 @@
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import exifr from '../node_modules/exifr/dist/full.esm.mjs';
-import { admin, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, sifirla, bekle, rapor, depo } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
 const APP = 'http://localhost:5180/';
 const SS = '/tmp/cgapp/ss';
@@ -254,7 +254,7 @@ bekle('makine bilgisi saklandı', k1?.kamera === 'NIKON Z 6_2' && k1?.diyafram =
 bekle('çekim günü saklandı', k1?.cekim_gunu === bugun && k1?.cekim_zamani?.startsWith(`${bugun}T19:40`), JSON.stringify(k1));
 bekle('boyut korunur (büyütülmez)', k1?.genislik === 1200 && k1?.yukseklik === 800);
 if (!k1) { rapor(); process.exit(1) }
-const indir = await admin.storage.from('kareler').download(k1.dosya);
+const indir = await admin.storage.from('r2-yerel').download(k1.dosya);
 const ham = Buffer.from(await indir.data.arrayBuffer());
 const ex = await exifr.parse(ham, { gps: true }).catch(() => undefined);
 bekle('depodaki dosyada konum yok', !ex?.latitude && !ex?.GPSLatitude, JSON.stringify(ex));
@@ -275,7 +275,7 @@ await B.click('button:has-text("Değiştir")');
 await dosya('dogru');
 const k2 = (await admin.from('kareler').select('*')).data?.[0];
 bekle('değiştirme kabul: yeni dosya', k2 && k2.dosya !== k1.dosya && k2.id === k1.id);
-bekle('eski dosya depodan silindi', !!(await admin.storage.from('kareler').download(k1.dosya)).error);
+bekle('eski dosya depodan silindi', !!(await admin.storage.from('r2-yerel').download(k1.dosya)).error);
 // kaldır
 await B.click('button:has-text("Kaldır")');
 bekle('kaldırma onayı', await bekleMetin(B, 'Kareni kaldırmak istiyor musun'));
@@ -287,7 +287,7 @@ await B.locator('.ret button.btn:has-text("Kaldır")').click();
 await B.locator('button.bos').waitFor({ timeout: 8000 }).catch(() => {});
 bekle('kaldırıldı: boş kutu', (await B.locator('button.bos').count()) === 1);
 bekle('kaldırıldı: kayıt yok', ((await admin.from('kareler').select('id')).data ?? []).length === 0);
-bekle('kaldırıldı: dosya silindi', !!(await admin.storage.from('kareler').download(k2.dosya)).error);
+bekle('kaldırıldı: dosya silindi', !!(await admin.storage.from('r2-yerel').download(k2.dosya)).error);
 bekle('sayaç 0 / 2', icerir(await metin(B), '0 / 2 tema tamam'));
 // serbest temada tarihsiz
 await B.locator('.k').nth(1).click();
@@ -375,7 +375,7 @@ await admin.from('uyeler').insert({ id: ucuncu.id, ad: 'Deniz Akın', eposta: 'd
 const ev = (await admin.from('etkinlikler').select('id').single()).data;
 const sokak = (await admin.from('temalar').select('id, ad').eq('sira', 1).single()).data;
 const yol3 = `${ev.id}/${sokak.id}/${crypto.randomUUID()}.jpg`;
-await admin.storage.from('kareler').upload(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+await depo.koy(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), ucuncu.id);
 await admin.from('kareler').insert({ tema: sokak.id, sahip: ucuncu.id, dosya: yol3, genislik: 1200, yukseklik: 800, cekim_gunu: bugun,
   kamera: 'NIKON Z 6_2', objektif: '35mm f/1.8', odak: '35mm', diyafram: 'f/2.8', enstantane: '1/250', iso: '400' });
 
@@ -776,7 +776,7 @@ await A.unroute('**/rest/v1/etkinlikler*');
 {
   const t3 = (await admin.from('temalar').insert({ etkinlik: ev.id, ad: 'Gece', sira: 3, bulusmada: true }).select('id').single()).data;
   const yol4 = `${ev.id}/${t3.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol4, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol4, fs.readFileSync('/tmp/cgapp/dogru.jpg'), ucuncu.id);
   await admin.from('kareler').insert({ tema: t3.id, sahip: ucuncu.id, dosya: yol4, genislik: 1200, yukseklik: 800, cekim_gunu: bugun });
 }
 await admin.from('etkinlikler').update({
@@ -867,7 +867,7 @@ await olc(B, '39-sonuc-uye');
       ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
     await admin.from('uyeler').insert({ id: k.id, ad: `Kalabalık ${i}`, eposta: posta });
     const yol = `${ek2.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
-    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), k.id);
     const kr = (await admin.from('kareler').insert({ tema: tema.id, sahip: k.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
     await admin.from('oylar').insert({ kare: kr.id, veren: A.kimlik, puan: Math.max(1, 10 - i) });
   }
@@ -902,7 +902,7 @@ await olc(B, '39-sonuc-uye');
         ?? (await admin.auth.admin.createUser({ email: posta, password: 'test-sifre-1', email_confirm: true })).data.user;
       await admin.from('uyeler').insert({ id: k.id, ad, eposta: posta });
       const yol = `${ek3.id}/${tema3.id}/${crypto.randomUUID()}.jpg`;
-      await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+      await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), k.id);
       const kr = (await admin.from('kareler').insert({ tema: tema3.id, sahip: k.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
       await admin.from('oylar').insert({ kare: kr.id, veren: A.kimlik, puan });
     }
@@ -959,7 +959,7 @@ await olc(B, '39-sonuc-uye');
   const { data: hepsi } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const ekle = async (tema, sahip, puan) => {
     const yol = `${tema.etkinlik}/${tema.id}/${crypto.randomUUID()}.jpg`;
-    await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip);
     const kr = (await admin.from('kareler').insert({ tema: tema.id, sahip, dosya: yol, genislik: 1200, yukseklik: 800 })
       .select('id').single()).data;
     await admin.from('oylar').insert({ kare: kr.id, veren: hepsi.users.find(u => u.email === 'esit7@test.local').id, puan });

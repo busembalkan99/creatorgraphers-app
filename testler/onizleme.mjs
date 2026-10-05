@@ -1,7 +1,7 @@
 // Önizleme kopyası (karar 123, egress 1): <ad>.k.jpg tam boyla aynı klasörde. Depo kuralları önizlemeye de
 // tam boyla aynı davranmalı; en önemlisi isimsizlik: toplu çıkarılan karenin önizlemesi oylamada açılmamalı (0009).
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo, okunur } from './ortak.mjs';
 const hata = r => r.error?.message ?? '';
 await sifirla();
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya'); await A.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
@@ -15,14 +15,14 @@ const T = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', sira: 
 const jpeg = fs.readFileSync('/tmp/cgapp/dogru.jpg');
 const yukle = async K => {
   const yol = `${E}/${T.id}/${crypto.randomUUID()}.jpg`, kucuk = yol.replace(/\.jpg$/, '.k.jpg');
-  const u1 = await K.c.storage.from('kareler').upload(yol, jpeg, { contentType: 'image/jpeg' });
-  const u2 = await K.c.storage.from('kareler').upload(kucuk, jpeg, { contentType: 'image/jpeg' });
+  const u1 = await depo.koy(yol, jpeg, K.id);
+  const u2 = await depo.koy(kucuk, jpeg, K.id);
   const k = await K.c.from('kareler').insert({ tema: T.id, dosya: yol, genislik: 10, yukseklik: 10 }).select('id').single();
   return { yol, kucuk, id: k.data?.id, hata: hata(u1) || hata(u2) || hata(k) };
 };
 const kB = await yukle(B), kD = await yukle(D);
 bekle('üye önizlemeyi tam boyun yanına yükleyebiliyor', !kB.hata && !kD.hata, kB.hata || kD.hata);
-const imzali = async (K, yol) => !(await K.c.storage.from('kareler').createSignedUrl(yol, 60)).error;
+const imzali = async (K, yol) => (await okunur(K.c, [yol])).has(yol);
 bekle('yüklemede başkasının önizlemesi görünmüyor', !(await imzali(B, kD.kucuk)));
 bekle('sahibi kendi önizlemesini görüyor', await imzali(D, kD.kucuk));
 // Yoklama: D gelmedi, karesi toplu çıkarılıyor

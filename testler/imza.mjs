@@ -2,7 +2,7 @@
 // aynı kareyi yeniden indiriyordu (25 Eylül'de 39 kare ~2.300 kez). Aynı oturumda aynı dosyanın adresi yeniden kullanılmalı.
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 const APP = 'http://localhost:5180/';
 await sifirla();
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya'); await A.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
@@ -15,11 +15,11 @@ const jpeg = fs.readFileSync('/tmp/cgapp/dogru.jpg');
 const kareler = [], kareYollari = [];
 for (const [u, puan] of [[A, 8], [B, 6]]) {
   const yol = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, jpeg, { contentType: 'image/jpeg' }); kareYollari.push(yol);
+  await depo.koy(yol, jpeg, u.id); kareYollari.push(yol);
   kareler.push((await admin.from('kareler').insert({ tema: t.id, sahip: u.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data.id);
 }
 // A'nın karesinin önizlemesi var, B'ninki yok (önizlemeden önce yüklenmiş eski kare gibi)
-await admin.storage.from('kareler').upload(kareYollari[0].replace(/\.jpg$/, '.k.jpg'), jpeg, { contentType: 'image/jpeg' });
+await depo.koy(kareYollari[0].replace(/\.jpg$/, '.k.jpg'), jpeg, A.id);
 // Wrapped kendiliğinden açılmasın (karar 39), sekmeleri kapatıyor
 await admin.from('wrapped_izlendi').insert([{ uye: A.id, etkinlik: e.id }]);
 await admin.from('oylar').insert([{ kare: kareler[0], veren: B.id, puan: 8 }, { kare: kareler[1], veren: A.id, puan: 6 }]);
@@ -60,7 +60,7 @@ try {
   bekle('çıkışta imza önbelleği boşalıyor', bos === 0, String(bos));
   // Aynı anda iki ekran aynı kareyi isterse tek imza isteği gidiyor (kapsam incelemesi)
   const yolD = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yolD, jpeg, { contentType: 'image/jpeg' });
+  await depo.koy(yolD, jpeg, A.id);
   let esZaman = 0; const say = r => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/sign/')) esZaman++; };
   p.on('request', say);
   await p.evaluate(async y => { const m = await import('/src/lib/imza.ts'); await Promise.all([m.imzala([y]), m.imzala([y]), m.imzala([y])]); }, yolD);
@@ -70,8 +70,8 @@ try {
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
   // Tam boy önbellekteyken önizleme isteği geçici hata verirse kare "önizlemesiz" sayılmıyor (kapsam incelemesi)
   const yolC = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yolC, jpeg, { contentType: 'image/jpeg' });
-  await admin.storage.from('kareler').upload(yolC.replace(/\.jpg$/, '.k.jpg'), jpeg, { contentType: 'image/jpeg' });
+  await depo.koy(yolC, jpeg, A.id);
+  await depo.koy(yolC.replace(/\.jpg$/, '.k.jpg'), jpeg, A.id);
   await p.evaluate(async y => { await (await import('/src/lib/imza.ts')).imzala([y]); }, yolC);   // yalnız tam boy önbellekte
   await p.route('**/storage/v1/object/sign/**', r => (r.request().postData() ?? '').includes('.k.jpg')
     ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }) : r.continue());

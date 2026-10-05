@@ -2,7 +2,7 @@
 // kartı ve "Sıradaki etkinlik" kartının boş hâli. Kendi verisini kuruyor.
 import fs from 'node:fs';
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
 const APP = 'http://localhost:5180/';
 await sifirla();
@@ -29,7 +29,7 @@ async function etkinlik(bitisSaat, temalar) {
 }
 async function kare(e, tema, sahip, puan) {
   const yol = `${e.id}/${tema.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip.id);
   const k = (await admin.from('kareler').insert({ tema: tema.id, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
   await admin.from('oylar').insert({ kare: k.id, veren: K.Z.id, puan });
   return k;

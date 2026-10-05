@@ -1,7 +1,7 @@
 // Yoklama ve diskalifiye (karar 103): sunucu kuralları, atlatma denemeleriyle.
 // Aşamalar saatler elle kaydırılarak geçiliyor.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo, okunur } from './ortak.mjs';
 const hata = r => r.error?.message ?? '';
 await sifirla();
 
@@ -36,7 +36,7 @@ const [SOKAK, PORTRE] = temaEkle.data.sort((x, y) => x.sira - y.sira);
 
 const yukle = async (K, tema) => {
   const yol = `${E}/${tema.id}/${crypto.randomUUID()}.jpg`;
-  const u = await K.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const u = await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   if (u.error) return { error: u.error };
   return K.c.from('kareler').insert({ tema: tema.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
 };
@@ -65,7 +65,7 @@ bekle('üye başkasının yoklama satırını okuyamıyor', ((await D.c.from('yo
 // Yoklamada olmayan hiçbir temaya yükleyemiyor, serbest temaya da
 bekle('gelmeyen serbest temaya yükleyemiyor', hata(await yukle(D, PORTRE)).includes('yoklamada_yok'));
 const yolYeni = `${E}/${SOKAK.id}/${crypto.randomUUID()}.jpg`;
-await D.c.storage.from('kareler').upload(yolYeni, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+await depo.koy(yolYeni, fs.readFileSync('/tmp/cgapp/dogru.jpg'), D.id);
 bekle('gelmeyen eski karesini değiştiremiyor', hata(await D.c.from('kareler').update({ dosya: yolYeni }).eq('id', kD.data.id)).includes('yoklamada_yok'));
 const kB = await yukle(B, PORTRE);
 bekle('gelen serbest temaya yükleyebiliyor', !kB.error, hata(kB));
@@ -107,7 +107,7 @@ const cikO = ((await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []
 bekle('toplu çıkarılan oylamada listede yok, kimliği de', cikO === undefined, JSON.stringify(cikO));
 bekle('toplu çıkarılanların yalnız sayısı var', (await A.c.rpc('toplu_ozeti', { p_etkinlik: E })).data == 1);
 bekle('üye toplu sayısını göremiyor', (await B.c.rpc('toplu_ozeti', { p_etkinlik: E })).data == 0);
-bekle('yönetici toplu çıkarılanın dosyasını oylamada imzalayamıyor', !!(await A.c.storage.from('kareler').createSignedUrl(yolKD, 60)).error);
+bekle('yönetici toplu çıkarılanın dosyasını oylamada imzalayamıyor', !(await okunur(A.c, [yolKD])).has(yolKD));
 bekle('toplu çıkarılan oylamada geri alınamıyor (akışa dönerse sahibi belli olur)',
   hata(await A.c.rpc('kare_geri_al', { p_kare: kD.data.id })).includes('toplu_geri')
   && ((await admin.from('diskalifiye').select('kare').eq('kare', kD.data.id)).data ?? []).length === 1);
@@ -154,7 +154,7 @@ bekle('yönetici sonuçta çıkarılanları görüyor, en sonda', sA.filter(x =>
 bekle('yoklama sonuçtan sonra değişmiyor', hata(await A.c.rpc('yoklama_kaydet', { p_etkinlik: E, p_gelenler: [A.id] })).includes('oylama_basladi'));
 const cikS = ((await A.c.rpc('cikarilan_kareler', { p_etkinlik: E })).data ?? []).find(x => x.id === kD.data.id);
 bekle('sonuçta toplu çıkarılan listede, resmiyle', !!cikS?.dosya, JSON.stringify(cikS));
-bekle('sonuçta toplu çıkarılanın dosyası yöneticiye imzalanıyor', !(await A.c.storage.from('kareler').createSignedUrl(yolKD, 60)).error);
+bekle('sonuçta toplu çıkarılanın dosyası yöneticiye imzalanıyor', (await okunur(A.c, [yolKD])).has(yolKD));
 
 // Sonuç açıldıktan sonra da çıkarılır; sıralama ve profil yeniden hesaplanır
 const profilA = async () => ((await B.c.rpc('profil_kareleri', { p_uye: A.id })).data ?? []).map(x => x.id);
@@ -173,13 +173,12 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
   const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
   const T2 = (await admin.from('temalar').insert({ etkinlik: E2, ad: 'Işık', sira: 1, bulusmada: true }).select('id').single()).data;
   const yol2 = `${E2}/${T2.id}/${crypto.randomUUID()}.jpg`;
-  await D.c.storage.from('kareler').upload(yol2, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol2, fs.readFileSync('/tmp/cgapp/dogru.jpg'), D.id);
   const k2 = (await D.c.from('kareler').insert({ tema: T2.id, dosya: yol2, genislik: 10, yukseklik: 10, cekim_gunu: bugun }).select('id').single()).data;
-  bekle('yönetici yüklemede çıkarmadan önce başkasının dosyasını göremiyor', !!(await A.c.storage.from('kareler').createSignedUrl(yol2, 60)).error);
+  bekle('yönetici yüklemede çıkarmadan önce başkasının dosyasını göremiyor', !(await okunur(A.c, [yol2])).has(yol2));
   await A.c.rpc('kare_cikar', { p_kare: k2.id, p_neden: 'Deneme' });
-  const imza = await A.c.storage.from('kareler').createSignedUrl(yol2, 60);
-  bekle('yönetici yüklemede çıkarılan karenin resmini görüyor', !imza.error, JSON.stringify(imza.error));
-  bekle('başka üye çıkarılan karenin dosyasını göremiyor', !!(await B.c.storage.from('kareler').createSignedUrl(yol2, 60)).error);
+  bekle('yönetici yüklemede çıkarılan karenin resmini görüyor', (await okunur(A.c, [yol2])).has(yol2));
+  bekle('başka üye çıkarılan karenin dosyasını göremiyor', !(await okunur(B.c, [yol2])).has(yol2));
   const ip = await A.c.rpc('etkinlik_iptal', { p_etkinlik: E2 });
   bekle('çıkarılan kare varken etkinlik iptal edilebiliyor', !ip.error, hata(ip));
   bekle('iptalde kareler silindi', ((await admin.from('kareler').select('id').eq('id', k2.id)).data ?? []).length === 0);
@@ -192,7 +191,7 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
   const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
   const T3 = (await admin.from('temalar').insert({ etkinlik: E3, ad: 'Gölge', sira: 1, bulusmada: false }).select('id').single()).data;
   const yol3 = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
-  await B.c.storage.from('kareler').upload(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol3, fs.readFileSync('/tmp/cgapp/dogru.jpg'), B.id);
   const k3 = (await B.c.from('kareler').insert({ tema: T3.id, dosya: yol3, genislik: 10, yukseklik: 10 }).select('id').single()).data;
   await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, D.id] });   // Selin hariç
   await A.c.rpc('gelmeyenleri_cikar', { p_etkinlik: E3 });
@@ -213,14 +212,14 @@ bekle('çıkarılan kare müdavim katılımında sayılmıyor', !mud.some(x => x
   const ilkZaman = (await admin.from('etkinlikler').select('yoklama_at').eq('id', E3).single()).data.yoklama_at;
   await new Promise(r => setTimeout(r, 1100));
   const yol4 = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
-  await D.c.storage.from('kareler').upload(yol4, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol4, fs.readFileSync('/tmp/cgapp/dogru.jpg'), D.id);
   bekle('kontrol: gelen yoklamadan sonra yüklüyor', !(await D.c.from('kareler').insert({ tema: T3.id, dosya: yol4, genislik: 10, yukseklik: 10 })).error);
   await A.c.rpc('yoklama_kaydet', { p_etkinlik: E3, p_gelenler: [A.id, B.id] });   // Deniz hariç
   bekle('saldırı 4: yoklamadan sonraki yükleme gelmeyen özetinde sayılmıyor', !((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E3 })).data?.[0]?.kare > 0),
     JSON.stringify((await A.c.rpc('gelmeyen_ozeti', { p_etkinlik: E3 })).data));
   bekle('saldırı 4: yoklama zamanı ilk kayıtta kalıyor', (await admin.from('etkinlikler').select('yoklama_at').eq('id', E3).single()).data.yoklama_at === ilkZaman);
   const yol5 = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
-  await A.c.storage.from('kareler').upload(yol5, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol5, fs.readFileSync('/tmp/cgapp/dogru.jpg'), A.id);
   const k5 = await A.c.from('kareler').insert({ tema: T3.id, dosya: yol5, genislik: 10, yukseklik: 10, yukleme_at: '2020-01-01T00:00:00Z' }).select('id, yukleme_at').single();
   bekle('yükleme saatini üye yazamıyor', !k5.error && new Date(k5.data.yukleme_at).getFullYear() >= 2026, JSON.stringify(k5.data ?? k5.error));
   await A.c.from('kareler').update({ yukleme_at: '2020-01-01T00:00:00Z' }).eq('id', k5.data.id);

@@ -91,7 +91,7 @@ try {
   await p.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {}); await p.waitForTimeout(1000);
   const k = (await admin.from('kareler').select('dosya, genislik, yukseklik').eq('tema', tema.id).eq('sahip', A.id).maybeSingle()).data;
   bekle('eski Safari: dikey kare dikey boyutla kaydedildi (800x1200)', k?.genislik === 800 && k?.yukseklik === 1200, JSON.stringify(k));
-  const dosya = k && Buffer.from(await (await admin.storage.from('kareler').download(k.dosya)).data.arrayBuffer()).toString('base64');
+  const dosya = k && Buffer.from(await (await admin.storage.from('r2-yerel').download(k.dosya)).data.arrayBuffer()).toString('base64');
   const icerik = dosya && await pb.evaluate(async s => {
     const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(s), c => c.charCodeAt(0))], { type: 'image/jpeg' }));
     const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; c.getContext('2d').drawImage(bmp, 0, 0);
@@ -128,7 +128,7 @@ try {
   await p2.locator('.yuk').waitFor({ state: 'detached', timeout: 15000 }).catch(() => {}); await p2.waitForTimeout(1000);
   const k2 = (await admin.from('kareler').select('dosya, genislik, yukseklik').eq('tema', tema.id).eq('sahip', A.id).maybeSingle()).data;
   bekle('ikinci taklit: dikey boyutla kaydedildi (800x1200)', k2?.genislik === 800 && k2?.yukseklik === 1200, JSON.stringify(k2));
-  const dosya2 = k2 && Buffer.from(await (await admin.storage.from('kareler').download(k2.dosya)).data.arrayBuffer()).toString('base64');
+  const dosya2 = k2 && Buffer.from(await (await admin.storage.from('r2-yerel').download(k2.dosya)).data.arrayBuffer()).toString('base64');
   const icerik2 = dosya2 && await pb.evaluate(async s => {
     const bmp = await createImageBitmap(new Blob([Uint8Array.from(atob(s), c => c.charCodeAt(0))], { type: 'image/jpeg' }));
     const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; c.getContext('2d').drawImage(bmp, 0, 0);

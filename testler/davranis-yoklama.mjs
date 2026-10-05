@@ -2,7 +2,7 @@
 // Her adımda iki yarı ölçülüyor: ekranın söylediği ve veritabanında olan.
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
 
 const APP = 'http://localhost:5180/';
@@ -29,7 +29,7 @@ const tm = (await admin.from('temalar').insert([
 const [SOKAK] = tm;
 // Deniz yoklamadan önce yüklüyor (sonra yoklamada adı olmayacak)
 const yolD = `${E}/${SOKAK.id}/${crypto.randomUUID()}.jpg`;
-await kD.c.storage.from('kareler').upload(yolD, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+await depo.koy(yolD, fs.readFileSync('/tmp/cgapp/dogru.jpg'), kD.id);
 const kareD = (await kD.c.from('kareler').insert({ tema: SOKAK.id, dosya: yolD, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data.id;
 
 const b = await chromium.launch();

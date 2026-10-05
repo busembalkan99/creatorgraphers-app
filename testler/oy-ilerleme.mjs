@@ -1,7 +1,7 @@
 // Oylama ilerlemesi (karar 105): yönetici kimin oy verdiğini görüyor, kimse başkasının
 // oyunu ya da kare sahipliğini öğrenemiyor. Aşamalar saatler elle kaydırılarak geçiliyor.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 const hata = r => r.error?.message ?? '';
 await sifirla();
 
@@ -21,7 +21,7 @@ const SOKAK = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', si
 
 const yukle = async (K) => {
   const yol = `${E}/${SOKAK.id}/${crypto.randomUUID()}.jpg`;
-  const u = await K.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const u = await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   if (u.error) return { error: u.error };
   return K.c.from('kareler').insert({ tema: SOKAK.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
 };
@@ -149,7 +149,7 @@ bekle('sonuçta üye hâlâ göremiyor', Object.keys(await durumlar(B)).length =
   const E3 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
   const T3 = (await admin.from('temalar').insert({ etkinlik: E3, ad: 'Iz', sira: 1, bulusmada: true }).select('id').single()).data;
   const yol = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
-  await B.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), B.id);
   const k3 = await B.c.from('kareler').insert({ tema: T3.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
   bekle('yüklemede kare çıkarılıyor', !(await A.c.rpc('kare_cikar', { p_kare: k3.data.id, p_neden: 'yükleme sırasında' })).error);
   // Yükleme sürerken geri alma serbest: ilerleme listesi o aşamada zaten kapalı
@@ -183,7 +183,7 @@ bekle('kulüpten çıkarılan listede görünmüyor', !('Deniz Akın' in d4) && 
   const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-1), yukleme_biter: saat(24), oylama_biter: saat(48), kuran: A.id }).select('id').single()).data.id;
   const T2 = (await admin.from('temalar').insert({ etkinlik: E2, ad: 'Gece', sira: 1, bulusmada: true }).select('id').single()).data;
   const yol = `${E2}/${T2.id}/${crypto.randomUUID()}.jpg`;
-  await B.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), B.id);
   const tek = await B.c.from('kareler').insert({ tema: T2.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
   bekle('tek kare yüklendi (kontrol)', !tek.error, hata(tek));
   await admin.from('etkinlikler').update({ yukleme_biter: saat(-0.5) }).eq('id', E2);

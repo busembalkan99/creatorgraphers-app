@@ -2,7 +2,7 @@
 // Aşamalar saatler elle kaydırılarak geçiliyor. Rastgelelik yüzünden sayılar değil,
 // her rastgele sonuçta tutması gereken kurallar ölçülüyor.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor, istemci } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, istemci, depo } from './ortak.mjs';
 const hata = r => r.error?.message ?? '';
 await sifirla();
 
@@ -28,7 +28,7 @@ const [SOKAK, PORTRE] = (await admin.from('temalar').insert([
 
 const yukle = async (K, tema) => {
   const yol = `${E}/${tema.id}/${crypto.randomUUID()}.jpg`;
-  const u = await K.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const u = await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   if (u.error) return { error: u.error };
   return K.c.from('kareler').insert({ tema: tema.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
 };
@@ -191,7 +191,7 @@ bekle('tanınma alt sınırı ve toplam doğru, herkes görüyor', taninmaDogru,
   const sahip2 = {};
   const yukle2 = async (u, tema) => {
     const yol = `${E2}/${tema.id}/${crypto.randomUUID()}.jpg`;
-    await u.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+    await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), u.id);
     const r = await u.c.from('kareler').insert({ tema: tema.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
     if (!r.error) sahip2[r.data.id] = u.id;
     return r.data?.id;
@@ -269,7 +269,7 @@ bekle('tanınma alt sınırı ve toplam doğru, herkes görüyor', taninmaDogru,
     const kareler = [];
     for (const u of kisiler) {
       const yol = `${E3}/${T3.id}/${crypto.randomUUID()}.jpg`;
-      await u.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+      await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), u.id);
       kareler.push((await u.c.from('kareler').insert({ tema: T3.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data.id);
     }
     return { E3, kareler };

@@ -1,7 +1,7 @@
 // Sıralama ve Profil sunucu kuralları (kararlar 52, 53, 54, 55, 56, 57, 58, 98).
 // Temiz veritabanı ister: sezon sayıları bütün etkinliklere bakıyor.
 import fs from 'node:fs';
-import { admin, istemci, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, istemci, kullanici, sifirla, bekle, rapor, depo, okunur } from './ortak.mjs';
 await sifirla();
 
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya');
@@ -44,7 +44,7 @@ async function etkinlik(gunSayisi, temalar) {
 async function kare(etk, temaIndeks, sahip, puan, exif = {}) {
   const tema = etk.temalar[temaIndeks].id;
   const yol = `${etk.id}/${tema}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip.id);
   const k = (await admin.from('kareler').insert({
     tema, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800, ...exif,
   }).select('id').single()).data;
@@ -114,9 +114,8 @@ await kare(E1, 1, kisiler.ece, 5);
   {
     // Ekran bu adresi kullanıyor: depo kuralı ilk klasörden etkinliğin aşamasına bakıyor,
     // yani yalnız dosya adının dönmesi karenin görüneceği anlamına gelmiyor.
-    const im = await A.c.storage.from('kareler').createSignedUrls(s.map(x => x.dosya), 60);
-    bekle('sıralamadaki karelerin imzalı adresi alınıyor',
-      !im.error && (im.data ?? []).every(x => !!x.signedUrl), JSON.stringify(im.data?.[0] ?? im.error));
+    const iz = await okunur(A.c, s.map(x => x.dosya));
+    bekle('sıralamadaki karelerin imzalı adresi alınıyor', s.every(x => iz.has(x.dosya)), JSON.stringify([...iz]));
   }
   bekle('kare ve etkinlik sayıları doğru',
     Number(s.find(x => x.ad === 'Ayşe Kaya').kare_sayisi) === 4 && Number(s.find(x => x.ad === 'Ayşe Kaya').etkinlik_sayisi) === 3,
@@ -181,9 +180,8 @@ bekle('yabancı sıralamayı göremez', ((await istemci().rpc('siralama')).data 
     JSON.stringify(k.map(x => x.tema_ad)));
   bekle('kendi puanların görünüyor', k.every(x => x.ortalama !== null), JSON.stringify(k.map(x => x.ortalama)));
   {
-    const im = await A.c.storage.from('kareler').createSignedUrls(k.map(x => x.dosya), 60);
-    bekle('profildeki karelerin imzalı adresi alınıyor',
-      !im.error && (im.data ?? []).every(x => !!x.signedUrl), JSON.stringify(im.data?.[0] ?? im.error));
+    const iz = await okunur(A.c, k.map(x => x.dosya));
+    bekle('profildeki karelerin imzalı adresi alınıyor', k.every(x => iz.has(x.dosya)), JSON.stringify([...iz]));
   }
   // Su teması dört kareli, yani iki sıralı: Barış'ın oradaki karesi herkese açık,
   // aynı kişinin iki kareli temalardaki kareleri gizli. İkisi aynı profilde duruyor.

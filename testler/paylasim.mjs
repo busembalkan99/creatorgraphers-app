@@ -1,6 +1,6 @@
 // Paylaşım kartının kontakt şeridi (karar 104, karar 41): sunucu kuralları.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 await sifirla();
 
 const KISI = [
@@ -22,7 +22,7 @@ const T = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', sira: 
 const sahip = {};
 for (const u of U.slice(1)) {
   const yol = `${E}/${T}/${crypto.randomUUID()}.jpg`;
-  await u.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), u.id);
   const k = (await u.c.from('kareler').insert({ tema: T, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id, dosya').single()).data;
   sahip[k.dosya] = { uye: u.id, kare: k.id };
 }

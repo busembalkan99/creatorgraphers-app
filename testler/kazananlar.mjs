@@ -3,7 +3,7 @@
 // Wrapped'i henüz izlenmemiş yeni bir etkinlik (Işık).
 import fs from 'node:fs';
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 const APP = 'http://localhost:5180/';
 await sifirla();
 
@@ -24,12 +24,12 @@ async function etkinlik(bitisSaat, temalar) {
   const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: gun(bitisSaat - 72), yukleme_baslar: saat(bitisSaat - 72),
     yukleme_biter: saat(bitisSaat - 48), oylama_biter: saat(bitisSaat), kuran: A.id }).select('id').single()).data;
   const t = [];
-  for (const [i, ad] of temalar.entries()) t.push((await admin.from('temalar').insert({ etkinlik: e.id, ad, sira: i + 1, bulusmada: false }).select('id').single()).data);
+  for (const [i, ad] of temalar.entries()) t.push((await admin.from('temalar').insert({ etkinlik: e.id, ad, sira: i + 1, bulusmada: false }).select('id, etkinlik').single()).data);
   return { id: e.id, t };
 }
 async function kare(tema, sahip, puan) {
-  const yol = `${tema.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  const yol = `${tema.etkinlik}/${tema.id}/${crypto.randomUUID()}.jpg`;
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip.id);
   const k = (await admin.from('kareler').insert({ tema: tema.id, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
   await admin.from('oylar').insert({ kare: k.id, veren: K.Z.id, puan });
   return k;

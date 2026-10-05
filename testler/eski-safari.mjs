@@ -60,7 +60,7 @@ try {
   // Dosya adları tekil: tarayıcı bir yıl önbellekte tutabilir (egress, 2026-09-30)
   const d3 = (await admin.from('kareler').select('dosya').eq('tema', temalar[2].id).eq('sahip', A.id).single()).data?.dosya ?? '';
   const klasor = d3.split('/').slice(0, -1).join('/'), ad = d3.split('/').pop();
-  const meta = ((await admin.storage.from('kareler').list(klasor, { search: ad })).data ?? [])[0]?.metadata;
+  const meta = ((await admin.storage.from('r2-yerel').list(klasor, { search: ad })).data ?? [])[0]?.metadata;
   bekle('yüklenen kare bir yıl önbellekte tutulabiliyor', meta?.cacheControl === 'max-age=31536000', JSON.stringify(meta));
 
   // Hiçbir yolla çözülemeyen dosya: yine "Bu dosya açılamadı", sayfa kırılmıyor, kare eklenmiyor

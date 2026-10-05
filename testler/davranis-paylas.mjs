@@ -2,7 +2,7 @@
 // Ekranın söylediği, indirilen PNG'nin kendisi ve veritabanı birlikte ölçülüyor.
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 
 // Karar 126: etkinlikler eski sete sabit (yeni setler davranis-wrapped-setler.mjs'te)
 const APP = 'http://localhost:5180/';
@@ -31,7 +31,7 @@ const T = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', sira: 
 const kare = [];
 for (const u of U.slice(1, 7)) {
   const yol = `${E}/${T}/${crypto.randomUUID()}.jpg`;
-  await u.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), u.id);
   kare.push((await u.c.from('kareler').insert({ tema: T, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data.id);
 }
 await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).eq('id', E);

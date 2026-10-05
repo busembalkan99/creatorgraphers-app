@@ -2,7 +2,7 @@
 // Kurucu ekranda baştan sona oynuyor; her adımda ekranın söylediği ve veritabanındaki ölçülüyor.
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
 
 const APP = 'http://localhost:5180/';
@@ -34,7 +34,7 @@ const [SOKAK, DOKU] = (await admin.from('temalar').insert([
 const sahibi = {};
 const yukle = async (K, tema) => {
   const yol = `${E}/${tema.id}/${crypto.randomUUID()}.jpg`;
-  await K.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   const r = await K.c.from('kareler').insert({ tema: tema.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single();
   if (!r.error) sahibi[r.data.id] = K.id;
 };

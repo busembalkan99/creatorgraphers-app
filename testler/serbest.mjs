@@ -1,7 +1,7 @@
 // Serbest etkinlik ve serbest temanın sezon ağırlığı (karar 116): sunucu kuralları.
 // Temiz veritabanı ister: sezon sayıları bütün etkinliklere bakıyor.
 import fs from 'node:fs';
-import { admin, istemci, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, istemci, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 await sifirla();
 const hata = r => r.error?.message ?? '';
 
@@ -31,7 +31,7 @@ async function etkinlik(gunSayisi, temalar, serbest = false) {
 async function kare(etk, i, sahip, puan) {
   const tema = etk.temalar[i].id;
   const yol = `${etk.id}/${tema}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip.id);
   const k = (await admin.from('kareler').insert({ tema, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
   await admin.from('oylar').insert({ kare: k.id, veren: K.z.id, puan });
   return k;

@@ -1,6 +1,6 @@
 // Wrapped (karar 39, spec 2026-09-20 bölüm 7-8): sunucu kuralları.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 await sifirla();
 
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya');
@@ -18,7 +18,7 @@ const E = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme
 const T = (await admin.from('temalar').insert({ etkinlik: E, ad: 'Sokak', sira: 1, bulusmada: true }).select('id').single()).data;
 const yukle = async K => {
   const yol = `${E}/${T.id}/${crypto.randomUUID()}.jpg`;
-  await K.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   return (await K.c.from('kareler').insert({ tema: T.id, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data.id;
 };
 const kA = await yukle(A), kB = await yukle(B);   // Deniz kare vermiyor

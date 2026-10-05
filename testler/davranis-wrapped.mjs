@@ -2,7 +2,7 @@
 // kullanıcısıyla ekranda; her adımda ekranın söylediği ve veritabanındaki ölçülüyor.
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 
 // Karar 126: etkinlikler eski sete sabit (yeni setler davranis-wrapped-setler.mjs'te)
 const APP = 'http://localhost:5180/';
@@ -29,7 +29,7 @@ const bugun = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbu
 const saat = h => new Date(Date.now() + h * 3600000).toISOString();
 const yukle = async (K, E, tema) => {
   const yol = `${E}/${tema}/${crypto.randomUUID()}.jpg`;
-  await K.c.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   return (await K.c.from('kareler').insert({ tema, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data?.id;
 };
 

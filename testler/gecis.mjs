@@ -2,7 +2,7 @@
 // sekmeler önceden yüklü, sonradan gelen yumuşak beliriyor. Ağ bilerek yavaşlatılıyor.
 import fs from 'node:fs';
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 const APP = 'http://localhost:5180/';
 await sifirla();
 
@@ -23,7 +23,7 @@ for (const [bitis, temalar] of [[-480, ['Su']], [-2, ['Sokak', 'Portre']]]) {
     const t = (await admin.from('temalar').insert({ etkinlik: e.id, ad, sira: i + 1, bulusmada: false }).select('id').single()).data;
     for (const [sahip, puan] of [[K.A, 8 - i], [K.B, 6 + i]]) {
       const yol = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
-      await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+      await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip.id);
       const k = (await admin.from('kareler').insert({ tema: t.id, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
       await admin.from('oylar').insert({ kare: k.id, veren: K.Z.id, puan });
     }

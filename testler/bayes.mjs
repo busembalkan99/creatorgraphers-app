@@ -3,7 +3,7 @@
 //   puan      = (3 · 50 + Σ(w · yer puanı)) / (3 + Σw), tam sayı (Bayes, karar 124; çekim artık sabit 50'ye)
 // Temiz veritabanı ister: her bölüm baştan kuruyor.
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 
 const gun = n => new Date(Date.now() - n * 86400000).toISOString();
 const tarih = n => new Date(Date.now() - n * 86400000).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
@@ -44,7 +44,7 @@ async function etkinlik(gunSayisi, temalar, serbest = false) {
 async function kare(etk, i, sahip, puanlar) {
   const tema = etk.temalar[i].id;
   const yol = `${etk.id}/${tema}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), sahip.id);
   const k = (await admin.from('kareler').insert({ tema, sahip: sahip.id, dosya: yol, genislik: 1200, yukseklik: 800 }).select('id').single()).data;
   for (const [j, puan] of [].concat(puanlar).entries())
     await admin.from('oylar').insert({ kare: k.id, veren: oyVerenler[j].id, puan });

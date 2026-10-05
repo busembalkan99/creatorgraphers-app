@@ -36,7 +36,45 @@ export async function sifirla() {
       if (f?.length) await admin.storage.from('kareler').remove(f.map(x => `${e.name}/${tt.name}/${x.name}`));
     }
   }
+  const { data: o2 } = await admin.storage.from(R2).list('', { limit: 1000 });
+  for (const e of o2 ?? []) {
+    const { data: t } = await admin.storage.from(R2).list(e.name, { limit: 1000 });
+    for (const tt of t ?? []) {
+      const { data: f } = await admin.storage.from(R2).list(`${e.name}/${tt.name}`, { limit: 1000 });
+      if (f?.length) await admin.storage.from(R2).remove(f.map(x => `${e.name}/${tt.name}/${x.name}`));
+    }
+  }
 }
+// Kareler R2'de (karar 127). Yerelde "R2" yerel Supabase'in r2-yerel kovası (scripts/yerel-r2.sh); testler
+// dosyayı servis rolüyle doğrudan oraya koyuyor ve sahipliğini dosyalar'a yazıyor (kare-adres'in onayla'sının yaptığı).
+const R2 = 'r2-yerel';
+export const depo = {
+  async koy(yol, govde, sahip) {
+    const r = await admin.storage.from(R2).upload(yol, govde, { contentType: 'image/jpeg', upsert: true });
+    if (r.error) throw r.error;
+    const d = await admin.from('dosyalar').upsert({ yol, sahip, etkinlik: yol.split('/')[0], boyut: govde.length });
+    if (d.error) throw d.error;
+    return { data: { path: yol }, error: null }; // Supabase upload cevabının biçimi: çağıranlar .error'a bakıyor
+  },
+  async al(yol) {
+    const { data } = await admin.storage.from(R2).download(yol);
+    return data ? Buffer.from(await data.arrayBuffer()) : null;
+  },
+  async var(yol) { return !!(await depo.al(yol)); },
+  async listele(klasor) {
+    const { data } = await admin.storage.from(R2).list(klasor, { limit: 1000 });
+    return (data ?? []).filter(x => x.id).map(x => x.name);
+  },
+  async sil(yollar) {
+    await admin.storage.from(R2).remove(yollar);
+    await admin.from('dosyalar').delete().in('yol', yollar);
+  },
+};
+
+// Okuma izni (kare-adres'in oku'sunun sorduğu soru): c'nin okuyabildiği yollar, kümesi
+export const okunur = async (c, yollar) =>
+  new Set(((await c.rpc('dosya_izni', { p_yollar: yollar, p_islem: 'oku' })).data ?? []));
+
 export const sonuclar = [];
 export function bekle(ad, kosul, ayrinti = '') {
   sonuclar.push({ ad, ok: !!kosul, ayrinti: kosul ? '' : ayrinti });

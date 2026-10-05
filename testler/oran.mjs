@@ -2,7 +2,7 @@
 // ayrı uyguluyordu. Her ekrandaki her kare beş boyutta, kırpmasız/sığdırmasız çizilenin oranı dosyanınkiyle aynı olmalı.
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import fs from 'node:fs';
-import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
+import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 const APP = 'http://localhost:5180/';
 await sifirla();
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya'); await A.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
@@ -15,7 +15,7 @@ const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme
 const t = (await admin.from('temalar').insert({ etkinlik: e.id, ad: 'Serbest', sira: 1, bulusmada: false }).select('id').single()).data;
 for (const [u, f, g, y] of [[B, 'dikey', 800, 1200], [A, 'dogru', 1200, 800]]) {
   const yol = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
-  await admin.storage.from('kareler').upload(yol, fs.readFileSync(`/tmp/cgapp/${f}.jpg`), { contentType: 'image/jpeg' });
+  await depo.koy(yol, fs.readFileSync(`/tmp/cgapp/${f}.jpg`), u.id);
   await admin.from('kareler').insert({ tema: t.id, sahip: u.id, dosya: yol, genislik: g, yukseklik: y });
 }
 const b = await webkit.launch();

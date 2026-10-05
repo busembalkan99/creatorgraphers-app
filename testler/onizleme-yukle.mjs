@@ -23,7 +23,7 @@ const boyut = buf => {
 };
 const dosyaVar = async yol => {
   const klasor = yol.split('/').slice(0, -1).join('/'), ad = yol.split('/').pop();
-  return ((await admin.storage.from('kareler').list(klasor, { search: ad })).data ?? []).find(x => x.name === ad) ?? null;
+  return ((await admin.storage.from('r2-yerel').list(klasor, { search: ad })).data ?? []).find(x => x.name === ad) ?? null;
 };
 const kareYolu = async () => (await admin.from('kareler').select('dosya').eq('tema', tema.id).eq('sahip', A.id).maybeSingle()).data?.dosya ?? null;
 const onizleme = y => y.replace(/\.jpg$/, '.k.jpg');
@@ -43,7 +43,7 @@ try {
   bekle('kare yüklendi (kontrol)', !!y1 && !!(await dosyaVar(y1)), String(y1));
   const k1 = y1 && await dosyaVar(onizleme(y1));
   bekle('önizleme tam boyun yanında', !!k1, JSON.stringify(k1));
-  const indir = y1 && (await admin.storage.from('kareler').download(onizleme(y1))).data;
+  const indir = y1 && (await admin.storage.from('r2-yerel').download(onizleme(y1))).data;
   const ham = indir && Buffer.from(await indir.arrayBuffer());
   const bo = ham && boyut(ham);
   bekle('önizleme uzun kenarı 720 px, yön korunmuş (dikey)', bo && Math.max(bo.g, bo.y) === 720 && bo.y > bo.g, JSON.stringify(bo));

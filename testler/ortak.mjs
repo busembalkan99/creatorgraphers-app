@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { createClient } from '../node_modules/@supabase/supabase-js/dist/index.mjs';
 const env = Object.fromEntries(
@@ -45,4 +46,11 @@ export function rapor() {
   const k = sonuclar.filter(s => !s.ok).length;
   console.log(`\n${sonuclar.length - k}/${sonuclar.length} geçti`);
   process.exitCode = k ? 1 : 0;
+}
+
+/** Yerel R2 ayarları (scripts/yerel-r2.sh üretiyor; karar 127). Değerler yerel CLI varsayılanları. */
+export function yerelS3() {
+  const yol = new URL('../supabase/functions/.env.yerel', import.meta.url).pathname;
+  const e = Object.fromEntries(fs.readFileSync(yol, 'utf8').split('\n').filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')), l.slice(l.indexOf('=') + 1)]));
+  return { adres: e.R2_ADRES, kova: e.R2_KOVA, bolge: e.R2_BOLGE, anahtar: e.R2_ACCESS_KEY_ID, gizli: e.R2_SECRET_ACCESS_KEY };
 }

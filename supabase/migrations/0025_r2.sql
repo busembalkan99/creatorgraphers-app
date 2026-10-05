@@ -59,6 +59,15 @@ revoke execute on function public.dosya_izni(text[], text), public.dosya_kaydet(
 grant execute on function public.dosya_izni(text[], text), public.dosya_kaydet(text, int), public.dosya_kaydi_sil(text[]) to authenticated;
 revoke execute on function gizli.yol_etkinligi(text) from public, anon, authenticated;
 
+-- Taşıma (kare-adres 'tasi') Supabase Storage'daki kareleri sahipleriyle okuyor; storage şeması REST'e açık
+-- değil. Yalnız servis rolü çağırabiliyor (fonksiyon önce yöneticiyi doğruluyor).
+create or replace function public.depo_nesneleri() returns table (name text, owner_id text)
+language sql stable security definer set search_path = public as $$
+  select o.name, o.owner_id from storage.objects o where o.bucket_id = 'kareler' order by o.name
+$$;
+revoke execute on function public.depo_nesneleri() from public, anon, authenticated;
+grant execute on function public.depo_nesneleri() to service_role;
+
 -- 0009'daki kare_kontrol, yalnız "dosya var ve senin" koşulu dosyalar'a bakıyor (geçişte storage.objects de)
 create or replace function public.kare_kontrol()
 returns trigger language plpgsql security definer set search_path = public as $$

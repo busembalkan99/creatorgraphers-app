@@ -417,3 +417,7 @@ enabled = true
 [functions.bildirim-gonder]
 # Kendi gizli başlığıyla doğruluyor (x-bildirim-gizli); çağıran cron, kullanıcı oturumu yok.
 verify_jwt = false
+
+[functions.kare-adres]
+# Kullanıcının oturumuyla çağrılıyor (karar 127); izin veritabanında dosya_izni ile.
+verify_jwt = true

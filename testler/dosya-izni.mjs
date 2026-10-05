@@ -33,4 +33,5 @@ bekle('başkası silemez', (await izin(B, [yA], 'sil')).length === 0);
 bekle('sahibi silebilir', (await izin(A, [yA, yAk], 'sil')).length === 2);
 bekle('silme kaydı yalnız izinli satırları siliyor', JSON.stringify((await B.c.rpc('dosya_kaydi_sil', { p_yollar: [yA] })).data) === '[]');
 bekle('oturumsuz çağrılamıyor', !!(await (await import('./ortak.mjs')).istemci().rpc('dosya_izni', { p_yollar: [yA], p_islem: 'oku' })).error);
+bekle('depo listesi üyeye kapalı (yalnız servis rolü)', !!(await B.c.rpc('depo_nesneleri')).error && !!(await A.c.rpc('depo_nesneleri')).error);
 rapor();

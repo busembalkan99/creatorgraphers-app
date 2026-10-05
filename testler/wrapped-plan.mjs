@@ -36,6 +36,13 @@ bekle('eşit: tema kartında iki kazanan', p.plan.find(x => x.tur === 'tema').ka
 bekle('eşit: kişisel ortak birinci', kisisel(p).ortak === true);
 bekle('isimler: iki ve üç kişi', adlarYaz(['Ayşe Kaya', 'Barış Ak']) === 'Ayşe Kaya ve Barış Ak' && adlarYaz(['A', 'B', 'C']) === 'A, B ve C' && adlarYaz(['A']) === 'A');
 
+// Kürsü: fark 0,5 ve altıysa "az farkla"; temada tek kare
+{
+  const kr2 = [k({ sira: 1, sirali: true, ortalama: 8.4 }), k({ sira: 2, sirali: true, ortalama: 8.1 }), k({ sira: 3, sirali: true, ortalama: 8.0 })];
+  bekle('kürsü: farklar 0,5 ve altı → az farkla', kartPlani({ e, temalar: [T1], kareler: kr2, ozet: oz }).plan.find(x => x.tur === 'kursu')?.az === true);
+  bekle('tema kartı: temada tek kare', kartPlani({ e, temalar: [T1], kareler: [k({ sira: 1, sirali: true })], ozet: oz }).plan.find(x => x.tur === 'tema')?.tek === true);
+}
+
 // Oylanmamış tema kart açmıyor; kare yok oy var; hiç katılmadı; çıkarıldı; sıralamaya girdi
 kr = [k({ ortalama: null, oy_sayisi: 0 })];
 p = kartPlani({ e, temalar: [T1], kareler: kr, ozet: { ...oz, benim_oyum: 1 } });
@@ -58,7 +65,8 @@ bekle('pano: boşluk ve noktalama için de geçiş harfi var', panoHarfleri(' ',
 bekle('pano: sığan tema adı tek satır', JSON.stringify(panoBol('Portre')) === '["PORTRE"]', JSON.stringify(panoBol('Portre')));
 bekle('pano: "Işık ve gölge oyunu" → IŞIK VE / GÖLGE OYUNU', JSON.stringify(panoBol('Işık ve gölge oyunu')) === '["IŞIK VE","GÖLGE OYUNU"]', JSON.stringify(panoBol('Işık ve gölge oyunu')));
 bekle('pano: tek uzun kelime iki satıra kesiliyor', JSON.stringify(panoBol('Fotoğrafçılıklarımızdan')) === '["FOTOĞRAFÇILI","KLARIMIZDAN"]', JSON.stringify(panoBol('Fotoğrafçılıklarımızdan')));
-bekle('pano: en çok iki satır', panoBol('Bir iki üç dört beş altı yedi sekiz dokuz on on bir').length === 2);
+bekle('pano: ikinci kelimesi uzun ad kesilmiyor, harf harf iki satıra', JSON.stringify(panoBol('Sokak fotoğrafçılığı')) === '["SOKAK FOTOĞR","AFÇILIĞI"]', JSON.stringify(panoBol('Sokak fotoğrafçılığı')));
+bekle('pano: 24 harfi aşan ad iki satırda, kesildiği belli (…)', (l => l.length === 2 && l[1].endsWith('…') && [...l[1]].length === 12)(panoBol('Bir iki üç dört beş altı yedi sekiz dokuz on on bir')), JSON.stringify(panoBol('Bir iki üç dört beş altı yedi sekiz dokuz on on bir')));
 
 // Kontakt açılışı: etkinliğe bağlı rastgele kareler (her izleyişte aynı), çıkarılan yok, en çok üç
 {

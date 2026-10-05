@@ -17,16 +17,20 @@ export function panoHarfleri(son: string, i: number) {
   return [1, 2, 3, 4].map(j => ALFABE[(b + 7 * j + 3 * i) % ALFABE.length])
 }
 
-/** Tema adı gibi düz metin satırlara: her satır en çok 12 harf, kelime sınırında; 12'den uzun kelime
- *  bölünüyor. En çok iki satır (Buse, 2026-10-05: uzun tema adı kısalmasın, iki satıra bölünsün). */
+/** Tema adı gibi düz metin satırlara (Buse, 2026-10-05: uzun tema adı kısalmasın, iki satıra bölünsün).
+ *  Önce kelime sınırında; iki satıra sığmıyorsa harf harf (kelime ortadan bölünür ama hiçbir şey kaybolmaz).
+ *  24 harfi aşan ad yine iki satırda, kesildiği "…" ile belli. */
 export function panoBol(metin: string, en = 12, enCok = 2) {
-  const parcalar = metin.trim().replace(/\s+/g, ' ').toLocaleUpperCase('tr-TR').split(' ')
-    .flatMap(k => { const h = [...k]; const l: string[] = []; for (let i = 0; i < h.length; i += en) l.push(h.slice(i, i + en).join('')); return l })
+  const u = metin.trim().replace(/\s+/g, ' ').toLocaleUpperCase('tr-TR')
   const satirlar: string[] = []
-  for (const p of parcalar) {
+  for (const k of u.split(' ')) {
     const son = satirlar[satirlar.length - 1]
-    if (son != null && [...`${son} ${p}`].length <= en) satirlar[satirlar.length - 1] = `${son} ${p}`
-    else satirlar.push(p)
+    if (son != null && [...`${son} ${k}`].length <= en) satirlar[satirlar.length - 1] = `${son} ${k}`
+    else satirlar.push(k)
   }
-  return satirlar.slice(0, enCok)
+  if (satirlar.length <= enCok && satirlar.every(s => [...s].length <= en)) return satirlar
+  const h = [...u]
+  const dolu = Array.from({ length: enCok }, (_, i) => h.slice(i * en, (i + 1) * en).join('').trim()).filter(Boolean)
+  if (h.length > en * enCok) dolu[enCok - 1] = [...dolu[enCok - 1]].slice(0, en - 1).join('') + '…'
+  return dolu
 }

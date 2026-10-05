@@ -85,7 +85,8 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
       // Satır güvenliği yalnız kendi oylarını döndürüyor; okunamazsa şerit çıkmıyor, kart yine açılıyor.
       let oylanan: string[] = []
       if (kontakt && !kareler.some(k => k.benim) && Number(ozet.benim_oyum) > 0) {
-        const { data } = await sb.from('oylar').select('kare').in('kare', kareler.map(k => k.id))
+        const { data, error: oyHata } = await sb.from('oylar').select('kare').in('kare', kareler.map(k => k.id))
+        if (oyHata) console.warn('Wrapped: oylar okunamadı, şerit çıkmıyor', oyHata.message)
         const benimOy = new Set(((data ?? []) as { kare: string }[]).map(x => x.kare))
         oylanan = acilisKareleri({ id: `${e.id}:oy` }, kareler.filter(k => benimOy.has(k.id))).map(k => k.id)
       }

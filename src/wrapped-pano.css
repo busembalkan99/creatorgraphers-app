@@ -19,10 +19,12 @@
 .wr .set-pano .pano-baslik{font:900 40px/.95 Overpass,sans-serif;text-transform:uppercase;letter-spacing:-.01em;margin-top:10px;
   overflow-wrap:anywhere}
 .wr .set-pano .pano-baslik:empty{display:none}
-.wr .set-pano .pano-foto{margin-top:16px;flex:0 1 auto;min-height:0}
-.wr .set-pano .pano-foto > div{display:flex;gap:8px}
-.wr .set-pano .pano-foto img,.wr .set-pano .pano-foto .bos-foto{display:block;width:100%;max-height:150px;object-fit:cover;
+/* Fotoğraf alanı yer kaldıkça büyüyor (en çok 150), kalabalık kartta küçülüp kırpılıyor (en az 56); pano küçülmüyor */
+.wr .set-pano .pano-foto{margin-top:16px;flex:0 1 150px;min-height:56px;overflow:hidden}
+.wr .set-pano .pano-foto > div{display:flex;gap:8px;height:100%}
+.wr .set-pano .pano-foto img,.wr .set-pano .pano-foto .bos-foto{display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;
   border-radius:3px;filter:grayscale(.2)}
+.wr .set-pano .pano{flex:none}
 .wr .set-pano .pano-foto .iki > *{flex:1;min-width:0}
 
 .wr .set-pano .pano{display:flex;flex-direction:column;gap:12px;margin-top:18px}

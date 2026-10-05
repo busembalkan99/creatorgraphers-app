@@ -204,6 +204,7 @@ try {
     const kisiselMetin = async (eposta) => { const X = await kisi(eposta); await ac(X, `wrapped/${E1}`); await kartaGit(X, 'kisisel'); return X; };
     const O = await kisiselMetin(A.eposta);   // oy verdi, kare vermedi
     await olc(O, `${no + 8}-${SET}-kisisel-oyverdi`);
+    if (SET === 'kontakt') bekle('kontakt/oy verdin: puan verdiği karelerden şerit, numarasız ve çizgisiz', (await O.locator('.set-kontakt img').count()) === 3 && (await O.locator('.set-kontakt .kare-no').count()) === 0 && (await O.locator('.set-kontakt .kalem-daire').count()) === 0, String(await O.locator('.set-kontakt img').count()));
     if (SET === 'kontakt') bekle('kontakt/oy verdin: başlık, kalem notu, alt', await var_(O, 'Bu sefer oylayan sendin') && /\d+ kareye puan verdin|Bütün kareleri puanladın/.test(await O.locator('.set-kontakt .kalem-not').first().innerText()) && await var_(O, 'Sıradaki etkinlikte senin karen de şeritte olsun'), await metin(O));
     else bekle('pano/oy verdin: başlık, pano, alt', await var_(O, 'Oy verdin') && /^\d+\|\d+$/.test(await panoMetni(O)) && await var_(O, 'Sıradaki etkinlikte panoda senin satırın da olsun'), `${await metin(O)} | ${await panoMetni(O)}`);
     const Yp = await kisiselMetin(Y.eposta);   // hiç katılmadı

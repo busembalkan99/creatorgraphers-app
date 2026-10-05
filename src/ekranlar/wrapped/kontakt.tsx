@@ -88,7 +88,8 @@ export const KONTAKT: SetTanimi = {
           ), `${p.toplam} kare, ${p.satirlar.length} temada`),
         })
       } else if (p.tur === 'kisisel') {
-        K.push(kisisel(p.durum, { ay, etkinlikAdi, kenarAy, ozet: v.ozet, temaSayisi: v.temalar.length }))
+        const oylanan = (v.oylanan ?? []).map(id => v.kareler.find(k => k.id === id)).filter((k): k is SK => !!k)
+        K.push(kisisel(p.durum, { ay, etkinlikAdi, kenarAy, ozet: v.ozet, temaSayisi: v.temalar.length, oylanan }))
       } else {
         K.push({
           ad: 'kapanis', sinif: 'kt-kapanis', sag: `${ay} · ${yil}`,
@@ -104,7 +105,7 @@ export const KONTAKT: SetTanimi = {
 }
 
 /** Kişinin kartı. Metinler spec'ten (birinci, sırada, girmedi); öteki durumlarda eski setin cümleleri. */
-function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy: string; ozet: Ozet; temaSayisi: number }): Kart {
+function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy: string; ozet: Ozet; temaSayisi: number; oylanan: SK[] }): Kart {
   const kart = (baslik: string, sag: string, icerik: ReactNode, alt?: ReactNode): Kart =>
     ({ ad: 'kisisel', sinif: 'kt-kisisel', sag, govde: govde(`Sen · ${c.ay}`, baslik, icerik, alt) })
   // Kişinin kareleri şeritte; sırada olan(lar) çizili. Sıraya girmeyen çizilmiyor, numarası da yok (karar 52).
@@ -138,7 +139,8 @@ function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy:
         'Yöneticiyle konuşabilirsin')
     case 'oyverdi':
       return kart('Bu sefer oylayan sendin', `${d.adet} / ${c.ozet.kare} kare`,
-        <div className="notlar"><Not gecikme={0.6}>{d.hepsi ? 'Bütün kareleri puanladın' : `${d.adet} kareye puan verdin`}</Not></div>,
+        <>{c.oylanan.length > 0 && <Serit numarasiz kenar={c.kenarAy} kareler={ortala(c.oylanan.slice(1, 2), c.oylanan.slice(0, 1), c.oylanan.slice(2, 3)).kareler} />}
+          <div className="notlar"><Not>{d.hepsi ? 'Bütün kareleri puanladın' : `${d.adet} kareye puan verdin`}</Not></div></>,
         'Sıradaki etkinlikte senin karen de şeritte olsun')
     default:
       return kart('Bu sefer yoktun', c.etkinlikAdi,

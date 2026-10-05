@@ -4,7 +4,7 @@ import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik } from '../lib/tipler'
 import { git } from '../lib/yol'
 import { imzala } from '../lib/imza'
-import { acilisKareleri, type Ozet, type SK, type Tema } from './wrapped/plan'
+import { acilisKareleri, type Ozet, type SK, type Tema, type WrappedVeri } from './wrapped/plan'
 import { iki } from './wrapped/bicim'
 import { setSec } from './wrapped/kutuphane'
 
@@ -53,7 +53,7 @@ export async function wrappedGerekirseAc(etkinlikler: Etkinlik[], asamaBul: (e: 
 }
 
 export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
-  const [v, setV] = useState<{ e: Etkinlik; temalar: Tema[]; kareler: SK[]; ozet: Ozet } | null>(null)
+  const [v, setV] = useState<WrappedVeri | null>(null)
   const [hata, setHata] = useState<string | null>(null)
   const [i, setI] = useState(0)
   const [ziyaret, setZiyaret] = useState<Record<number, number>>({})
@@ -79,15 +79,24 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
       const kareler = (sk.data ?? []) as SK[]
       // Fotoğraflar önce: kazananlar, kürsü ve kişinin kendi kareleri
       // Kontakt baskının açılış şeridi rastgele kareler gösteriyor (karar 126): onlar da
-      const acilis = new Set(setSec(e).ad === 'kontakt' ? acilisKareleri(e, kareler).map(k => k.id) : [])
-      const gerek = kareler.filter(k => k.benim || acilis.has(k.id) || (k.sira != null && k.sira <= 3 && !k.cikarildi))
+      const kontakt = setSec(e).ad === 'kontakt'
+      const acilis = new Set(kontakt ? acilisKareleri(e, kareler).map(k => k.id) : [])
+      // Kontakt'ta kare vermeyip oy verenin kartı puan verdiği karelerden şerit gösteriyor (Buse, 2026-10-05).
+      // Satır güvenliği yalnız kendi oylarını döndürüyor; okunamazsa şerit çıkmıyor, kart yine açılıyor.
+      let oylanan: string[] = []
+      if (kontakt && !kareler.some(k => k.benim) && Number(ozet.benim_oyum) > 0) {
+        const { data } = await sb.from('oylar').select('kare').in('kare', kareler.map(k => k.id))
+        const benimOy = new Set(((data ?? []) as { kare: string }[]).map(x => x.kare))
+        oylanan = acilisKareleri({ id: `${e.id}:oy` }, kareler.filter(k => benimOy.has(k.id))).map(k => k.id)
+      }
+      const gerek = kareler.filter(k => k.benim || acilis.has(k.id) || oylanan.includes(k.id) || (k.sira != null && k.sira <= 3 && !k.cikarildi))
       const imza = gerek.length ? await imzala(gerek.map(k => k.dosya)) : []
       const url = new Map(gerek.map((k, j) => [k.id, imza[j]?.signedUrl ?? null]))
       await Promise.race([
         Promise.all([...url.values()].filter(Boolean).map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u! }))),
         new Promise(r => setTimeout(r, 4000)),
       ])
-      setV({ e, temalar: (tm.data ?? []) as Tema[], kareler: kareler.map(k => ({ ...k, url: url.get(k.id) ?? null })),
+      setV({ e, temalar: (tm.data ?? []) as Tema[], kareler: kareler.map(k => ({ ...k, url: url.get(k.id) ?? null })), oylanan,
         ozet: { ...ozet, kisi: Number(ozet.kisi), kare: Number(ozet.kare), puan: Number(ozet.puan), benim_oyum: Number(ozet.benim_oyum) } })
     })().catch(x => setHata(hataMetni(x)))
   }, [etkinlikId])

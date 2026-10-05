@@ -15,7 +15,8 @@ export type SK = {
 }
 export type Ozet = { kisi: number; kare: number; puan: number; benim_oyum: number; izlendi: boolean }
 export type Tema = { id: string; ad: string; sira: number }
-export type WrappedVeri = { e: Etkinlik; temalar: Tema[]; kareler: SK[]; ozet: Ozet }
+// oylanan: kişinin puan verdiği karelerden seçilenler (yalnız Kontakt'ın "oy verdin" kartı için doluyor)
+export type WrappedVeri = { e: Etkinlik; temalar: Tema[]; kareler: SK[]; ozet: Ozet; oylanan?: string[] }
 export type Eylem = { sonuca: () => void; paylas: () => void; tekrar: () => void }
 export type Baglam = { ay: string; yil: string; etkinlikAdi: string; yarisan: SK[]; temaKareleri: (t: string) => SK[] }
 

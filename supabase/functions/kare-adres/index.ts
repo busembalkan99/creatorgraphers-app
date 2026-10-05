@@ -12,9 +12,13 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 
 Deno.serve(async istek => {
   if (istek.method === 'OPTIONS') return new Response('ok', { headers: cors })
-  const kullanici = createClient(env('SUPABASE_URL'), env('SUPABASE_ANON_KEY'),
-    { global: { headers: { authorization: istek.headers.get('authorization') ?? '' } } })
+  const baslik = istek.headers.get('authorization') ?? ''
+  const kullanici = createClient(env('SUPABASE_URL'), env('SUPABASE_ANON_KEY'), { global: { headers: { authorization: baslik } } })
   const servis = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'))
+  // verify_jwt herkese açık anon anahtarını da geçiriyor: yalnız gerçek bir kullanıcı oturumu kabul.
+  // Jeton servis istemcisiyle soruluyor; kullanıcı istemcisinin sabit başlığı getUser'ın başlığıyla çakışıyor.
+  const { data: oturum } = await servis.auth.getUser(baslik.replace(/^Bearer\s+/i, ''))
+  if (!oturum?.user) return new Response(JSON.stringify({ hata: 'oturum_yok' }), { status: 401, headers: { ...cors, 'content-type': 'application/json' } })
   const r = await isle(await istek.json().catch(() => ({})), { kullanici, servis, s3 })
     .catch(() => ({ durum: 500, veri: { hata: 'ic_hata' } }))
   return new Response(JSON.stringify(r.veri), { status: r.durum, headers: { ...cors, 'content-type': 'application/json' } })

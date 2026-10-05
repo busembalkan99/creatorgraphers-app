@@ -22,6 +22,8 @@ bekle('sıra korunuyor, yalnız izinliler', JSON.stringify(await izin(A, ['yok/y
 await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).eq('id', E);
 bekle('oylamada üye okuyabilir', (await izin(B, [yA, yAk], 'oku')).length === 2);
 bekle('üye olmayan oylamada okuyamaz', (await izin(C, [yA], 'oku')).length === 0);
+// Depoda olmayan dosyaya (önizlemesi hiç yüklenmemiş eski kare) adres yok: istemci tam boya düşüyor (imza.ts onizlemesiz)
+bekle('oylamada depoda olmayan dosyaya izin yok', (await izin(B, [`${E}/${T}/${crypto.randomUUID()}.k.jpg`], 'oku')).length === 0);
 bekle('oylamada yükleme yok', (await izin(A, [`${E}/${T}/${crypto.randomUUID()}.jpg`], 'yukle')).length === 0);
 // Toplu çıkarılan: oylamada başkasına kapalı, önizlemesi de (0020), sahibine açık
 const k = (await admin.from('kareler').insert({ tema: T, sahip: A.id, dosya: yA, genislik: 1, yukseklik: 1 }).select('id').single()).data.id;

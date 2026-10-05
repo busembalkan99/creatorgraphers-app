@@ -25,11 +25,14 @@ create or replace function public.dosya_izni(p_yollar text[], p_islem text) retu
 language sql stable security definer set search_path = public as $$
   select coalesce(array_agg(y order by s), '{}') from unnest(p_yollar) with ordinality as u(y, s)
   where auth.uid() is not null and case p_islem
+    -- Depoda olmayan dosyaya adres yok (Storage'ın createSignedUrls'i de vermiyordu): önizlemesi
+    -- olmayan eski karede istemci tam boya düşüyor (imza.ts onizlemesiz)
     when 'oku' then
-      exists (select 1 from public.dosyalar d where d.yol = y and d.sahip = auth.uid())
-      or (public.uye_mi() and public.etkinlik_asamasi(gizli.yol_etkinligi(y)) in ('oylama', 'sonuc')
-          and not public.toplu_cikarilan_mi(y))
-      or (public.yonetici_mi() and public.cikarilan_dosya_mi(y))
+      exists (select 1 from public.dosyalar d where d.yol = y) and (
+        exists (select 1 from public.dosyalar d where d.yol = y and d.sahip = auth.uid())
+        or (public.uye_mi() and public.etkinlik_asamasi(gizli.yol_etkinligi(y)) in ('oylama', 'sonuc')
+            and not public.toplu_cikarilan_mi(y))
+        or (public.yonetici_mi() and public.cikarilan_dosya_mi(y)))
     when 'yukle' then
       public.uye_mi() and gizli.yol_etkinligi(y) is not null
       and public.etkinlik_asamasi(gizli.yol_etkinligi(y)) = 'yukleme'

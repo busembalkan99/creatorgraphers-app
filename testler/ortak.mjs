@@ -20,6 +20,14 @@ export async function kullanici(eposta, ad) {
   if (error) throw error;
   return { c, id: u.id };
 }
+// Kovayı her derinlikte boşaltıyor (klasörlerin id'si yok, dosyaların var)
+async function bosalt(kova, klasor = '') {
+  const { data } = await admin.storage.from(kova).list(klasor, { limit: 1000 });
+  const yol = x => (klasor ? `${klasor}/${x.name}` : x.name);
+  const dosyalar = (data ?? []).filter(x => x.id).map(yol);
+  if (dosyalar.length) await admin.storage.from(kova).remove(dosyalar);
+  for (const k of (data ?? []).filter(x => !x.id)) await bosalt(kova, yol(k));
+}
 export async function sifirla() {
   // test verisini temizle (servis anahtarıyla)
   // Bildirim ve tema önerisi tabloları (0019): kullanıcılar test başına yeniden kullanıldığı için elle
@@ -28,22 +36,8 @@ export async function sifirla() {
     await admin.from(t).delete().neq('id', '00000000-0000-0000-0000-000000000000');
   for (const t of ['kareler', 'temalar', 'etkinlikler', 'istekler', 'uyeler'])
     await admin.from(t).delete().neq('id', '00000000-0000-0000-0000-000000000000');
-  const { data: o } = await admin.storage.from('kareler').list('', { limit: 1000 });
-  for (const e of o ?? []) {
-    const { data: t } = await admin.storage.from('kareler').list(e.name, { limit: 1000 });
-    for (const tt of t ?? []) {
-      const { data: f } = await admin.storage.from('kareler').list(`${e.name}/${tt.name}`, { limit: 1000 });
-      if (f?.length) await admin.storage.from('kareler').remove(f.map(x => `${e.name}/${tt.name}/${x.name}`));
-    }
-  }
-  const { data: o2 } = await admin.storage.from(R2).list('', { limit: 1000 });
-  for (const e of o2 ?? []) {
-    const { data: t } = await admin.storage.from(R2).list(e.name, { limit: 1000 });
-    for (const tt of t ?? []) {
-      const { data: f } = await admin.storage.from(R2).list(`${e.name}/${tt.name}`, { limit: 1000 });
-      if (f?.length) await admin.storage.from(R2).remove(f.map(x => `${e.name}/${tt.name}/${x.name}`));
-    }
-  }
+  await bosalt('kareler');
+  await bosalt(R2);
 }
 // Kareler R2'de (karar 127). Yerelde "R2" yerel Supabase'in r2-yerel kovası (scripts/yerel-r2.sh); testler
 // dosyayı servis rolüyle doğrudan oraya koyuyor ve sahipliğini dosyalar'a yazıyor (kare-adres'in onayla'sının yaptığı).

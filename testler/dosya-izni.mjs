@@ -13,9 +13,16 @@ bekle('yükleme aşamasında üye kendi klasörüne yükleyebilir', (await izin(
 bekle('üye olmayan yükleyemez', (await izin(C, [yA], 'yukle')).length === 0);
 bekle('yanlış klasör (başka tema) reddediliyor', (await izin(A, [`${E}/${crypto.randomUUID()}/x.jpg`], 'yukle')).length === 0);
 bekle('jpg dışı ad reddediliyor', (await izin(A, [`${E}/${T}/x.png`], 'yukle')).length === 0);
-await A.c.rpc('dosya_kaydet', { p_yol: yA, p_boyut: 1000 }); await A.c.rpc('dosya_kaydet', { p_yol: yAk, p_boyut: 100 });
-bekle('başkasının yolunu ele geçiremez', (await izin(B, [yA], 'yukle')).length === 0 && !!(await B.c.rpc('dosya_kaydet', { p_yol: yA, p_boyut: 1 })).error);
-bekle('8 MB üstü kaydedilmiyor', /buyuk/.test((await A.c.rpc('dosya_kaydet', { p_yol: `${E}/${T}/${crypto.randomUUID()}.jpg`, p_boyut: 8388609 })).error?.message ?? ''));
+// Kaydı yalnız kare-adres yapıyor (servis rolü, HEAD'den gelen boyutla): üye fonksiyonu atlayıp dosyasız kare
+// kaydı açamıyor, 8 MB sınırını da atlayamıyor (güvenlik incelemesi notu 1)
+bekle('üye dosya_kaydet\'i doğrudan çağıramıyor', !!(await A.c.rpc('dosya_kaydet', { p_yol: `${E}/${T}/${crypto.randomUUID()}.jpg`, p_boyut: 1, p_sahip: A.id })).error);
+await admin.rpc('dosya_kaydet', { p_yol: yA, p_boyut: 1000, p_sahip: A.id }); await admin.rpc('dosya_kaydet', { p_yol: yAk, p_boyut: 100, p_sahip: A.id });
+bekle('başkasının yolunu ele geçiremez', (await izin(B, [yA], 'yukle')).length === 0
+  && (await admin.rpc('dosya_kaydet', { p_yol: yA, p_boyut: 1, p_sahip: B.id }), (await admin.from('dosyalar').select('sahip').eq('yol', yA).single()).data?.sahip === A.id));
+// Kaydı olan dosyanın üstüne yazılamıyor: eski Storage kuralı yalnız eklemeye izin veriyordu (kod incelemesi F1)
+bekle('kaydı olan yola sahibi de yeniden yükleme izni alamıyor', (await izin(A, [yA], 'yukle')).length === 0);
+bekle('8 MB üstü kaydedilmiyor', /buyuk/.test((await admin.rpc('dosya_kaydet', { p_yol: `${E}/${T}/${crypto.randomUUID()}.jpg`, p_boyut: 8388609, p_sahip: A.id })).error?.message ?? ''));
+bekle('geçersiz yol kaydedilmiyor', !!(await admin.rpc('dosya_kaydet', { p_yol: `${E}/../x.jpg`, p_boyut: 1, p_sahip: A.id })).error);
 bekle('yüklemede sahibi okuyabilir, başkası okuyamaz', (await izin(A, [yA, yAk], 'oku')).length === 2 && (await izin(B, [yA], 'oku')).length === 0);
 bekle('sıra korunuyor, yalnız izinliler', JSON.stringify(await izin(A, ['yok/yok/yok.jpg', yA], 'oku')) === JSON.stringify([yA]));
 // Oylama: üyeler okuyabiliyor, üye olmayan okuyamıyor
@@ -30,6 +37,9 @@ const k = (await admin.from('kareler').insert({ tema: T, sahip: A.id, dosya: yA,
 await admin.from('diskalifiye').insert({ kare: k, neden: 'Gelmedi', eden: A.id, toplu: true });
 bekle('toplu çıkarılan oylamada başkasına kapalı, önizlemesi de', (await izin(B, [yA, yAk], 'oku')).length === 0);
 bekle('sahibi toplu çıkarılan karesini görüyor', (await izin(A, [yA], 'oku')).length === 1);
+// Sonuçta toplu çıkarılan herkese açılıyor, önizlemesi de (0020; kod incelemesi F9)
+await admin.from('etkinlikler').update({ oylama_biter: saat(-0.5) }).eq('id', E);
+bekle('sonuçta toplu çıkarılan üyeye açık, önizlemesi de', (await izin(B, [yA, yAk], 'oku')).length === 2);
 // Silme: yalnız sahibi
 bekle('başkası silemez', (await izin(B, [yA], 'sil')).length === 0);
 bekle('sahibi silebilir', (await izin(A, [yA, yAk], 'sil')).length === 2);

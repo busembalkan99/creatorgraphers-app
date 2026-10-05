@@ -20,13 +20,13 @@ async function imzaAnahtari(a: S3Ayar, gun: string) {
 }
 const yolu = (u: URL, a: S3Ayar, anahtar: string) => `${u.pathname.replace(/\/$/, '')}/${a.kova}/${anahtarKodla(anahtar)}`
 
-/** Süreli adres (tarayıcı kullanıyor). PUT'ta içerik türü (ve verilirse önbellek başlığı) imzaya giriyor:
- *  tarayıcı tam bu başlıklarla göndermezse yüklenemez. */
-export async function presign(a: S3Ayar, yontem: 'GET' | 'PUT', anahtar: string, sure: number, icerik?: string, onbellek?: string) {
+/** Süreli adres (tarayıcı kullanıyor). PUT'ta verilen başlıklar (içerik türü, önbellek, if-none-match) imzaya
+ *  giriyor: tarayıcı tam bu başlıklarla göndermezse yüklenemez. */
+export async function presign(a: S3Ayar, yontem: 'GET' | 'PUT', anahtar: string, sure: number, ekBasliklar: Record<string, string> = {}) {
   const u = new URL(a.adres)
   const t = zaman(), gun = t.slice(0, 8)
   const kapsam = `${gun}/${a.bolge}/s3/aws4_request`
-  const imzali: [string, string][] = [...(onbellek ? [['cache-control', onbellek]] : []), ...(icerik ? [['content-type', icerik]] : []), ['host', u.host]] as [string, string][]
+  const imzali = Object.entries({ ...ekBasliklar, host: u.host }).map(([k, v]) => [k.toLowerCase(), v]).sort(([x], [y]) => (x < y ? -1 : 1))
   const basliklar = imzali.map(([k]) => k).join(';')
   const sorgu = ([['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'], ['X-Amz-Credential', `${a.anahtar}/${kapsam}`], ['X-Amz-Date', t],
     ['X-Amz-Expires', String(sure)], ['X-Amz-SignedHeaders', basliklar]] as [string, string][])
@@ -39,12 +39,12 @@ export async function presign(a: S3Ayar, yontem: 'GET' | 'PUT', anahtar: string,
 }
 
 /** Fonksiyonun kendi isteği (HEAD/DELETE/PUT/GET); icAdres varsa oraya gidiyor. */
-export async function s3Istek(a: S3Ayar, yontem: 'HEAD' | 'DELETE' | 'PUT' | 'GET', anahtar: string, govde?: Uint8Array, icerik?: string) {
+export async function s3Istek(a: S3Ayar, yontem: 'HEAD' | 'DELETE' | 'PUT' | 'GET', anahtar: string, govde?: Uint8Array, ekBasliklar: Record<string, string> = {}) {
   const u = new URL(a.icAdres ?? a.adres)
   const t = zaman(), gun = t.slice(0, 8)
   const kapsam = `${gun}/${a.bolge}/s3/aws4_request`
   const ozet = await sha(govde ?? new Uint8Array())
-  const b: Record<string, string> = { host: u.host, 'x-amz-content-sha256': ozet, 'x-amz-date': t, ...(icerik ? { 'content-type': icerik } : {}) }
+  const b: Record<string, string> = { ...Object.fromEntries(Object.entries(ekBasliklar).map(([k, v]) => [k.toLowerCase(), v])), host: u.host, 'x-amz-content-sha256': ozet, 'x-amz-date': t }
   const adlar = Object.keys(b).sort()
   const yol = yolu(u, a, anahtar)
   const kanonik = [yontem, yol, '', adlar.map(k => `${k}:${b[k]}\n`).join(''), adlar.join(';'), ozet].join('\n')

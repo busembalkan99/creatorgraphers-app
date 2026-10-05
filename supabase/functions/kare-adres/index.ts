@@ -19,7 +19,7 @@ Deno.serve(async istek => {
   // Jeton servis istemcisiyle soruluyor; kullanıcı istemcisinin sabit başlığı getUser'ın başlığıyla çakışıyor.
   const { data: oturum } = await servis.auth.getUser(baslik.replace(/^Bearer\s+/i, ''))
   if (!oturum?.user) return new Response(JSON.stringify({ hata: 'oturum_yok' }), { status: 401, headers: { ...cors, 'content-type': 'application/json' } })
-  const r = await isle(await istek.json().catch(() => ({})), { kullanici, servis, s3 })
+  const r = await isle(await istek.json().catch(() => ({})), { kullanici, uid: oturum.user.id, servis, s3 })
     .catch(() => ({ durum: 500, veri: { hata: 'ic_hata' } }))
   return new Response(JSON.stringify(r.veri), { status: r.durum, headers: { ...cors, 'content-type': 'application/json' } })
 })

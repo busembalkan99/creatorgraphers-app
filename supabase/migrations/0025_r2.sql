@@ -36,20 +36,26 @@ language sql stable security definer set search_path = public as $$
     when 'yukle' then
       public.uye_mi() and gizli.yol_etkinligi(y) is not null
       and public.etkinlik_asamasi(gizli.yol_etkinligi(y)) = 'yukleme'
-      and not exists (select 1 from public.dosyalar d where d.yol = y and d.sahip <> auth.uid())
+      -- Kaydı olan yola kimse yeniden yükleyemiyor, sahibi de: eski Storage kuralı yalnız eklemeye izin
+      -- veriyordu, yoksa kapanıştan sonra oylanan kare değiştirilebilirdi
+      and not exists (select 1 from public.dosyalar d where d.yol = y)
     when 'sil' then
       public.uye_mi() and exists (select 1 from public.dosyalar d where d.yol = y and d.sahip = auth.uid())
     else false end
 $$;
 
-create or replace function public.dosya_kaydet(p_yol text, p_boyut int) returns void
+-- Kaydı yalnız kare-adres yapıyor (servis rolü): önce kullanıcının oturumuyla dosya_izni(.., 'yukle')'yi
+-- soruyor, nesneyi HEAD ile görüyor, boyutu oradan veriyor. Üye doğrudan çağıramıyor; yoksa yüklemeden kare
+-- kaydı açabilir, 8 MB sınırını atlayabilirdi.
+drop function if exists public.dosya_kaydet(text, int);
+create or replace function public.dosya_kaydet(p_yol text, p_boyut int, p_sahip uuid) returns void
 language plpgsql security definer set search_path = public as $$
 begin
-  if cardinality(public.dosya_izni(array[p_yol], 'yukle')) = 0 then raise exception 'yetki_yok'; end if;
+  if gizli.yol_etkinligi(p_yol) is null then raise exception 'yetki_yok'; end if;
   if p_boyut > 8 * 1024 * 1024 then raise exception 'buyuk'; end if;
   insert into public.dosyalar (yol, sahip, etkinlik, boyut)
-  values (p_yol, auth.uid(), gizli.yol_etkinligi(p_yol), p_boyut)
-  on conflict (yol) do update set boyut = excluded.boyut where dosyalar.sahip = auth.uid();
+  values (p_yol, p_sahip, gizli.yol_etkinligi(p_yol), p_boyut)
+  on conflict (yol) do update set boyut = excluded.boyut where dosyalar.sahip = p_sahip;
 end $$;
 
 create or replace function public.dosya_kaydi_sil(p_yollar text[]) returns text[]
@@ -58,15 +64,19 @@ language sql security definer set search_path = public as $$
   select coalesce(array_agg(yol), '{}') from s
 $$;
 
-revoke execute on function public.dosya_izni(text[], text), public.dosya_kaydet(text, int), public.dosya_kaydi_sil(text[]) from public, anon;
-grant execute on function public.dosya_izni(text[], text), public.dosya_kaydet(text, int), public.dosya_kaydi_sil(text[]) to authenticated;
+revoke execute on function public.dosya_izni(text[], text), public.dosya_kaydet(text, int, uuid), public.dosya_kaydi_sil(text[]) from public, anon;
+grant execute on function public.dosya_izni(text[], text), public.dosya_kaydi_sil(text[]) to authenticated;
+revoke execute on function public.dosya_kaydet(text, int, uuid) from authenticated;
+grant execute on function public.dosya_kaydet(text, int, uuid) to service_role;
 revoke execute on function gizli.yol_etkinligi(text) from public, anon, authenticated;
 
 -- Taşıma (kare-adres 'tasi') Supabase Storage'daki kareleri sahipleriyle okuyor; storage şeması REST'e açık
 -- değil. Yalnız servis rolü çağırabiliyor (fonksiyon önce yöneticiyi doğruluyor).
 create or replace function public.depo_nesneleri() returns table (name text, owner_id text)
 language sql stable security definer set search_path = public as $$
-  select o.name, o.owner_id from storage.objects o where o.bucket_id = 'kareler' order by o.name
+  -- Servis rolüyle yüklenen nesnede (ör. scripts/onar-sunmus.mjs) owner_id boş: sahip kare kaydından
+  select o.name, coalesce(o.owner_id, (select k.sahip::text from public.kareler k where k.dosya = public.asil_dosya(o.name)))
+  from storage.objects o where o.bucket_id = 'kareler' order by o.name
 $$;
 revoke execute on function public.depo_nesneleri() from public, anon, authenticated;
 grant execute on function public.depo_nesneleri() to service_role;

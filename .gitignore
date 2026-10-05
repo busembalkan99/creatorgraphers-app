@@ -30,3 +30,6 @@ dist-ssr
 
 # superpowers çalışma alanı (brainstorm ekranları, defterler)
 .superpowers/
+
+# Yerel R2 ayarları (karar 127), scripts/yerel-r2.sh üretiyor
+supabase/functions/.env.yerel

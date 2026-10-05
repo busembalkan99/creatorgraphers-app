@@ -281,10 +281,10 @@ try {
     else bekle('kontakt/hareketi azalt: daire çizili', (await R.locator('.set-kontakt .kalem-daire path').first().evaluate(e => getComputedStyle(e).strokeDashoffset)) === '0px');
 
     // İmzası alınamayan kare: boş çerçeve, kart çökmüyor
-    await P.route('**/storage/v1/object/sign/**', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
+    await P.route('**/functions/v1/kare-adres', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"deneme"}' }));
     await ac(P, `wrapped/${E1}`); await sag(P);
     bekle(`${SET}: adresi alınamayan kare boş çerçeve, kart açık`, (await kartAdi(P)) === 'tema' && (await P.locator('.wr .bos-foto').count()) >= 1, String(await P.locator('.wr .bos-foto').count()));
-    await P.unroute('**/storage/v1/object/sign/**');
+    await P.unroute('**/functions/v1/kare-adres');
     await P.context().close(); await S.context().close(); await R.context().close();
   }
   // Seti boş eski etkinlik (0024'ten önce kurulmuş): eski setle açılıyor

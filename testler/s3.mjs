@@ -19,6 +19,13 @@ bekle('süresi geçmiş adres reddediliyor', !(await fetch(kisa)).ok);
 // anahtarları uuid, o yüzden burada imzanın kodlamasını özel ASCII karakterlerle sınıyoruz.
 const tr = `test/a b+c'd (e)/${crypto.randomUUID()}.jpg`;
 bekle('boşluk ve özel karakterli anahtar imzalanıyor', (await fetch(await presign(a, 'PUT', tr, 60, 'image/jpeg'), { method: 'PUT', body: govde, headers: { 'content-type': 'image/jpeg' } })).ok && (await s3Istek(a, 'HEAD', tr)).ok);
+// Bir yıllık önbellek (egress, 2026-09-30): başlık imzaya giriyor, tarayıcı göndermezse PUT reddediliyor
+const ko = `test/${crypto.randomUUID()}.jpg`, ob = 'max-age=31536000';
+const po = await presign(a, 'PUT', ko, 60, 'image/jpeg', ob);
+bekle('önbellek başlığı imzalanmışsa başlıksız PUT reddediliyor', !(await fetch(po, { method: 'PUT', body: govde, headers: { 'content-type': 'image/jpeg' } })).ok);
+bekle('önbellek başlığıyla PUT geçiyor, nesne başlığı taşıyor', (await fetch(po, { method: 'PUT', body: govde, headers: { 'content-type': 'image/jpeg', 'cache-control': ob } })).ok
+  && (await s3Istek(a, 'HEAD', ko)).headers.get('cache-control') === ob, (await s3Istek(a, 'HEAD', ko)).headers.get('cache-control'));
+await s3Istek(a, 'DELETE', ko);
 bekle('sunucu tarafı PUT ve GET', (await s3Istek(a, 'PUT', `test/${crypto.randomUUID()}.jpg`, govde, 'image/jpeg')).ok);
 bekle('DELETE siliyor', (await s3Istek(a, 'DELETE', k)).ok && (await s3Istek(a, 'HEAD', k)).status === 404);
 await s3Istek(a, 'DELETE', tr);

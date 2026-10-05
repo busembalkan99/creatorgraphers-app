@@ -19,7 +19,7 @@ bekle('herkese açık anon anahtarıyla istek reddediliyor', anonla.status === 4
 
 let r = await A.c.functions.invoke('kare-adres', { body: { is: 'yukle', yol } });
 bekle('yükleme adresi geliyor', !r.error && typeof r.data?.adres === 'string', JSON.stringify(r.error ?? r.data));
-const put = await fetch(r.data.adres, { method: 'PUT', body: fs.readFileSync('/tmp/cgapp/dogru.jpg'), headers: { 'content-type': 'image/jpeg' } });
+const put = await fetch(r.data.adres, { method: 'PUT', body: fs.readFileSync('/tmp/cgapp/dogru.jpg'), headers: r.data.basliklar });
 bekle('adrese PUT geçiyor', put.ok, String(put.status));
 r = await A.c.functions.invoke('kare-adres', { body: { is: 'onayla', yol } });
 bekle('fonksiyon kendi isteğiyle nesneyi görüp onaylıyor', !r.error && r.data?.tamam === true, JSON.stringify(r.error ?? r.data));

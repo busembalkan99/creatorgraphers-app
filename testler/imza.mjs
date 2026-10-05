@@ -27,12 +27,12 @@ const b = await webkit.launch(); const hatalar = [];
 try {
   const p = await (await b.newContext({ ...devices['iPhone 14'] })).newPage();
   p.on('pageerror', x => hatalar.push(String(x)));
-  let imza = 0; p.on('request', r => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/sign/')) imza++; });
+  let imza = 0; p.on('request', r => { if (r.method() === 'POST' && r.url().includes('/functions/v1/kare-adres')) imza++; });
   await p.goto(APP); await p.waitForFunction(() => window.__sb, null, { timeout: 20000 });
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
   await p.goto(APP + '#/profil'); await p.reload(); await p.waitForTimeout(2500);
   const src1 = await p.locator('.sc img').first().getAttribute('src');
-  bekle('profilde kare görünüyor (kontrol)', !!src1 && src1.includes('/storage/v1/object/sign/'), src1);
+  bekle('profilde kare görünüyor (kontrol)', !!src1 && src1.includes('X-Amz-Signature='), src1);
   // Uygulama açılışında sekmeler önceden yükleniyor (App.tsx); sayaç bundan sonra
   await p.waitForTimeout(1500); imza = 0;
   await p.locator('.tabs button', { hasText: 'Etkinlikler' }).click(); await p.waitForTimeout(1500);
@@ -61,7 +61,7 @@ try {
   // Aynı anda iki ekran aynı kareyi isterse tek imza isteği gidiyor (kapsam incelemesi)
   const yolD = `${e.id}/${t.id}/${crypto.randomUUID()}.jpg`;
   await depo.koy(yolD, jpeg, A.id);
-  let esZaman = 0; const say = r => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/sign/')) esZaman++; };
+  let esZaman = 0; const say = r => { if (r.method() === 'POST' && r.url().includes('/functions/v1/kare-adres')) esZaman++; };
   p.on('request', say);
   await p.evaluate(async y => { const m = await import('/src/lib/imza.ts'); await Promise.all([m.imzala([y]), m.imzala([y]), m.imzala([y])]); }, yolD);
   p.off('request', say);
@@ -73,22 +73,22 @@ try {
   await depo.koy(yolC, jpeg, A.id);
   await depo.koy(yolC.replace(/\.jpg$/, '.k.jpg'), jpeg, A.id);
   await p.evaluate(async y => { await (await import('/src/lib/imza.ts')).imzala([y]); }, yolC);   // yalnız tam boy önbellekte
-  await p.route('**/storage/v1/object/sign/**', r => (r.request().postData() ?? '').includes('.k.jpg')
+  await p.route('**/functions/v1/kare-adres', r => (r.request().postData() ?? '').includes('.k.jpg')
     ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }) : r.continue());
   const gecici = await p.evaluate(async y => (await (await import('/src/lib/imza.ts')).kareAdresleri([y]))[0].url, yolC);
-  await p.unroute('**/storage/v1/object/sign/**');
+  await p.unroute('**/functions/v1/kare-adres');
   const sonra = await p.evaluate(async y => (await (await import('/src/lib/imza.ts')).kareAdresleri([y]))[0].url, yolC);
   bekle('geçici hatada tam boya düşüyor, sonra önizleme geliyor (6 saat işaretlenmiyor)', !!gecici && !gecici.includes('.k.jpg') && !!sonra && sonra.includes('.k.jpg'),
     `${gecici?.split('?')[0].split('/').pop()} → ${sonra?.split('?')[0].split('/').pop()}`);
   let hataSay = 0;
   // Yalnız bu testin dosyası sayılıyor: arka planda önceden yüklenen ekranlar da imza istiyor
-  await p.route('**/storage/v1/object/sign/**', r => { if ((r.request().postData() ?? '').includes('yok/1.jpg')) hataSay++; return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }); });
+  await p.route('**/functions/v1/kare-adres', r => { if ((r.request().postData() ?? '').includes('yok/1.jpg')) hataSay++; return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"test"}' }); });
   const r1 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);
   const r2 = await p.evaluate(async () => (await (await import('/src/lib/imza.ts')).imzala(['yok/1.jpg']))[0].signedUrl);
   bekle('imza hatasında adres null, önbelleğe girmiyor (ikinci çağrı yeniden soruyor)', r1 === null && r2 === null && hataSay === 2, `${hataSay} istek`);
-  await p.unroute('**/storage/v1/object/sign/**');
+  await p.unroute('**/functions/v1/kare-adres');
   // Çıkıştan önce başlayan istek, çıkıştan sonra gelince önbelleğe yazmıyor
-  await p.route('**/storage/v1/object/sign/**', async r => { await new Promise(x => setTimeout(x, 800)); await r.continue(); });
+  await p.route('**/functions/v1/kare-adres', async r => { await new Promise(x => setTimeout(x, 800)); await r.continue(); });
   const boy = await p.evaluate(async yol => {
     const m = await import('/src/lib/imza.ts'); const s = m.imzala([yol]);
     await new Promise(x => setTimeout(x, 100)); await window.__sb.auth.signOut(); await s; return m.onbellekBoyu();
@@ -105,7 +105,7 @@ try {
   await p.clock.install();
   await p.goto(APP); await p.waitForFunction(() => window.__sb, null, { timeout: 20000 });
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
-  let n = 0; p.on('request', r => { if (r.method() === 'POST' && r.url().includes('/storage/v1/object/sign/')) n++; });
+  let n = 0; p.on('request', r => { if (r.method() === 'POST' && r.url().includes('/functions/v1/kare-adres')) n++; });
   const imzala = () => p.evaluate(async y => (await (await import('/src/lib/imza.ts')).imzala([y]))[0].signedUrl, kareYollari[0]);
   const u1 = await imzala();
   await p.clock.fastForward('05:20:00'); const u2 = await imzala();

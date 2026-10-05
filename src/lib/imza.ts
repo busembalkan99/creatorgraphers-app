@@ -22,10 +22,11 @@ export async function imzala(yollar: string[]): Promise<{ signedUrl: string | nu
   if (eksik.length) {
     const benimNesil = nesil
     const istek = (async () => {
-      const { data, error } = await sb.storage.from('kareler').createSignedUrls(eksik, SURE)
+      // Kareler R2'de (karar 127): adresleri kare-adres veriyor, izinsiz ya da depoda olmayan yola null
+      const { data, error } = await sb.functions.invoke('kare-adres', { body: { is: 'oku', yollar: eksik } })
       if (error || benimNesil !== nesil) return
       const bitis = Date.now() + SURE * 1000
-      ;(data ?? []).forEach((d, i) => { if (d.signedUrl) bellek.set(eksik[i], { url: d.signedUrl, bitis }) })
+      ;((data as { adresler?: (string | null)[] } | null)?.adresler ?? []).forEach((u, i) => { if (u) bellek.set(eksik[i], { url: u, bitis }) })
     })().catch(() => {}).finally(() => eksik.forEach(y => ucusta.delete(y)))
     eksik.forEach(y => ucusta.set(y, istek))
   }

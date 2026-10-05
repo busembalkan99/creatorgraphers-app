@@ -20,17 +20,19 @@ async function imzaAnahtari(a: S3Ayar, gun: string) {
 }
 const yolu = (u: URL, a: S3Ayar, anahtar: string) => `${u.pathname.replace(/\/$/, '')}/${a.kova}/${anahtarKodla(anahtar)}`
 
-/** Süreli adres (tarayıcı kullanıyor). PUT'ta içerik türü imzaya giriyor: başka türle yüklenemez. */
-export async function presign(a: S3Ayar, yontem: 'GET' | 'PUT', anahtar: string, sure: number, icerik?: string) {
+/** Süreli adres (tarayıcı kullanıyor). PUT'ta içerik türü (ve verilirse önbellek başlığı) imzaya giriyor:
+ *  tarayıcı tam bu başlıklarla göndermezse yüklenemez. */
+export async function presign(a: S3Ayar, yontem: 'GET' | 'PUT', anahtar: string, sure: number, icerik?: string, onbellek?: string) {
   const u = new URL(a.adres)
   const t = zaman(), gun = t.slice(0, 8)
   const kapsam = `${gun}/${a.bolge}/s3/aws4_request`
-  const basliklar = icerik ? 'content-type;host' : 'host'
+  const imzali: [string, string][] = [...(onbellek ? [['cache-control', onbellek]] : []), ...(icerik ? [['content-type', icerik]] : []), ['host', u.host]] as [string, string][]
+  const basliklar = imzali.map(([k]) => k).join(';')
   const sorgu = ([['X-Amz-Algorithm', 'AWS4-HMAC-SHA256'], ['X-Amz-Credential', `${a.anahtar}/${kapsam}`], ['X-Amz-Date', t],
     ['X-Amz-Expires', String(sure)], ['X-Amz-SignedHeaders', basliklar]] as [string, string][])
     .map(([k, v]) => `${kodla(k)}=${kodla(v)}`).sort().join('&')
   const yol = yolu(u, a, anahtar)
-  const kanonik = [yontem, yol, sorgu, (icerik ? `content-type:${icerik}\n` : '') + `host:${u.host}\n`, basliklar, 'UNSIGNED-PAYLOAD'].join('\n')
+  const kanonik = [yontem, yol, sorgu, imzali.map(([k, v]) => `${k}:${v}\n`).join(''), basliklar, 'UNSIGNED-PAYLOAD'].join('\n')
   const yazi = ['AWS4-HMAC-SHA256', t, kapsam, await sha(kanonik)].join('\n')
   const imza = hex(await hmac(await imzaAnahtari(a, gun), yazi))
   return `${u.origin}${yol}?${sorgu}&X-Amz-Signature=${imza}`

@@ -19,7 +19,9 @@ bekle('yükleme adresi veriliyor', r.durum === 200 && typeof r.veri.adres === 's
 bekle('onaylamadan önce dosyalar boş', ((await admin.from('dosyalar').select('yol')).data ?? []).length === 0);
 r = await cagir(A, { is: 'onayla', yol });
 bekle('nesne yokken onay reddediliyor', r.durum === 409, JSON.stringify(r));
-await fetch((await cagir(A, { is: 'yukle', yol })).veri.adres, { method: 'PUT', body: jpg, headers: { 'content-type': 'image/jpeg' } });
+const izin = (await cagir(A, { is: 'yukle', yol })).veri;
+bekle('yükleme başlıkları bir yıllık önbellek taşıyor', izin.basliklar?.['cache-control'] === 'max-age=31536000' && izin.basliklar?.['content-type'] === 'image/jpeg', JSON.stringify(izin.basliklar));
+await fetch(izin.adres, { method: 'PUT', body: jpg, headers: izin.basliklar });
 r = await cagir(A, { is: 'onayla', yol });
 bekle('yüklenince onaylanıyor, sahibi kaydediliyor', r.durum === 200 && (await admin.from('dosyalar').select('sahip').eq('yol', yol).single()).data?.sahip === A.id, JSON.stringify(r));
 bekle('başkasının yoluna yükleme adresi yok', (await cagir(B, { is: 'yukle', yol })).durum === 403);
@@ -34,7 +36,8 @@ bekle('sahibi siliyor: R2 ve dosyalar', r.veri.silinen.length === 1 && !(await f
 bekle('bilinmeyen iş 400', (await cagir(A, { is: 'yok' })).durum === 400);
 // 8 MB üstü onaylanmıyor
 const buyuk = `${E}/${T}/${crypto.randomUUID()}.jpg`;
-await fetch((await cagir(A, { is: 'yukle', yol: buyuk })).veri.adres, { method: 'PUT', body: new Uint8Array(8 * 1024 * 1024 + 1), headers: { 'content-type': 'image/jpeg' } });
+const izinB = (await cagir(A, { is: 'yukle', yol: buyuk })).veri;
+await fetch(izinB.adres, { method: 'PUT', body: new Uint8Array(8 * 1024 * 1024 + 1), headers: izinB.basliklar });
 r = await cagir(A, { is: 'onayla', yol: buyuk });
 bekle('8 MB üstü reddediliyor ve R2den siliniyor', r.durum === 413, JSON.stringify(r));
 // Taşıma: Supabase Storage'daki dosya R2'ye, sahibiyle; ikinci çağrıda atlanıyor

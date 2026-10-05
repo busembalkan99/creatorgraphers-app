@@ -9,6 +9,8 @@ export type Govde = { is: 'oku'; yollar: string[] } | { is: 'yukle'; yol: string
 export type Baglam = { kullanici: SupabaseClient; servis: SupabaseClient; s3: S3Ayar }
 
 const OKU = 6 * 3600, YUKLE = 300, EN_COK = 8 * 1024 * 1024
+// Dosya adı tekil, içerik değişmiyor: tarayıcı bir yıl önbellekte tutuyor (egress, 2026-09-30)
+const BASLIKLAR = { 'cache-control': 'max-age=31536000', 'content-type': 'image/jpeg' }
 const cevap = (durum: number, veri: unknown) => ({ durum, veri })
 const izinli = async (b: Baglam, yollar: string[], is: string) =>
   new Set(((await b.kullanici.rpc('dosya_izni', { p_yollar: yollar, p_islem: is })).data ?? []) as string[])
@@ -23,7 +25,8 @@ export async function isle(g: Govde, b: Baglam) {
     }
     case 'yukle':
       if (!(await izinli(b, [g.yol], 'yukle')).has(g.yol)) return cevap(403, { hata: 'yetki_yok' })
-      return cevap(200, { adres: await presign(b.s3, 'PUT', g.yol, YUKLE, 'image/jpeg') })
+      // Tarayıcı PUT'u tam bu başlıklarla yapıyor (imzaya giriyorlar)
+      return cevap(200, { adres: await presign(b.s3, 'PUT', g.yol, YUKLE, BASLIKLAR['content-type'], BASLIKLAR['cache-control']), basliklar: BASLIKLAR })
     case 'onayla': {
       if (!(await izinli(b, [g.yol], 'yukle')).has(g.yol)) return cevap(403, { hata: 'yetki_yok' })
       const h = await s3Istek(b.s3, 'HEAD', g.yol)

@@ -201,4 +201,12 @@ const bu = (await kuyruk('elle_bulusma'))[0];
 bekle('buluşma: gün başlığı ve temalar', /^Buluşma günü: \d+ \S+$/.test(bu?.baslik ?? '') && bu?.govde === 'Temalar: Ses.', JSON.stringify(bu));
 await admin.from('etkinlikler').update({ bulusma_gunu: new Date(Date.now() - 2 * 864e5).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }) }).eq('id', E3);
 bekle('buluşma: gün geçince gitmiyor', (await gecerli(bu.id, saat(0))) === false);
+
+// Wrapped: yeni etkinliğin yüklemesi açılınca eski Wrapped hatırlatması kalkıyor (Buse, 2026-10-06)
+const E4 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-90), yukleme_biter: saat(-80), oylama_biter: saat(-70), kuran: A.id }).select('id').single()).data.id;
+await admin.from('etkinlikler').update({ bulusma_gunu: bes }).eq('id', E3);
+const wd = async () => (await admin.rpc('elle_durum_test', { p_simdi: saat(0) })).data.hatirlatmalar.find(x => x.tur === 'wrapped');
+bekle('wrapped: yeni etkinliğin oylaması sürerken görünmüyor', (await wd()).gorunur === false, JSON.stringify(await wd()));
+await admin.from('etkinlikler').update({ yukleme_baslar: saat(5), yukleme_biter: saat(30), oylama_biter: saat(60) }).eq('id', E3);
+bekle('wrapped: yeni etkinlik kurulu ama yükleme açılmamışken görünür', (await wd()).gorunur === true, JSON.stringify(await wd()));
 rapor();

@@ -107,7 +107,8 @@ try {
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
   // Sunucuya giden imza isteği cevaptan sayılıyor: WebKit, sahte saatte ön isteğin (CORS) süresi dolunca aynı POST'u
   // iki kez "request" diye bildiriyor
-  let n = 0; p.on('response', r => { if (r.request().method() === 'POST' && r.url().includes('/functions/v1/kare-adres')) n++; });
+  // Yalnız bu testin dosyası: suite'te önceki testlerin verisi için arka planda başka imza istekleri de gidiyor
+  let n = 0; p.on('response', r => { if (r.request().method() === 'POST' && r.url().includes('/functions/v1/kare-adres') && (r.request().postData() ?? '').includes(kareYollari[0])) n++; });
   const imzala = () => p.evaluate(async y => (await (await import('/src/lib/imza.ts')).imzala([y]))[0].signedUrl, kareYollari[0]);
   const u1 = await imzala();
   await p.clock.fastForward('05:20:00'); const u2 = await imzala();

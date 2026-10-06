@@ -43,7 +43,9 @@ create or replace function gizli.elle_gorunur(p_tur text, p_simdi timestamptz) r
     when 'yukleme' then (select (gizli.elle_acik()).yukleme_baslar <= p_simdi and p_simdi < (gizli.elle_acik()).yukleme_biter)
     when 'oy' then (select (gizli.elle_acik()).yukleme_biter <= p_simdi and p_simdi < (gizli.elle_acik()).oylama_biter)
     when 'tahmin' then (select (gizli.elle_acik()).yukleme_biter <= p_simdi and p_simdi < (gizli.elle_acik()).oylama_biter)
+    -- Yeni etkinliğin yüklemesi açılınca eski Wrapped hatırlatması kalkıyor (Buse, 2026-10-06)
     when 'wrapped' then (gizli.elle_son_sonuc()).id is not null
+                        and coalesce(public.asama(gizli.elle_acik()) not in ('yukleme', 'oylama'), true)
     when 'bulusma' then (select not (gizli.elle_acik()).serbest
                           and (gizli.elle_acik()).bulusma_gunu >= (p_simdi at time zone 'Europe/Istanbul')::date)
     else false end

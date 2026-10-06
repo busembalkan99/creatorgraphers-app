@@ -174,3 +174,40 @@ end $$;
 revoke execute on function public.elle_bildirim_gonder(text, text, text, text) from public, anon;
 grant execute on function public.elle_bildirim_gonder(text, text, text, text) to authenticated;
 revoke execute on function gizli.elle_gonder(uuid, text, text, text, text, timestamptz) from public, anon, authenticated;
+
+-- 0022'deki bildirim_gecerli, elle bildirim türleri eklenerek: hazırlarda koşul gönderim anında yeniden soruluyor
+create or replace function gizli.bildirim_gecerli(q public.bildirim_kuyrugu, p_simdi timestamptz) returns boolean
+language sql stable as $$
+  select case
+    when q.etkinlik is not null and exists (select 1 from public.etkinlikler e where e.id = q.etkinlik and e.iptal) then false
+    when q.tur <> 'istek_onay' and not exists (select 1 from public.uyeler u where u.id = q.kullanici and u.cikarildi_at is null) then false
+    when q.tur = 'istek' then exists (
+      select 1 from public.istekler i where i.id = split_part(q.anahtar, ':', 2)::uuid and i.durum = 'bekliyor')
+    when q.tur = 'hatirlatma_yukleme' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.yukleme_biter = q.son_tarih and p_simdi < q.son_tarih
+        and coalesce(array_length(gizli.bos_temalar(e.id, q.kullanici), 1), 0) > 0)
+    when q.tur = 'hatirlatma_oy' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.oylama_biter = q.son_tarih and p_simdi < q.son_tarih
+        and gizli.kalan_oy(e.id, q.kullanici) > 0)
+    when q.tur = 'yukleme_acildi' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and p_simdi < e.yukleme_biter)
+    when q.tur = 'oylama_acildi' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and p_simdi < e.oylama_biter)
+    when q.tur = 'elle_yukleme' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.yukleme_biter = q.son_tarih and p_simdi < q.son_tarih
+        and coalesce(array_length(gizli.bos_temalar(e.id, q.kullanici), 1), 0) > 0)
+    when q.tur = 'elle_oy' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.oylama_biter = q.son_tarih and p_simdi < q.son_tarih
+        and gizli.kalan_oy(e.id, q.kullanici) > 0)
+    when q.tur = 'elle_tahmin' then p_simdi < q.son_tarih
+        and not exists (select 1 from public.tahmin_oyun g where g.etkinlik = q.etkinlik and g.uye = q.kullanici)
+    when q.tur = 'elle_wrapped' then not exists (
+      select 1 from public.wrapped_izlendi w where w.uye = q.kullanici and w.etkinlik = q.etkinlik)
+    when q.tur = 'elle_tema_oner' then not exists (
+      select 1 from public.oneri_sahipleri s join public.tema_onerileri t on t.id = s.oneri
+       where s.uye = q.kullanici and t.durum = 'havuzda')
+    when q.tur = 'elle_bulusma' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.bulusma_gunu >= (p_simdi at time zone 'Europe/Istanbul')::date)
+    else true
+  end
+$$;

@@ -102,4 +102,32 @@ await gonder('serbest', gece, 'Gece', 'Gece metni', 'profil');
 const gs = (await kuyruk('elle_serbest')).filter(x => x.baslik === 'Gece');
 const sabah = new Date(gs[0]?.zaman).toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' });
 bekle('gece gönderimi 08.00\'e yazılıyor', gs.length === 3 && sabah === '08:00', sabah);
+// ---- Gönderim anı ----
+const gecerli = async (id, simdi) => (await admin.rpc('bildirim_gecerli_test', { p_id: id, p_simdi: simdi })).data;
+const w = (await kuyruk('elle_wrapped')).find(x => x.kullanici === B.id);
+await admin.from('wrapped_izlendi').insert({ uye: B.id, etkinlik: E });
+bekle('wrapped: izledikten sonra gitmiyor', (await gecerli(w.id, ogle)) === false);
+const t = (await kuyruk('elle_tema_oner')).find(x => x.kullanici === C.id);
+const o2 = (await admin.from('tema_onerileri').insert({ ad: 'Su', anahtar: 'su' }).select('id').single()).data;
+await admin.from('oneri_sahipleri').insert({ oneri: o2.id, uye: C.id });
+bekle('tema önerisi: öneri yaptıktan sonra gitmiyor', (await gecerli(t.id, ertesi)) === false);
+bekle('serbest hep geçerli', (await gecerli(s[0].id, ogle)) === true);
+// Yükleme: işini yapan gitmiyor
+const geceYarim = new Date(Date.parse(`${bugun}T20:30:00Z`)).toISOString();   // bugün İstanbul 23.30
+const E2 = (await admin.from('etkinlikler').insert({ bulusma_gunu: yarin, yukleme_baslar: new Date(Math.min(Date.now(), Date.parse(geceYarim)) - 3600e3).toISOString(), yukleme_biter: saat(8), oylama_biter: saat(30), kuran: A.id }).select('id').single()).data.id;
+await admin.from('etkinlikler').update({ iptal: true }).eq('id', E);
+const T3 = (await admin.from('temalar').insert({ etkinlik: E2, ad: 'Işık', sira: 1, bulusmada: false }).select('id').single()).data.id;
+await admin.from('elle_bildirimler').delete().neq('id', 0);
+await admin.rpc('elle_gonder_test', { p_gonderen: A.id, p_tur: 'yukleme', p_baslik: null, p_govde: null, p_adres: null, p_simdi: new Date().toISOString() });
+const y = (await kuyruk('elle_yukleme')).find(x => x.kullanici === C.id);
+bekle('yükleme hatırlatması metni otomatikle aynı biçimde', /^Yükleme \d+ saat sonra kapanıyor$/.test(y?.baslik) && y?.govde === 'Işık temasına karen yok', JSON.stringify(y));
+const yolC = `${E2}/${T3}/${crypto.randomUUID()}.jpg`;
+await admin.from('dosyalar').insert({ yol: yolC, sahip: C.id, etkinlik: E2, boyut: 1 });
+await admin.from('kareler').insert({ tema: T3, sahip: C.id, dosya: yolC, genislik: 10, yukseklik: 10 });
+bekle('yükleme: kare verdikten sonra gitmiyor', (await gecerli(y.id, new Date().toISOString())) === false);
+// Gece ertelemesi yüklemenin kapanışını geçiyorsa hiç kuyruğa girmiyor (Review Focus 1)
+await admin.from('elle_bildirimler').delete().neq('id', 0);
+const kapanis = new Date(Date.parse(`${bugun}T04:00:00Z`) + 864e5).toISOString();   // yarın İstanbul 07.00
+await admin.from('etkinlikler').update({ yukleme_biter: kapanis }).eq('id', E2);
+bekle('08.00\'e kalan ve o saatte kapanmış yükleme: alici_yok', /alici_yok/.test(hata(await admin.rpc('elle_gonder_test', { p_gonderen: A.id, p_tur: 'yukleme', p_baslik: null, p_govde: null, p_adres: null, p_simdi: geceYarim }))));
 rapor();

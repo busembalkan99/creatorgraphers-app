@@ -74,4 +74,32 @@ bekle('wrapped görünür, etiket etkinlik günü', d.hatirlatmalar.find(x => x.
 const iptal = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-50), yukleme_biter: saat(-40), oylama_biter: saat(-0.1), kuran: A.id, iptal: true }).select('id').single()).data.id;
 bekle('iptal edilen etkinlik wrapped için seçilmiyor', (await sayi('wrapped')) === 2);
 bekle('serbest: bütün aboneler', (await sayi('serbest')) === 3);
+// ---- Gönderme ----
+const kuyruk = async tur => (await admin.from('bildirim_kuyrugu').select('id, kullanici, baslik, govde, adres, zaman, son_tarih').eq('tur', tur)).data ?? [];
+const gonder = (tur, simdi, baslik = null, govde = null, adres = null) =>
+  admin.rpc('elle_gonder_test', { p_gonderen: A.id, p_tur: tur, p_baslik: baslik, p_govde: govde, p_adres: adres, p_simdi: simdi });
+bekle('üye gönderemiyor', /yetki_yok/.test(hata(await B.c.rpc('elle_bildirim_gonder', { p_tur: 'tema_oner' }))));
+const ogle = new Date(`${bugun}T09:00:00Z`).toISOString();   // İstanbul 12.00
+let g = await gonder('wrapped', ogle);
+bekle('wrapped gönderildi: 2 kişi', g.data === 2 && (await kuyruk('elle_wrapped')).length === 2, hata(g));
+bekle('kayıt tutuldu', ((await admin.from('elle_bildirimler').select('alici').eq('tur', 'wrapped')).data ?? [])[0]?.alici === 2);
+bekle('aynı gün aynı hatırlatma kişiye bir kez (kuyruk tekrar etmiyor)', (await gonder('wrapped', ogle), (await kuyruk('elle_wrapped')).length === 2));
+// Yukarıdaki ikinci wrapped hakkı yedi mi? Alıcı 0 olduğu için yememeli
+bekle('alıcısı kalmayan gönderim alici_yok, hak yemiyor', (await admin.from('elle_bildirimler').select('id')).data.length === 1);
+// Serbest metin
+bekle('serbest: 41 karakter başlık reddediliyor', /metin_gecersiz/.test(hata(await gonder('serbest', ogle, 'x'.repeat(41), 'Metin', 'etkinlikler'))));
+bekle('serbest: boş metin reddediliyor', /metin_gecersiz/.test(hata(await gonder('serbest', ogle, 'Başlık', '   ', 'etkinlikler'))));
+bekle('serbest: listede olmayan adres reddediliyor', /metin_gecersiz/.test(hata(await gonder('serbest', ogle, 'Başlık', 'Metin', 'uyeler'))));
+g = await gonder('serbest', ogle, '  Cumartesi buluşuyoruz ', 'Saat 10.00, Karaköy iskelesi.', 'etkinlikler');
+const s = await kuyruk('elle_serbest');
+bekle('serbest: bütün abonelere, başlık kırpılmış', g.data === 3 && s.length === 3 && s.every(x => x.baslik === 'Cumartesi buluşuyoruz' && x.adres === 'etkinlikler'), JSON.stringify(s[0]));
+bekle('günün üçüncü gönderimi reddediliyor', /elle_sinir/.test(hata(await gonder('tema_oner', ogle))));
+const ertesi = new Date(Date.parse(ogle) + 864e5).toISOString();
+bekle('ertesi gün hak yenileniyor', (await gonder('tema_oner', ertesi)).data === 3);
+// Gece: İstanbul 23.30 → 08.00
+const gece = new Date(Date.parse(ertesi) + 11.5 * 3600e3).toISOString();   // 23.30
+await gonder('serbest', gece, 'Gece', 'Gece metni', 'profil');
+const gs = (await kuyruk('elle_serbest')).filter(x => x.baslik === 'Gece');
+const sabah = new Date(gs[0]?.zaman).toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', minute: '2-digit' });
+bekle('gece gönderimi 08.00\'e yazılıyor', gs.length === 3 && sabah === '08:00', sabah);
 rapor();

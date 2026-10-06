@@ -133,3 +133,44 @@ revoke execute on function public.elle_bildirim_durumu() from public, anon;
 grant execute on function public.elle_bildirim_durumu() to authenticated;
 revoke execute on function gizli.elle_alicilar(text, timestamptz), gizli.elle_gorunur(text, timestamptz), gizli.tum_oy_kalan(uuid, uuid),
   gizli.elle_acik(), gizli.elle_son_sonuc(), gizli.elle_kalan(timestamptz) from public, anon, authenticated;
+create or replace function gizli.elle_gonder(p_gonderen uuid, p_tur text, p_baslik text, p_govde text, p_adres text, p_simdi timestamptz)
+returns int language plpgsql security definer set search_path = public as $$
+declare
+  z timestamptz := greatest(p_simdi, gizli.gece_disi(p_simdi, false));
+  gun text := to_char(p_simdi at time zone 'Europe/Istanbul', 'YYYY-MM-DD');
+  b text := btrim(coalesce(p_baslik, '')); g text := btrim(coalesce(p_govde, ''));
+  kayit bigint; n int := 0; r record;
+begin
+  -- Aynı anda iki gönderim sınırı aşmasın
+  perform pg_advisory_xact_lock(hashtext('elle_bildirim'));
+  if p_tur = 'serbest' and (char_length(b) not between 1 and 40 or char_length(g) not between 1 and 140
+       or p_adres is null or p_adres not in ('etkinlikler','siralama','oner','profil')) then
+    raise exception 'metin_gecersiz' using errcode = 'P0001';
+  end if;
+  if gizli.elle_kalan(p_simdi) <= 0 then raise exception 'elle_sinir' using errcode = 'P0001'; end if;
+  insert into public.elle_bildirimler (gonderen, tur, baslik, govde, adres, alici, zaman)
+  values (p_gonderen, p_tur, coalesce(nullif(b, ''), p_tur), coalesce(nullif(g, ''), ''), coalesce(p_adres, ''), 0, p_simdi)
+  returning id into kayit;
+  for r in select * from gizli.elle_alicilar(p_tur, z) loop
+    n := n + gizli.kuyruga(r.uye,
+      case when p_tur = 'serbest' then 'elle_serbest:' || kayit || ':' || r.uye else 'elle_' || p_tur || ':' || gun || ':' || r.uye end,
+      'elle_' || p_tur, r.etkinlik,
+      case when p_tur = 'serbest' then b else r.baslik end,
+      case when p_tur = 'serbest' then g else r.govde end,
+      case when p_tur = 'serbest' then p_adres else r.adres end,
+      z, r.son_tarih);
+  end loop;
+  if n = 0 then raise exception 'alici_yok' using errcode = 'P0001'; end if;   -- kayıt geri alınıyor, hak yenmiyor
+  update public.elle_bildirimler set alici = n where id = kayit;   -- hazırlarda başlık tür adı; ekran etiketini kendisi yazıyor
+  return n;
+end $$;
+
+create or replace function public.elle_bildirim_gonder(p_tur text, p_baslik text default null, p_govde text default null, p_adres text default null)
+returns int language plpgsql security definer set search_path = public as $$
+begin
+  if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
+  return gizli.elle_gonder(auth.uid(), p_tur, p_baslik, p_govde, p_adres, now());
+end $$;
+revoke execute on function public.elle_bildirim_gonder(text, text, text, text) from public, anon;
+grant execute on function public.elle_bildirim_gonder(text, text, text, text) to authenticated;
+revoke execute on function gizli.elle_gonder(uuid, text, text, text, text, timestamptz) from public, anon, authenticated;

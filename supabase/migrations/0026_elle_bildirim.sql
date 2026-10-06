@@ -9,7 +9,8 @@ create table if not exists public.elle_bildirimler (
   govde    text not null,
   adres    text not null,
   alici    int not null,
-  zaman    timestamptz not null default now()
+  zaman    timestamptz not null default now(),
+  gun      date not null   -- teslim günü (İstanbul): gece gönderilen ertesi sabaha kalıyor; hak ve tekrar buna göre
 );
 alter table public.elle_bildirimler enable row level security;
 revoke all on public.elle_bildirimler from anon, authenticated;
@@ -105,44 +106,62 @@ begin
   end if;
 end $$;
 
-create or replace function gizli.elle_kalan(p_simdi timestamptz) returns int language sql stable as $$
-  select greatest(0, 2 - count(*))::int from public.elle_bildirimler
-   where (zaman at time zone 'Europe/Istanbul')::date = (p_simdi at time zone 'Europe/Istanbul')::date
+-- Fotoğrafa bağlı hatırlatmalar: alıcı sayısı yöneticiye gösterilmiyor (kare çıkar/geri al ile sahibi çıkarılabiliyordu;
+-- 0010/0012/0013'teki oy ilerlemesi açığının aynısı, kod incelemesi F1, Buse 2026-10-06)
+create or replace function gizli.elle_sayisiz(p_tur text) returns boolean language sql immutable as $$
+  select p_tur in ('yukleme', 'oy', 'tahmin')
 $$;
 
-create or replace function public.elle_bildirim_durumu() returns jsonb
+create or replace function gizli.elle_teslim(p_simdi timestamptz) returns timestamptz language sql stable as $$
+  select greatest(p_simdi, gizli.gece_disi(p_simdi, false))
+$$;
+
+create or replace function gizli.elle_kalan(p_gun date) returns int language sql stable as $$
+  select greatest(0, 2 - count(*))::int from public.elle_bildirimler where gun = p_gun
+$$;
+
+create or replace function gizli.elle_durum(simdi timestamptz) returns jsonb
 language plpgsql stable security definer set search_path = public as $$
-declare simdi timestamptz := now(); z timestamptz := greatest(now(), gizli.gece_disi(now(), false));
-  gun text := to_char(now() at time zone 'Europe/Istanbul', 'YYYY-MM-DD');
+declare z timestamptz := gizli.elle_teslim(simdi);
+  gz date := (gizli.elle_teslim(simdi) at time zone 'Europe/Istanbul')::date;
 begin
-  if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
   return jsonb_build_object(
-    'kalan', gizli.elle_kalan(simdi),
+    'kalan', gizli.elle_kalan(gz),
     'abone', (select count(*) from gizli.abone_uyeler()),
     'gece', z > simdi,
     'hatirlatmalar', (select jsonb_agg(jsonb_build_object(
         'tur', t, 'gorunur', coalesce(gizli.elle_gorunur(t, simdi), false),
-        -- Bugün bu hatırlatmayı almış olan sayılmıyor (aynı gün ikinci kez gitmiyor)
-        'alici', (select count(*) from gizli.elle_alicilar(t, z) a where not exists (
-                   select 1 from public.bildirim_kuyrugu q where q.anahtar = 'elle_' || t || ':' || gun || ':' || a.uye)),
-        'bugun', exists (select 1 from public.elle_bildirimler b where b.tur = t
-                          and (b.zaman at time zone 'Europe/Istanbul')::date = (simdi at time zone 'Europe/Istanbul')::date),
+        -- Sayı yalnız görünen ve fotoğrafa bağlı olmayan satırda; teslim gününde almış olan sayılmıyor
+        'alici', case when gizli.elle_sayisiz(t) or not coalesce(gizli.elle_gorunur(t, simdi), false) then null
+                 else (select count(*) from gizli.elle_alicilar(t, z) a where not exists (
+                   select 1 from public.bildirim_kuyrugu q where q.anahtar = 'elle_' || t || ':' || gz || ':' || a.uye)) end,
+        'bugun', exists (select 1 from public.elle_bildirimler b where b.tur = t and b.gun = gz),
         'etiket', case when t = 'wrapped' then (select case when x.serbest then 'Ekstra etkinlik' else gizli.gun_yaz(x.bulusma_gunu) end
                                                  from gizli.elle_son_sonuc() x where x.id is not null) end) order by n)
       from unnest(array['tema_oner','yukleme','oy','tahmin','wrapped','bulusma']) with ordinality as x(t, n)),
-    'son', coalesce((select jsonb_agg(jsonb_build_object('tur', b.tur, 'baslik', b.baslik, 'alici', b.alici, 'zaman', b.zaman) order by b.zaman desc)
+    'son', coalesce((select jsonb_agg(jsonb_build_object('tur', b.tur, 'baslik', b.baslik,
+        'alici', case when gizli.elle_sayisiz(b.tur) then null else b.alici end, 'zaman', b.zaman) order by b.zaman desc)
       from (select * from public.elle_bildirimler order by zaman desc limit 10) b), '[]'::jsonb));
+end $$;
+
+create or replace function public.elle_bildirim_durumu() returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
+  return gizli.elle_durum(now());
 end $$;
 
 revoke execute on function public.elle_bildirim_durumu() from public, anon;
 grant execute on function public.elle_bildirim_durumu() to authenticated;
 revoke execute on function gizli.elle_alicilar(text, timestamptz), gizli.elle_gorunur(text, timestamptz), gizli.tum_oy_kalan(uuid, uuid),
-  gizli.elle_acik(), gizli.elle_son_sonuc(), gizli.elle_kalan(timestamptz) from public, anon, authenticated;
+  gizli.elle_acik(), gizli.elle_son_sonuc(), gizli.elle_kalan(date), gizli.elle_sayisiz(text), gizli.elle_teslim(timestamptz),
+  gizli.elle_durum(timestamptz) from public, anon, authenticated;
 create or replace function gizli.elle_gonder(p_gonderen uuid, p_tur text, p_baslik text, p_govde text, p_adres text, p_simdi timestamptz)
 returns int language plpgsql security definer set search_path = public as $$
 declare
-  z timestamptz := greatest(p_simdi, gizli.gece_disi(p_simdi, false));
-  gun text := to_char(p_simdi at time zone 'Europe/Istanbul', 'YYYY-MM-DD');
+  z timestamptz := gizli.elle_teslim(p_simdi);
+  gz date := (gizli.elle_teslim(p_simdi) at time zone 'Europe/Istanbul')::date;   -- teslim günü
+  gun text := to_char(gizli.elle_teslim(p_simdi) at time zone 'Europe/Istanbul', 'YYYY-MM-DD');
   b text := btrim(coalesce(p_baslik, '')); g text := btrim(coalesce(p_govde, ''));
   kayit bigint; n int := 0; r record;
 begin
@@ -152,9 +171,9 @@ begin
        or p_adres is null or p_adres not in ('etkinlikler','siralama','oner','profil')) then
     raise exception 'metin_gecersiz' using errcode = 'P0001';
   end if;
-  if gizli.elle_kalan(p_simdi) <= 0 then raise exception 'elle_sinir' using errcode = 'P0001'; end if;
-  insert into public.elle_bildirimler (gonderen, tur, baslik, govde, adres, alici, zaman)
-  values (p_gonderen, p_tur, coalesce(nullif(b, ''), p_tur), coalesce(nullif(g, ''), ''), coalesce(p_adres, ''), 0, p_simdi)
+  if gizli.elle_kalan(gz) <= 0 then raise exception 'elle_sinir' using errcode = 'P0001'; end if;
+  insert into public.elle_bildirimler (gonderen, tur, baslik, govde, adres, alici, zaman, gun)
+  values (p_gonderen, p_tur, coalesce(nullif(b, ''), p_tur), coalesce(nullif(g, ''), ''), coalesce(p_adres, ''), 0, p_simdi, gz)
   returning id into kayit;
   for r in select * from gizli.elle_alicilar(p_tur, z) loop
     n := n + gizli.kuyruga(r.uye,
@@ -167,7 +186,7 @@ begin
   end loop;
   if n = 0 then raise exception 'alici_yok' using errcode = 'P0001'; end if;   -- kayıt geri alınıyor, hak yenmiyor
   update public.elle_bildirimler set alici = n where id = kayit;   -- hazırlarda başlık tür adı; ekran etiketini kendisi yazıyor
-  return n;
+  return case when gizli.elle_sayisiz(p_tur) then null else n end;
 end $$;
 
 create or replace function public.elle_bildirim_gonder(p_tur text, p_baslik text default null, p_govde text default null, p_adres text default null)
@@ -204,7 +223,8 @@ language sql stable as $$
     when q.tur = 'elle_oy' then exists (
       select 1 from public.etkinlikler e where e.id = q.etkinlik and e.oylama_biter = q.son_tarih and p_simdi < q.son_tarih
         and gizli.kalan_oy(e.id, q.kullanici) > 0)
-    when q.tur = 'elle_tahmin' then p_simdi < q.son_tarih
+    when q.tur = 'elle_tahmin' then exists (
+      select 1 from public.etkinlikler e where e.id = q.etkinlik and e.oylama_biter = q.son_tarih and p_simdi < q.son_tarih)
         and not exists (select 1 from public.tahmin_oyun g where g.etkinlik = q.etkinlik and g.uye = q.kullanici)
     when q.tur = 'elle_wrapped' then not exists (
       select 1 from public.wrapped_izlendi w where w.uye = q.kullanici and w.etkinlik = q.etkinlik)

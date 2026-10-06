@@ -8,6 +8,11 @@ const B = await kullanici('baris@test.local', 'Barış Ak'); await admin.from('u
 await admin.from('uyeler').update({ hosgeldin_goruldu: true }).neq('id', '00000000-0000-0000-0000-000000000000');
 for (const [u, n] of [[A, 'a'], [B, 'b']]) await u.c.rpc('bildirim_abone_ol', { p_endpoint: `https://push.example/${n}`, p_p256dh: 'p', p_auth: 'a' });
 
+// Yükleme süren bir etkinlik: fotoğrafa bağlı hatırlatma sayısız (kod incelemesi F1)
+const saat = h => new Date(Date.now() + h * 3600e3).toISOString();
+const E = (await admin.from('etkinlikler').insert({ bulusma_gunu: new Date(Date.now() + 3 * 864e5).toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' }), yukleme_baslar: saat(-2), yukleme_biter: saat(40), oylama_biter: saat(80), kuran: A.id }).select('id').single()).data.id;
+await admin.from('temalar').insert({ etkinlik: E, ad: 'Gece', sira: 1, bulusmada: false });
+
 const b = await webkit.launch(); const hatalar = [];
 const giris = async eposta => {
   const p = await (await b.newContext({ ...devices['iPhone 14'] })).newPage();
@@ -28,7 +33,13 @@ try {
   bekle('ekran açılıyor, bugün 2 hak', m.includes('bildirim gönder') && m.includes('bugün 2 hakkın var'), m.slice(0, 200));
   const tema = P.locator('.satir-kartlari').first().locator('.satir', { hasText: 'Tema önerebilirsin' });
   bekle('tema önerisi satırında 2 kişiye gidecek', (await tema.innerText()).includes('2 kişiye gidecek'), await tema.innerText());
-  bekle('etkinlik yokken oy hatırlatması görünmüyor', !m.includes('oy vermedin'));
+  bekle('oylama sürmezken oy hatırlatması görünmüyor', !m.includes('oy vermedin'));
+  const yuk = P.locator('.satir-kartlari').first().locator('.satir', { hasText: 'Fotoğraf yüklemedin' });
+  const yukMetin = (await yuk.innerText()).toLocaleLowerCase('tr-TR');
+  bekle('F1: yükleme satırı sayısız, işi kalana gidecek', yukMetin.includes('işi kalana gidecek') && !/\d+ kişiye/.test(yukMetin), yukMetin);
+  await yuk.getByRole('button', { name: 'Gönder' }).click(); await P.waitForTimeout(300);
+  bekle('F1: onay sayı söylemiyor', (await metin(P)).includes('işi kalanlara gönderilsin mi?') && !(await P.locator('.onay').innerText()).match(/\d+ KİŞİYE/));
+  await P.locator('.onay').getByRole('button', { name: 'Vazgeç' }).click(); await P.waitForTimeout(200);
   bekle('üye kimliği ya da adı yok', !m.includes('barış'));
   // Onay ve gönderme
   await tema.getByRole('button', { name: 'Gönder' }).click(); await P.waitForTimeout(300);
@@ -38,6 +49,7 @@ try {
   m = await metin(P);
   bekle('kuyrukta 2 bildirim', k.length === 2, String(k.length));
   bekle('kalan hak 1', m.includes('bugün 1 hakkın kaldı'), m.slice(0, 200));
+  bekle('F7: sonuç düğmenin altında', (await P.locator('.satir-kartlari').first().locator('.gonderildi').innerText().catch(() => '')).includes('2 kişiye gönderildi'), await metin(P));
   bekle('son gönderilenlerde satır', /son gönderilenler.*tema önerebilirsin.*2 kişi/.test(m), m.slice(-200));
   bekle('aynı hatırlatma artık kimseye gitmiyor: sönük, sebep yazıyor', (await tema.innerText()).includes('Bugün herkese gitti'), await tema.innerText());
   // Kendin yaz

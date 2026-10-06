@@ -6,6 +6,7 @@ import { git } from '../lib/yol'
 import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { DUZENLER, fontlarHazir, kartBasligi, kartCiz, type Duzen, type KartVeri } from '../lib/paylasimKarti'
 import { imzala } from '../lib/imza'
+import { resimYukle } from '../lib/resim'
 
 /**
  * Paylaşım kartı seçim ekranı (karar 104, B): dört düzen, tek kart ortada, yanlara kaydırmalı.
@@ -26,17 +27,6 @@ export function paylasilacakKare(kareler: SK[]) {
   const benim = kareler.filter(k => k.benim && !k.cikarildi)
   const sirali = benim.filter(k => k.sirali && k.sira != null).sort((a, b) => a.sira! - b.sira! || (b.ortalama ?? 0) - (a.ortalama ?? 0))
   return sirali[0] ?? [...benim].sort((a, b) => (b.ortalama ?? -1) - (a.ortalama ?? -1))[0] ?? null
-}
-
-function resimYukle(url: string | null): Promise<HTMLImageElement | null> {
-  if (!url) return Promise.resolve(null)
-  return new Promise(r => {
-    const im = new Image()
-    im.crossOrigin = 'anonymous'   // tuvalden PNG alınabilsin
-    im.onload = () => r(im)
-    im.onerror = () => r(null)
-    im.src = url
-  })
 }
 
 export function Paylas({ etkinlikId }: { etkinlikId: string }) {

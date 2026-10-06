@@ -260,6 +260,10 @@ function Ayarlar({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }
                 <div className="deg">Aç</div>
               </button>
             )}
+            <button className="satir" onClick={() => git('bildirim')}>
+              <div className="tx"><b>Bildirim gönder</b><span>Hatırlatma ya da duyuru</span></div>
+              <div className="deg">Aç</div>
+            </button>
             <button className="satir" onClick={() => git('uyeler')}>
               <div className="tx"><b>Üyeler</b><span>{uye.rol === 'kurucu' ? 'İstekler, roller' : 'Katılma istekleri, üye listesi'}</span></div>
               <div className="deg">Aç</div>

@@ -113,6 +113,7 @@ $$;
 create or replace function public.elle_bildirim_durumu() returns jsonb
 language plpgsql stable security definer set search_path = public as $$
 declare simdi timestamptz := now(); z timestamptz := greatest(now(), gizli.gece_disi(now(), false));
+  gun text := to_char(now() at time zone 'Europe/Istanbul', 'YYYY-MM-DD');
 begin
   if not public.yonetici_mi() then raise exception 'yetki_yok' using errcode = 'P0001'; end if;
   return jsonb_build_object(
@@ -121,7 +122,11 @@ begin
     'gece', z > simdi,
     'hatirlatmalar', (select jsonb_agg(jsonb_build_object(
         'tur', t, 'gorunur', coalesce(gizli.elle_gorunur(t, simdi), false),
-        'alici', (select count(*) from gizli.elle_alicilar(t, z)),
+        -- Bugün bu hatırlatmayı almış olan sayılmıyor (aynı gün ikinci kez gitmiyor)
+        'alici', (select count(*) from gizli.elle_alicilar(t, z) a where not exists (
+                   select 1 from public.bildirim_kuyrugu q where q.anahtar = 'elle_' || t || ':' || gun || ':' || a.uye)),
+        'bugun', exists (select 1 from public.elle_bildirimler b where b.tur = t
+                          and (b.zaman at time zone 'Europe/Istanbul')::date = (simdi at time zone 'Europe/Istanbul')::date),
         'etiket', case when t = 'wrapped' then (select case when x.serbest then 'Ekstra etkinlik' else gizli.gun_yaz(x.bulusma_gunu) end
                                                  from gizli.elle_son_sonuc() x where x.id is not null) end) order by n)
       from unnest(array['tema_oner','yukleme','oy','tahmin','wrapped','bulusma']) with ordinality as x(t, n)),

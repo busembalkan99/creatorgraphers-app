@@ -82,6 +82,10 @@ bekle('üye gönderemiyor', /yetki_yok/.test(hata(await B.c.rpc('elle_bildirim_g
 const ogle = new Date(`${bugun}T09:00:00Z`).toISOString();   // İstanbul 12.00
 let g = await gonder('wrapped', ogle);
 bekle('wrapped gönderildi: 2 kişi', g.data === 2 && (await kuyruk('elle_wrapped')).length === 2, hata(g));
+{
+  const w0 = (await A.c.rpc('elle_bildirim_durumu')).data.hatirlatmalar.find(x => x.tur === 'wrapped');
+  bekle('gönderilen hatırlatma bugün sayılmıyor, bugün gönderildi işaretli', w0.alici === 0 && w0.bugun === true, JSON.stringify(w0));
+}
 bekle('kayıt tutuldu', ((await admin.from('elle_bildirimler').select('alici').eq('tur', 'wrapped')).data ?? [])[0]?.alici === 2);
 bekle('aynı gün aynı hatırlatma kişiye bir kez (kuyruk tekrar etmiyor)', (await gonder('wrapped', ogle), (await kuyruk('elle_wrapped')).length === 2));
 // Yukarıdaki ikinci wrapped hakkı yedi mi? Alıcı 0 olduğu için yememeli

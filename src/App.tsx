@@ -21,6 +21,7 @@ import { Paylas } from './ekranlar/Paylas'
 import { Tahmin } from './ekranlar/Tahmin'
 import { Siralama, siralamaVerisi } from './ekranlar/Siralama'
 import { Havuz, OneriFormu } from './ekranlar/Oneri'
+import { BildirimGonder } from './ekranlar/Bildirim'
 
 export default function App() {
   if (ayarEksik) return <AyarEksik />
@@ -161,7 +162,7 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   // profil/<kimlik>: başkasının profili, alt ekran. Kendi kimliğin sekmeye düşüyor.
   const kisiId = yol.startsWith('profil/') && yol.slice(7) !== uye.id ? yol.slice(7) : null
   const profil = <Profil uye={uye} uyeDegisti={uyeDegisti} hedef={kisiId ?? undefined} />
-  const hedef = yonetici || !['uyeler', 'kur', 'asama', 'havuz'].includes(yol)
+  const hedef = yonetici || !['uyeler', 'kur', 'asama', 'havuz', 'bildirim'].includes(yol)
     ? temaId ? 'oyla-tema' : sonucId ? 'sonuc' : wrappedId ? 'wrapped' : paylasId ? 'paylas' : tahminId ? 'tahmin' : kisiId ? 'kisi' : yol.startsWith('profil') ? 'profil' : yol
     : 'profil'
   switch (hedef) {
@@ -191,6 +192,9 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
       break
     case 'kur':
       ekran = <Kur />
+      break
+    case 'bildirim':
+      ekran = <BildirimGonder />
       break
     case 'havuz':
       ekran = <Havuz />

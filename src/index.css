@@ -1011,4 +1011,6 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 .bildirim-onizleme span{display:block;font-size:10px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft)}
 .bildirim-onizleme b{display:block;margin-top:6px;font-size:13px;font-weight:800;overflow-wrap:anywhere}
 .bildirim-onizleme p{margin-top:3px;font-size:12px;line-height:1.45;color:var(--soft);overflow-wrap:anywhere}
-.alan textarea{width:100%;background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--rule);font:inherit;padding:8px 0;resize:vertical}
+.alan textarea{width:100%;background:transparent;color:var(--ink);font:inherit;font-size:16px;font-weight:700;line-height:1.45;
+  border:0;border-bottom:1px solid var(--rule);border-radius:0;padding:12px 0 14px;outline:none;resize:none;color-scheme:dark}
+.alan textarea:focus{border-bottom-color:var(--ink)}

@@ -93,12 +93,12 @@ export function BildirimGonder() {
       <h2 className="kart-bas">Kendin yaz<span>Bildirimi açık {d.abone} kişiye</span></h2>
       <div className="alan">
         <label className="lab" htmlFor="eb-baslik">Başlık</label>
-        <input id="eb-baslik" value={baslik} maxLength={40} onChange={e => setBaslik(e.target.value)} />
+        <input id="eb-baslik" className="not" value={baslik} maxLength={40} onChange={e => setBaslik(e.target.value)} />
         <div className="ipucu">{baslik.length} / 40</div>
       </div>
       <div className="alan">
         <label className="lab" htmlFor="eb-metin">Metin</label>
-        <textarea id="eb-metin" value={metin} maxLength={140} rows={3} onChange={e => setMetin(e.target.value)} />
+        <textarea id="eb-metin" className="not" value={metin} maxLength={140} rows={3} onChange={e => setMetin(e.target.value)} />
         <div className="ipucu">{metin.length} / 140</div>
       </div>
       <div className="alan">

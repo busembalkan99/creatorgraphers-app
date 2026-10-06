@@ -10,10 +10,11 @@ export async function resimYukle(url: string | null): Promise<HTMLImageElement |
     const r = await fetch(url, { mode: 'cors', cache: 'no-store' })
     if (!r.ok) return null
     const adres = URL.createObjectURL(await r.blob())
+    // Çözülen resim tuvale çizilebiliyor; bellek kopyası tutulmuyor (ekran başına 7'ye kadar tam boy JPEG)
     return await new Promise(son => {
       const im = new Image()
-      im.onload = () => son(im)
-      im.onerror = () => son(null)
+      im.onload = () => { URL.revokeObjectURL(adres); son(im) }
+      im.onerror = () => { URL.revokeObjectURL(adres); son(null) }
       im.src = adres
     })
   } catch {

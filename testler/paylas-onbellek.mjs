@@ -46,6 +46,18 @@ try {
   bekle('403 (süresi geçmiş imza, CORS başlığıyla) resim null', yasak === 'null', yasak);
   const bozuk = await dene('http://127.0.0.1:8767/bozuk.jpg?X-Amz-Signature=abc');
   bekle('200 ama resim olmayan gövde null', bozuk === 'null', bozuk);
+  // Bellek kopyası çizimden sonra tutulmuyor (kod incelemesi: paylaşım ekranı başına 7 tam boy JPEG); bırakılınca da çiziliyor
+  const birakma = await p.evaluate(async () => {
+    const birakilan = []; const asil = URL.revokeObjectURL.bind(URL);
+    URL.revokeObjectURL = u => { birakilan.push(u); asil(u); };
+    const { resimYukle } = await import('/src/lib/resim.ts');
+    const im = await resimYukle('http://127.0.0.1:8767/kare.jpg?X-Amz-Signature=bir');
+    const c = document.createElement('canvas'); c.width = 8; c.height = 8; c.getContext('2d').drawImage(im, 0, 0, 8, 8);
+    let temiz = true; try { c.toDataURL('image/png'); } catch { temiz = false; }
+    URL.revokeObjectURL = asil;
+    return { birakildi: !!im && birakilan.includes(im.src), temiz };
+  });
+  bekle('yüklenen resmin bellek kopyası bırakılıyor, tuvale yine çiziliyor', birakma.birakildi && birakma.temiz, JSON.stringify(birakma));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); sunucu.close(); }
 rapor();

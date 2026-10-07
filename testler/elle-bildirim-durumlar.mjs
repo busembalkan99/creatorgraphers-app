@@ -137,6 +137,8 @@ try {
   await ac(P, 'bildirim');
   const tema = await blok(P, 'Tema önerebilirsin').locator('.satir').innerText();
   bekle('gece, alıcı 0: Şu an kimseye gitmiyor', tema.includes('Şu an kimseye gitmiyor'), tema);
+  const lede = await P.locator('.lede').innerText();
+  bekle('F4: gece hak metni yarın sabahın hakkını söylüyor', lede.includes('Yarın sabah için'), lede);
   bekle('alıcı 0 iken satırın Gönder düğmesi kapalı', await gonderDugmesi(P, 'Tema önerebilirsin').isDisabled());
   const wr = await blok(P, "Wrapped'ini izlemedin").locator('.satir').innerText();
   bekle("Ekstra etkinlik Wrapped'inin kime metni", wr.includes("Ekstra etkinliğin Wrapped'ini açmamış olanlara"), wr);

@@ -11,6 +11,10 @@ create or replace function public.bildirim_gecerli_test(p_id bigint, p_simdi tim
   language sql stable security definer set search_path = public as $$ select gizli.bildirim_gecerli(q, p_simdi) from public.bildirim_kuyrugu q where q.id = p_id $$;
 create or replace function public.elle_durum_test(p_simdi timestamptz) returns jsonb
   language sql stable security definer set search_path = public as $$ select gizli.elle_durum(p_simdi) $$;
+create or replace function public.bildirim_omru_test(p_tur text) returns interval
+  language sql stable security definer set search_path = public as $$ select gizli.bildirim_omru(p_tur) $$;
+revoke execute on function public.bildirim_omru_test(text) from public, anon, authenticated;
+grant execute on function public.bildirim_omru_test(text) to service_role;
 revoke execute on function public.elle_durum_test(timestamptz) from public, anon, authenticated;
 grant execute on function public.elle_durum_test(timestamptz) to service_role;
 revoke execute on function public.elle_gonder_test(uuid, text, text, text, text, timestamptz), public.elle_alici_sayisi_test(text, timestamptz), public.bildirim_gecerli_test(bigint, timestamptz) from public, anon, authenticated;
@@ -209,4 +213,21 @@ const wd = async () => (await admin.rpc('elle_durum_test', { p_simdi: saat(0) })
 bekle('wrapped: yeni etkinliğin oylaması sürerken görünmüyor', (await wd()).gorunur === false, JSON.stringify(await wd()));
 await admin.from('etkinlikler').update({ yukleme_baslar: saat(5), yukleme_biter: saat(30), oylama_biter: saat(60) }).eq('id', E3);
 bekle('wrapped: yeni etkinlik kurulu ama yükleme açılmamışken görünür', (await wd()).gorunur === true, JSON.stringify(await wd()));
+
+// Kod inceleme paneli (b38984b) F1: gece gönderilen Wrapped, sabaha kadar yeni etkinliğin yüklemesi açılırsa gitmiyor
+{
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', E3);
+  const yarinSabah = new Date(Date.parse(geceYarim) + 7 * 3600e3).toISOString();   // yarın 06.30
+  const E5 = (await admin.from('etkinlikler').insert({ bulusma_gunu: bes, yukleme_baslar: yarinSabah, yukleme_biter: saat(60), oylama_biter: saat(90), kuran: A.id }).select('id').single()).data.id;
+  const sabah8 = new Date(Date.parse(geceYarim) + 8.5 * 3600e3).toISOString();
+  bekle('F1: 08.00 teslimde yeni yükleme açıksa Wrapped alıcısı yok', (await sayi('wrapped', sabah8)) === 0, String(await sayi('wrapped', sabah8)));
+  await admin.from('etkinlikler').update({ yukleme_baslar: saat(100), yukleme_biter: saat(120), oylama_biter: saat(140) }).eq('id', E5);
+  await sil(); await admin.from('bildirim_kuyrugu').delete().eq('tur', 'elle_wrapped');
+  await admin.rpc('elle_gonder_test', { p_gonderen: A.id, p_tur: 'wrapped', p_baslik: null, p_govde: null, p_adres: null, p_simdi: saat(0) });
+  const wq = (await kuyruk('elle_wrapped'))[0];
+  await admin.from('etkinlikler').update({ yukleme_baslar: saat(-0.5) }).eq('id', E5);
+  bekle('F1: kuyruktaki Wrapped, yeni yükleme açılınca gönderim anında gitmiyor', !!wq && (await gecerli(wq.id, saat(0))) === false, JSON.stringify(wq));
+}
+// F2: saat söyleyen elle hatırlatmalar otomatikler gibi 30 dakikada eskiyor
+bekle('F2: elle yükleme ve oy hatırlatması 30 dakikada eskiyor', (await admin.rpc('bildirim_omru_test', { p_tur: 'elle_yukleme' })).data === '00:30:00' && (await admin.rpc('bildirim_omru_test', { p_tur: 'elle_oy' })).data === '00:30:00', String((await admin.rpc('bildirim_omru_test', { p_tur: 'elle_oy' })).data));
 rapor();

@@ -54,7 +54,7 @@ const HATALAR: Record<string, string> = {
   // 0026: yöneticinin elle bildirimi
   elle_sinir: 'Bugünkü iki bildirim hakkı doldu. Yarın yeniden gönderebilirsin.',
   alici_yok: 'Bu bildirimin gideceği kimse kalmadı.',
-  metin_gecersiz: 'Başlık en çok 40, metin en çok 140 karakter olabilir.',
+  metin_gecersiz: 'Başlık ve metin boş olamaz. Başlık en çok 40, metin en çok 140 karakter olabilir.',
 }
 
 /**

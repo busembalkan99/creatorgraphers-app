@@ -27,7 +27,10 @@ const geceMi = () => {
   const s = Number(new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', hour12: false }).format(new Date()))
   return s >= 23 || s < 8
 }
-const hakMetni = (k: number) => k >= 2 ? 'Bugün 2 hakkın var' : k === 1 ? 'Bugün 1 hakkın kaldı' : 'Bugünkü hakların doldu. Yarın yeniden gönderebilirsin.'
+// Gece gönderilen ertesi sabah gidiyor ve o günün hakkından düşüyor (kod inceleme paneli F4)
+const hakMetni = (k: number, gece: boolean) => gece
+  ? (k >= 2 ? 'Yarın sabah için 2 hakkın var' : k === 1 ? 'Yarın sabah için 1 hakkın kaldı' : 'Yarınki hakların doldu')
+  : (k >= 2 ? 'Bugün 2 hakkın var' : k === 1 ? 'Bugün 1 hakkın kaldı' : 'Bugünkü hakların doldu. Yarın yeniden gönderebilirsin.')
 
 export function BildirimGonder() {
   const [d, setD] = useState<Durum | null>(null)
@@ -86,7 +89,7 @@ export function BildirimGonder() {
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
       <h2 className="t orta">Bildirim<br />gönder</h2>
-      <p className="lede">{hakMetni(d.kalan)}. Gece 23.00 ile 08.00 arası gönderilen sabah 08.00'de gider.</p>
+      <p className="lede">{hakMetni(d.kalan, d.gece)}. Gece 23.00 ile 08.00 arası gönderilen sabah 08.00'de gider.</p>
       <Hata metin={hata} />
 
       <h2 className="kart-bas">Hatırlatmalar<span>Yalnız işi kalana</span></h2>

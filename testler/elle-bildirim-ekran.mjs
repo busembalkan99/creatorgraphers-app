@@ -22,7 +22,7 @@ const giris = async eposta => {
   return p;
 };
 const ac = async (p, yol) => { await p.goto(APP + '#/' + yol); await p.reload(); await p.waitForTimeout(2500); };
-// CSS büyük harfe çeviriyor: karşılaştırma Türkçe küçük harfle
+// CSS büyük harfe çeviriyor: karşılaştırma Türkçe küçük harfle. Hak metni gece "yarın sabah için" diyor, test saatten bağımsız
 const metin = p => p.locator('.app').innerText().then(t => t.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR'));
 try {
   const P = await giris('kurucu@test.local');
@@ -30,7 +30,7 @@ try {
   bekle('yönetimde Bildirim gönder satırı', (await P.getByRole('button', { name: /Bildirim gönder/ }).count()) === 1);
   await P.getByRole('button', { name: /Bildirim gönder/ }).click(); await P.waitForTimeout(2000);
   let m = await metin(P);
-  bekle('ekran açılıyor, bugün 2 hak', m.includes('bildirim gönder') && m.includes('bugün 2 hakkın var'), m.slice(0, 200));
+  bekle('ekran açılıyor, bugün 2 hak', m.includes('bildirim gönder') && (m.includes('bugün 2 hakkın var') || m.includes('yarın sabah için 2 hakkın var')), m.slice(0, 200));
   const tema = P.locator('.satir-kartlari').first().locator('.satir', { hasText: 'Tema önerebilirsin' });
   bekle('tema önerisi satırında 2 kişiye gidecek', (await tema.innerText()).includes('2 kişiye gidecek'), await tema.innerText());
   bekle('oylama sürmezken oy hatırlatması görünmüyor', !m.includes('oy vermedin'));
@@ -48,7 +48,7 @@ try {
   const k = (await admin.from('bildirim_kuyrugu').select('id').eq('tur', 'elle_tema_oner')).data ?? [];
   m = await metin(P);
   bekle('kuyrukta 2 bildirim', k.length === 2, String(k.length));
-  bekle('kalan hak 1', m.includes('bugün 1 hakkın kaldı'), m.slice(0, 200));
+  bekle('kalan hak 1', (m.includes('bugün 1 hakkın kaldı') || m.includes('yarın sabah için 1 hakkın kaldı')), m.slice(0, 200));
   bekle('F7: sonuç düğmenin altında', (await P.locator('.satir-kartlari').first().locator('.gonderildi').innerText().catch(() => '')).includes('2 kişiye gönderildi'), await metin(P));
   bekle('son gönderilenlerde satır', /son gönderilenler.*tema önerebilirsin.*2 kişi/.test(m), m.slice(-200));
   bekle('aynı hatırlatma artık kimseye gitmiyor: sönük, sebep yazıyor', (await tema.innerText()).includes('Bugün herkese gitti'), await tema.innerText());
@@ -65,7 +65,7 @@ try {
   const s = (await admin.from('bildirim_kuyrugu').select('baslik, adres').eq('tur', 'elle_serbest')).data ?? [];
   bekle('serbest metin herkese, Etkinlikler\'i açıyor', s.length === 2 && s.every(x => x.baslik === 'Cumartesi buluşuyoruz' && x.adres === 'etkinlikler'), JSON.stringify(s));
   m = await metin(P);
-  bekle('hak bitti metni', m.includes('bugünkü hakların doldu'), m.slice(0, 200));
+  bekle('hak bitti metni', (m.includes('bugünkü hakların doldu') || m.includes('yarınki hakların doldu')), m.slice(0, 200));
   bekle('hak bitince gönder düğmeleri kapalı', await P.getByRole('button', { name: 'Herkese gönder' }).isDisabled());
   // Üye
   const U = await giris('baris@test.local');

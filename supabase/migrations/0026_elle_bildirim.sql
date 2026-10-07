@@ -36,6 +36,17 @@ create or replace function gizli.elle_son_sonuc() returns public.etkinlikler lan
   select e from public.etkinlikler e where not e.iptal and public.asama(e) = 'sonuc' order by e.oylama_biter desc limit 1
 $$;
 
+-- Açık etkinliğin yüklemesi ya da oylaması p_simdi'de sürüyor mu (Wrapped hatırlatması o zaman kalkıyor)
+create or replace function gizli.elle_yeni_basladi(p_simdi timestamptz) returns boolean language sql stable as $$
+  select coalesce((select e.yukleme_baslar <= p_simdi and p_simdi < e.oylama_biter from gizli.elle_acik() e where e.id is not null), false)
+$$;
+
+-- Saat söyleyen elle hatırlatmalar (yükleme, oy) otomatikler gibi 30 dakikada eskiyor: gönderici gecikirse
+-- "5 saat sonra kapanıyor" 1 saat kala gitmesin. Diğerleri 6 saat (0019'daki gibi).
+create or replace function gizli.bildirim_omru(p_tur text) returns interval language sql immutable as $$
+  select case when p_tur like 'hatirlatma%' or p_tur in ('elle_yukleme', 'elle_oy') then interval '30 minutes' else interval '6 hours' end
+$$;
+
 create or replace function gizli.elle_gorunur(p_tur text, p_simdi timestamptz) returns boolean language sql stable as $$
   select case p_tur
     when 'tema_oner' then true
@@ -44,8 +55,8 @@ create or replace function gizli.elle_gorunur(p_tur text, p_simdi timestamptz) r
     when 'oy' then (select (gizli.elle_acik()).yukleme_biter <= p_simdi and p_simdi < (gizli.elle_acik()).oylama_biter)
     when 'tahmin' then (select (gizli.elle_acik()).yukleme_biter <= p_simdi and p_simdi < (gizli.elle_acik()).oylama_biter)
     -- Yeni etkinliğin yüklemesi açılınca eski Wrapped hatırlatması kalkıyor (Buse, 2026-10-06)
-    when 'wrapped' then (gizli.elle_son_sonuc()).id is not null
-                        and coalesce(public.asama(gizli.elle_acik()) not in ('yukleme', 'oylama'), true)
+    -- Teslim anında (p_simdi) bakılıyor: gece gönderilen, sabaha kadar yükleme açılırsa gitmiyor
+    when 'wrapped' then (gizli.elle_son_sonuc()).id is not null and not gizli.elle_yeni_basladi(p_simdi)
     when 'bulusma' then (select not (gizli.elle_acik()).serbest
                           and (gizli.elle_acik()).bulusma_gunu >= (p_simdi at time zone 'Europe/Istanbul')::date)
     else false end
@@ -157,7 +168,7 @@ revoke execute on function public.elle_bildirim_durumu() from public, anon;
 grant execute on function public.elle_bildirim_durumu() to authenticated;
 revoke execute on function gizli.elle_alicilar(text, timestamptz), gizli.elle_gorunur(text, timestamptz), gizli.tum_oy_kalan(uuid, uuid),
   gizli.elle_acik(), gizli.elle_son_sonuc(), gizli.elle_kalan(date), gizli.elle_sayisiz(text), gizli.elle_teslim(timestamptz),
-  gizli.elle_durum(timestamptz) from public, anon, authenticated;
+  gizli.elle_durum(timestamptz), gizli.elle_yeni_basladi(timestamptz) from public, anon, authenticated;
 create or replace function gizli.elle_gonder(p_gonderen uuid, p_tur text, p_baslik text, p_govde text, p_adres text, p_simdi timestamptz)
 returns int language plpgsql security definer set search_path = public as $$
 declare
@@ -228,7 +239,7 @@ language sql stable as $$
     when q.tur = 'elle_tahmin' then exists (
       select 1 from public.etkinlikler e where e.id = q.etkinlik and e.oylama_biter = q.son_tarih and p_simdi < q.son_tarih)
         and not exists (select 1 from public.tahmin_oyun g where g.etkinlik = q.etkinlik and g.uye = q.kullanici)
-    when q.tur = 'elle_wrapped' then not exists (
+    when q.tur = 'elle_wrapped' then not gizli.elle_yeni_basladi(p_simdi) and not exists (
       select 1 from public.wrapped_izlendi w where w.uye = q.kullanici and w.etkinlik = q.etkinlik)
     when q.tur = 'elle_tema_oner' then not exists (
       select 1 from public.oneri_sahipleri s join public.tema_onerileri t on t.id = s.oneri

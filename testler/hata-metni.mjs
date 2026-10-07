@@ -10,6 +10,6 @@ try {
   const m = await p.evaluate(k => k.map(x => window.__hataMetni({ message: x })), ['elle_sinir', 'alici_yok', 'metin_gecersiz']);
   bekle('elle_sinir kendi cümlesi', m[0] !== YEDEK && m[0].includes('hakkı doldu'), m[0]);
   bekle('alici_yok kendi cümlesi', m[1] !== YEDEK && m[1].includes('kimse kalmadı'), m[1]);
-  bekle('metin_gecersiz kendi cümlesi', m[2] !== YEDEK && m[2].includes('40') && m[2].includes('140'), m[2]);
+  bekle('metin_gecersiz kendi cümlesi, boşluğu da söylüyor', m[2] !== YEDEK && m[2].includes('40') && m[2].includes('140') && m[2].includes('boş'), m[2]);
 } finally { await b.close(); }
 rapor();

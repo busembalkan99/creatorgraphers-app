@@ -137,8 +137,15 @@ try {
   await ac(P, 'bildirim');
   const tema = await blok(P, 'Tema önerebilirsin').locator('.satir').innerText();
   bekle('gece, alıcı 0: Şu an kimseye gitmiyor', tema.includes('Şu an kimseye gitmiyor'), tema);
-  const lede = await P.locator('.lede').innerText();
-  bekle('F4: gece hak metni yarın sabahın hakkını söylüyor', lede.includes('Yarın sabah için'), lede);
+  // Hak metni: 23.00'ten sonra yarının, gece yarısından sonra bu sabahın hakkı (kod inceleme paneli N1)
+  await P.clock.setFixedTime(istanbul(23, 30)); await P.waitForTimeout(300);
+  await ac(P, 'bildirim');
+  let lede = await P.locator('.lede').innerText();
+  bekle('F4: 23.30 hak metni yarın sabahın hakkını söylüyor', lede.includes('Yarın sabah için'), lede);
+  await P.clock.setFixedTime(istanbul(2, 0)); await P.waitForTimeout(300);
+  await ac(P, 'bildirim');
+  lede = await P.locator('.lede').innerText();
+  bekle('N1: 02.00 hak metni bu sabahın hakkını söylüyor', lede.includes('Bu sabah için'), lede);
   bekle('alıcı 0 iken satırın Gönder düğmesi kapalı', await gonderDugmesi(P, 'Tema önerebilirsin').isDisabled());
   const wr = await blok(P, "Wrapped'ini izlemedin").locator('.satir').innerText();
   bekle("Ekstra etkinlik Wrapped'inin kime metni", wr.includes("Ekstra etkinliğin Wrapped'ini açmamış olanlara"), wr);
@@ -164,6 +171,14 @@ try {
 
   // Yeniden yüklemede yarıda kalan istekler WebKit'te "access control checks" diye düşüyor; başka sayfa hatası olmamalı
   const diger = hatalar.filter(x => !x.includes('due to access control checks'));
+  // R1: gündüz hak bitince cümle çift noktayla bitmiyor
+  await P.unroute('**/rest/v1/rpc/elle_bildirim_durumu*').catch(() => {});
+  await P.clock.setFixedTime(istanbul(12, 0));
+  await sahte(P, d => { d.gece = false; d.kalan = 0; return d; });
+  await ac(P, 'bildirim');
+  const lede0 = await P.locator('.lede').innerText();
+  bekle('R1: hak bitti metninde çift nokta yok', lede0.includes('Bugünkü hakların doldu') && !lede0.includes('..'), lede0);
+  await P.unroute('**/rest/v1/rpc/elle_bildirim_durumu*');
   bekle('sayfa hatası yok', diger.length === 0, diger.join(' | '));
 } finally { await b.close(); }
 rapor();

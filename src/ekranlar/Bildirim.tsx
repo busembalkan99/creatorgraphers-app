@@ -22,15 +22,17 @@ const ETIKET: Record<Tur, { ad: string; kime: (e: string | null) => string; kims
 }
 const YERLER = [['etkinlikler', 'Etkinlikler'], ['siralama', 'Sıralama'], ['oner', 'Tema öner'], ['profil', 'Profil']] as const
 
-// Gece 23.00 ile 08.00 arası (İstanbul): onay açıldığı anda bakılıyor, ekranın yüklendiği anda değil
-const geceMi = () => {
-  const s = Number(new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', hour12: false }).format(new Date()))
-  return s >= 23 || s < 8
+// İstanbul saati (0-23)
+const istanbulSaati = () => Number(new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', hour: '2-digit', hour12: false }).format(new Date()))
+// Gece 23.00 ile 08.00 arası: onay açıldığı anda bakılıyor, ekranın yüklendiği anda değil
+const geceMi = () => { const s = istanbulSaati(); return s >= 23 || s < 8 }
+// Gece gönderilen sabah 08.00'de gidiyor ve o günün hakkından düşüyor: 23.00'ten sonra yarının,
+// gece yarısından sonra bu sabahın hakkı (kod inceleme paneli F4, N1). Cümleler noktasız, ekran ekliyor.
+const hakMetni = (k: number, gece: boolean) => {
+  if (!gece) return k >= 2 ? 'Bugün 2 hakkın var' : k === 1 ? 'Bugün 1 hakkın kaldı' : 'Bugünkü hakların doldu, yarın yeniden gönderebilirsin'
+  const [gun, gunun] = istanbulSaati() >= 23 ? ['Yarın sabah', 'Yarınki'] : ['Bu sabah', 'Bu sabahki']
+  return k >= 2 ? `${gun} için 2 hakkın var` : k === 1 ? `${gun} için 1 hakkın kaldı` : `${gunun} hakların doldu`
 }
-// Gece gönderilen ertesi sabah gidiyor ve o günün hakkından düşüyor (kod inceleme paneli F4)
-const hakMetni = (k: number, gece: boolean) => gece
-  ? (k >= 2 ? 'Yarın sabah için 2 hakkın var' : k === 1 ? 'Yarın sabah için 1 hakkın kaldı' : 'Yarınki hakların doldu')
-  : (k >= 2 ? 'Bugün 2 hakkın var' : k === 1 ? 'Bugün 1 hakkın kaldı' : 'Bugünkü hakların doldu. Yarın yeniden gönderebilirsin.')
 
 export function BildirimGonder() {
   const [d, setD] = useState<Durum | null>(null)

@@ -197,10 +197,13 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
           <div className="m-podyum">
           {birinciler.length > 0 && (
             <div className="odul">
-              <h2 className="kart-bas">Birinci</h2>
-              {birinciler.length > 1 && (
-                <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
-              )}
+              <div className="m-odul-bas">
+                <h2 className="kart-bas">Birinci</h2>
+                {birinciler.length > 1 && (
+                  <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
+                )}
+              </div>
+              <div className="m-kazananlar">
               {birinciler.map(k => (
                 <div className="kazanan" key={k.id}>
                   <span className="buyut"><Ikon ad="buyut" /></span>
@@ -215,6 +218,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           )}
 

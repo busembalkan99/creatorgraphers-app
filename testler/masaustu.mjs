@@ -245,7 +245,7 @@ bolum('sonuc', async b => {
       const R = e => e.getBoundingClientRect();
       const s = document.querySelector('.odul .serit'), kursu = [...document.querySelectorAll('.kursu figcaption')].pop(), k = document.querySelector('.kursu');
       const bas = document.querySelector('.m-baslik-sira'), btn = [...document.querySelectorAll('.m-baslik-sira .btn')];
-      return { podyum: !!document.querySelector('.m-podyum'), seritAlt: s && Math.round(R(s).bottom), kursuAlt: kursu && Math.round(R(kursu).bottom),
+      return { podyum: !!document.querySelector('.m-podyum'), seritAlt: s && Math.round(R(s).bottom), kursuAlt: kursu && Math.round(R(kursu).bottom), kursuUst: k && Math.round(R(k).top), kazananUst: Math.round(R(document.querySelector('.odul .kazanan')).top),
         kursuYanda: kursu && s && R(kursu).left > R(s).right, kursuTasan: k && k.scrollHeight > k.clientHeight + 1,
         baslikSira: !!bas, dugmeler: btn.length };
     });
@@ -253,6 +253,7 @@ bolum('sonuc', async b => {
     if (boyut[0] >= 1200 && r.kursuAlt) {
       bekle(`${boyut[0]}: kürsü Birinci'nin yanında`, r.kursuYanda, JSON.stringify(r));
       bekle(`${boyut[0]}: Birinci şeridi ile son kürsü yazısı aynı yerde biter`, Math.abs(r.seritAlt - r.kursuAlt) <= 1, JSON.stringify(r));
+      bekle(`${boyut[0]}: kürsünün üstü Birinci fotoğrafıyla hizalı`, Math.abs(r.kursuUst - r.kazananUst) <= 1, JSON.stringify(r));
       bekle(`${boyut[0]}: kürsü kutusuna sığıyor`, !r.kursuTasan, JSON.stringify(r));
     }
     if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) { const h = await p.evaluate(() => Math.max(...[...document.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 50).map(e => e.scrollHeight)) || 0); await p.setViewportSize({ width: boyut[0], height: Math.min(h + 40, 6000) }); await p.waitForTimeout(500); await p.screenshot({ path: `/tmp/cgapp/ss/sonuc-${boyut[0]}.png`, fullPage: true }) }
@@ -264,10 +265,11 @@ bolum('sonuc', async b => {
 });
 
 // ---------------------------------------------------------------- çalıştır
+try {
 for (const [, t] of [['chromium', chromium], ['webkit', webkit]]) {
   const b = await t.launch();
   try { for (const { ad, fn } of bolumler) if (!istenen.length || istenen.includes(ad)) await fn(b); }
   finally { await b.close() }
 }
-await temizle();
+} finally { await temizle() }
 rapor();

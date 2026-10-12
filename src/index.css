@@ -1021,7 +1021,7 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
    ========================================================== */
 .m-ray{display:none}
 .m-pk{display:contents}
-.m-podyum,.m-baslik-sira{display:contents}
+.m-podyum,.m-baslik-sira,.m-odul-bas,.m-kazananlar{display:contents}
 .m-tema-durum{display:none}
 @media (min-width:768px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:8px;--s-ic:16px;--s-blok:36px;--s-bolum:54px}
@@ -1097,8 +1097,12 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .ev .top{display:contents}
   .app:has(> .m-ray) .ev .alt{margin:0;grid-column:3;grid-row:1}
   .app:has(> .m-ray) .ev .git{grid-column:4;grid-row:1;margin-left:0}
-  .app:has(> .m-ray) .m-podyum{display:grid;grid-template-columns:2fr 1fr;gap:40px;align-items:stretch;margin-top:var(--s-blok)}
-  .app:has(> .m-ray) .m-podyum .odul{margin-top:0}
+  /* Satır 1 Birinci başlığı (eşitlik notu dahil), satır 2 fotoğraflar ve kürsü: üstler ve altlar hizalı */
+  .app:has(> .m-ray) .m-podyum{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:auto 1fr;column-gap:40px;align-items:stretch;margin-top:var(--s-blok)}
+  .app:has(> .m-ray) .m-podyum .odul{display:contents}
+  .app:has(> .m-ray) .m-podyum .m-odul-bas{display:block;grid-column:1;grid-row:1}
+  .app:has(> .m-ray) .m-podyum .m-kazananlar{display:block;grid-column:1;grid-row:2}
+  .app:has(> .m-ray) .m-podyum .kursu{grid-column:2;grid-row:2}
   /* Sağ sütun satırın boyuna katkı vermiyor: satırı Birinci belirliyor, kürsü ona sığıyor */
   .app:has(> .m-ray) .m-podyum .kursu{display:flex;flex-direction:column;gap:24px;margin-top:0;contain:size}
   .app:has(> .m-ray) .m-podyum .kursu figure{flex:1;min-height:0;display:flex;flex-direction:column}

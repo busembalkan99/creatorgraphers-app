@@ -85,7 +85,8 @@
 /* Tema: dev şerit yaklaşıyor (açılış kayıyor) */
 .wr .set-kontakt .dev-serit{--kw:320px}
 .wr .set-kontakt .dev-serit .serit{padding:28px 12px;animation-name:yaklas}
-.wr .set-kontakt .dev-serit .k-kare:not(.secili){opacity:.55}
+.wr .set-kontakt .dev-serit .k-kare:not(.secili) img,.wr .set-kontakt .dev-serit .k-kare:not(.secili) .bos-foto{filter:grayscale(1) contrast(1.06) opacity(.55)}
+.wr .set-kontakt .dev-serit .k-kare:not(.secili) .bos-kare{filter:opacity(.55)}
 /* Masa ve baskı */
 .wr .set-kontakt .masa{position:relative;margin-top:30px}
 .wr .set-kontakt .baski{background:#fbf8f1;padding:10px 10px 34px;box-shadow:0 10px 24px rgba(20,18,16,.22);position:relative;width:max-content;

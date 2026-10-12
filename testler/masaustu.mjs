@@ -42,8 +42,10 @@ async function denetle(p) {
     for (const x of document.querySelectorAll('.btn')) if (x.offsetParent && x.scrollWidth > x.clientWidth + 1) out.push('sığmayan düğme: ' + x.textContent.trim().slice(0, 24));
     for (const e of document.querySelectorAll(tekSatir.join(','))) {
       if (!e.getClientRects().length) continue;
-      const rg = document.createRange(); rg.selectNodeContents(e);
-      const ustler = [...rg.getClientRects()].filter(r => r.width > 1).map(r => r.top).sort((a, b) => a - b);
+      // Yalnız metin düğümleri: 44px dokunma alanlı düğmenin kutusu satır sayımını bozmasın
+      const ustler = [], gez = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+      for (let n; (n = gez.nextNode());) { if (!n.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(n); for (const r of rg.getClientRects()) if (r.width > 1) ustler.push(r.top) }
+      ustler.sort((a, b) => a - b);
       let satir = 0, son = -1e9; for (const u of ustler) { if (u - son > 8) satir++; son = u }
       if (satir > 1) out.push('iki satıra kırılan: ' + e.textContent.trim().slice(0, 24));
     }
@@ -75,15 +77,18 @@ async function kareKoy(etkinlik, tema, eposta, dosya = 'dogru') {
   return (await admin.from('kareler').insert({ tema, sahip, dosya: yol, genislik, yukseklik, cekim_gunu: bugun() }).select('id').single()).data.id;
 }
 // Sonuçlanmış etkinlik: üç tema, her temada bir birinci; kurucunun da karesi var ("Katıldığın son etkinlik")
-async function bitmisEtkinlik() {
+// zengin: ilk temada 8 kare (6 üyenin sekizi için eşit olmayan puan); kürsüde en az bir kare çıksın
+async function bitmisEtkinlik(zengin = false) {
   const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun(), kuran: await kimlik('kurucu@test.local'), yukleme_baslar: saat(-100), yukleme_biter: saat(-60), oylama_biter: saat(-1) }).select('id').single()).data;
   kurulan.push(e.id);
   const temalar = (await admin.from('temalar').insert(['Yansıma', 'Kalabalık', 'Gölge'].map((ad, i) => ({ etkinlik: e.id, ad, sira: i + 1, bulusmada: true }))).select('id, ad, sira').order('sira')).data;
   const uyeler = await Promise.all(['kurucu', 'baris', 'can', 'deniz', 'ece', 'zeynep'].map(async a => [a, await kimlik(`${a}@test.local`)]));
   const kareler = [];
-  for (const [i, a] of [['baris', 0], ['can', 1], ['deniz', 2], ['kurucu', 0]].map(([a, i]) => [i, a])) {
+  const dagilim = [['baris', 0], ['can', 1], ['deniz', 2], ['kurucu', 0]];
+  if (zengin) dagilim.push(['ece', 0], ['zeynep', 0], ['can', 0], ['deniz', 0]);
+  for (const [i, a] of dagilim.map(([a, i]) => [i, a])) {
     const id = await kareKoy(e.id, temalar[i].id, `${a}@test.local`);
-    kareler.push({ id, sahip: uyeler.find(u => u[0] === a)[1], puan: 9 - kareler.length });
+    kareler.push({ id, sahip: uyeler.find(u => u[0] === a)[1], puan: Math.max(1, 9 - kareler.length) });
   }
   for (const k of kareler) for (const [, veren] of uyeler) if (veren !== k.sahip) await admin.from('oylar').insert({ kare: k.id, veren, puan: k.puan });
   return { id: e.id, temalar };
@@ -226,6 +231,32 @@ bolum('etkinlikler', async b => {
     }
     if (w >= 1200) bekle(`${w}: geçmiş satırı ay, özet, düğme soldan sağa`, r.ev.length > 0 && r.ev.every(([moR, altL, altR, gitL]) => altL > moR && gitL > altR), JSON.stringify(r.ev));
     const d = await denetle(p); bekle(`${w} etkinlikler (sonuçlanmış): denetim temiz`, d.length === 0, d.join(' | '));
+    await p.context().close();
+  }
+});
+
+// ---------------------------------------------------------------- sonuç
+bolum('sonuc', async b => {
+  const S = await bitmisEtkinlik(true);
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut); await ac(p, `sonuc/${S.id}`);
+    bekle(`${boyut[0]}: veri: ilk temada Birinci ve kürsü var`, (await p.locator('.odul').count()) > 0 && (await p.locator('.kursu').count()) > 0);
+    const r = await p.evaluate(() => {
+      const R = e => e.getBoundingClientRect();
+      const s = document.querySelector('.odul .serit'), kursu = [...document.querySelectorAll('.kursu figcaption')].pop(), k = document.querySelector('.kursu');
+      const bas = document.querySelector('.m-baslik-sira'), btn = [...document.querySelectorAll('.m-baslik-sira .btn')];
+      return { podyum: !!document.querySelector('.m-podyum'), seritAlt: s && Math.round(R(s).bottom), kursuAlt: kursu && Math.round(R(kursu).bottom),
+        kursuYanda: kursu && s && R(kursu).left > R(s).right, kursuTasan: k && k.scrollHeight > k.clientHeight + 1,
+        baslikSira: !!bas, dugmeler: btn.length };
+    });
+    bekle(`${boyut[0]}: Birinci ve kürsü .m-podyum içinde, başlık .m-baslik-sira içinde`, r.podyum && r.baslikSira, JSON.stringify(r));
+    if (boyut[0] >= 1200 && r.kursuAlt) {
+      bekle(`${boyut[0]}: kürsü Birinci'nin yanında`, r.kursuYanda, JSON.stringify(r));
+      bekle(`${boyut[0]}: Birinci şeridi ile son kürsü yazısı aynı yerde biter`, Math.abs(r.seritAlt - r.kursuAlt) <= 1, JSON.stringify(r));
+      bekle(`${boyut[0]}: kürsü kutusuna sığıyor`, !r.kursuTasan, JSON.stringify(r));
+    }
+    if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) { const h = await p.evaluate(() => Math.max(...[...document.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 50).map(e => e.scrollHeight)) || 0); await p.setViewportSize({ width: boyut[0], height: Math.min(h + 40, 6000) }); await p.waitForTimeout(500); await p.screenshot({ path: `/tmp/cgapp/ss/sonuc-${boyut[0]}.png`, fullPage: true }) }
+    const d = await denetle(p); bekle(`${boyut[0]} sonuç: denetim temiz`, d.length === 0, d.join(' | '));
     await p.context().close();
   }
 });

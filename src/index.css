@@ -842,7 +842,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .odul .kart-bas{margin-top:0}
 .odul .kazanan{border-radius:var(--kart-r);overflow:hidden}
 .kursu img,.izgara img{border-radius:var(--foto-r)}
-.odul + .satir-kartlari,.kursu + .satir-kartlari{margin-top:var(--s-blok)}
+.odul + .satir-kartlari,.kursu + .satir-kartlari,.m-podyum + .satir-kartlari{margin-top:var(--s-blok)}
 .satir-kartlari .satir-kare{background:var(--kart);border-radius:var(--kart-r);border-top:0;padding:12px 16px;margin:0}
 .satir-kartlari .satir-kare.benim{box-shadow:none;padding-left:16px;background:rgba(12,110,74,.28)}
 .satir-kartlari .satir-kare img{border-radius:var(--foto-r)}
@@ -1021,6 +1021,7 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
    ========================================================== */
 .m-ray{display:none}
 .m-pk{display:contents}
+.m-podyum,.m-baslik-sira{display:contents}
 .m-tema-durum{display:none}
 @media (min-width:768px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:8px;--s-ic:16px;--s-blok:36px;--s-bolum:54px}
@@ -1059,6 +1060,27 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-pk img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
   .app:has(> .m-ray) .kart.katildigin{display:grid;grid-template-columns:minmax(0,240px) 1fr auto;gap:32px;align-items:center}
   .app:has(> .m-ray) .katildigin .m-pk{aspect-ratio:3/2}
+  /* Sonuç: başlık ve düğmeler tek sırada, kürsü ikili, kareler kırpılmadan (paspartu) */
+  .app:has(> .m-ray) .m-baslik-sira{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 12px}
+  .app:has(> .m-ray) .m-baslik-sira .bas{margin-right:auto}
+  .app:has(> .m-ray) .m-baslik-sira .btn{width:auto}
+  .app:has(> .m-ray) .m-baslik-sira .btn + .btn{margin-top:0}
+  .app:has(> .m-ray) .m-podyum{display:block}
+  .app:has(> .m-ray) .kursu{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+  .app:has(> .m-ray) .kursu figure{flex:none}
+  .app:has(> .m-ray) .kursu .m-pk{aspect-ratio:4/3}
+  .app:has(> .m-ray) .odul .m-pk{aspect-ratio:3/2}
+  .app:has(> .m-ray) .odul img,.app:has(> .m-ray) .kursu img{height:auto}
+  .app:has(> .m-ray) .satir-kartlari{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 24px}
+  .app:has(> .m-ray) .satir-kare{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"img img img" "no ad ort";gap:12px;border:0;padding:0}
+  .app:has(> .m-ray) .satir-kare .m-pk{grid-area:img;aspect-ratio:4/5}
+  .app:has(> .m-ray) .satir-kare .no{grid-area:no}
+  .app:has(> .m-ray) .satir-kare .ad{grid-area:ad}
+  .app:has(> .m-ray) .satir-kare .ort{grid-area:ort}
+  .app:has(> .m-ray) .satir-kare .ileri{display:none}
+  .app:has(> .m-ray) .izgara{display:block;columns:3;column-gap:24px}
+  .app:has(> .m-ray) .izgara figure{break-inside:avoid;margin-bottom:28px}
+  .app:has(> .m-ray) .izgara img{height:auto}
 }
 @media (min-width:1200px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:10px;--s-ic:20px;--s-blok:48px;--s-bolum:72px}
@@ -1075,8 +1097,18 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .ev .top{display:contents}
   .app:has(> .m-ray) .ev .alt{margin:0;grid-column:3;grid-row:1}
   .app:has(> .m-ray) .ev .git{grid-column:4;grid-row:1;margin-left:0}
+  .app:has(> .m-ray) .m-podyum{display:grid;grid-template-columns:2fr 1fr;gap:40px;align-items:stretch;margin-top:var(--s-blok)}
+  .app:has(> .m-ray) .m-podyum .odul{margin-top:0}
+  /* Sağ sütun satırın boyuna katkı vermiyor: satırı Birinci belirliyor, kürsü ona sığıyor */
+  .app:has(> .m-ray) .m-podyum .kursu{display:flex;flex-direction:column;gap:24px;margin-top:0;contain:size}
+  .app:has(> .m-ray) .m-podyum .kursu figure{flex:1;min-height:0;display:flex;flex-direction:column}
+  .app:has(> .m-ray) .m-podyum .kursu .m-pk{aspect-ratio:auto;flex:1;min-height:0}
+  .app:has(> .m-ray) .satir-kartlari,.app:has(> .m-ray) .izgara{columns:4}
+  .app:has(> .m-ray) .satir-kartlari{grid-template-columns:repeat(4,minmax(0,1fr))}
 }
 @media (min-width:1600px) and (min-height:520px){
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */
   .app:has(> .m-ray){--pad:max(72px, calc((100vw - var(--m-ray) - 1360px) / 2))}
+  .app:has(> .m-ray) .izgara{columns:5}
+  .app:has(> .m-ray) .satir-kartlari{grid-template-columns:repeat(5,minmax(0,1fr))}
 }

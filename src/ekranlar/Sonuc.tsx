@@ -140,6 +140,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
   return (
     <div className="sc">
       <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" />
+      <div className="m-baslik-sira">
       <div className="bas">
         <h1>{v.etkinlik.serbest ? <>Ekstra<br />etkinlik</> : <>{ayAdi(v.etkinlik.bulusma_gunu)}<br />etkinliği</>}</h1>
         <div className="meta">
@@ -156,6 +157,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
       {paylasilacakKare(v.kareler) && (
         <button className="btn" onClick={() => git(`paylas/${etkinlikId}`)}>Kartını paylaş</button>
       )}
+      </div>
       <TahminBaglantisi etkinlikId={v.etkinlik.id} />
 
       {temalar.length === 0 ? (
@@ -192,6 +194,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
             </div>
           )}
 
+          <div className="m-podyum">
           {birinciler.length > 0 && (
             <div className="odul">
               <h2 className="kart-bas">Birinci</h2>
@@ -202,8 +205,8 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
                 <div className="kazanan" key={k.id}>
                   <span className="buyut"><Ikon ad="buyut" /></span>
                   {k.url && (
-                    <img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik}
-                      alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} />
+                    <span className="m-pk"><img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik}
+                      alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} /></span>
                   )}
                   <div className="serit">
                     <b>{secili.ad}</b>
@@ -220,7 +223,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               {kursu.map(k => (
                 <figure key={k.id} onClick={() => ac(k)}>
                     <span className="buyut"><Ikon ad="buyut" /></span>
-                  {k.url && <img src={k.url} alt="" />}
+                  {k.url && <span className="m-pk"><img src={k.url} alt="" /></span>}
                   <figcaption>
                     {/* Numara sunucudaki sıradan gelir, dizideki yerden değil */}
                     <span className="sat"><span className="no">{String(k.sira).padStart(2, '0')}</span>
@@ -231,13 +234,14 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               ))}
             </div>
           )}
+          </div>
 
           {liste.length > 0 && (
             <div className="satir-kartlari">
               {liste.map(k => (
                 <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => ac(k)}>
                   <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>
-                  {k.url && <img src={k.url} alt="" />}
+                  {k.url && <span className="m-pk"><img src={k.url} alt="" /></span>}
                   <span className="ad">{k.sahip_ad}</span>
                   <span className="ort">{puanYaz(k.ortalama)}</span>
                   <span className="ileri"><Ikon ad="sag" /></span>

@@ -86,6 +86,7 @@ bekle('pano: 24 harfi aşan ad iki satırda, kesildiği belli (…)', (l => l.le
   bekle('açılış: 4 kare tek şerit', JSON.stringify(say(4)) === '[4]');
   bekle('açılış: 7 kare iki şerit (4+3)', JSON.stringify(say(7)) === '[4,3]', JSON.stringify(say(7)));
   bekle('açılış: 16 kare üç şerit, en çok 12', JSON.stringify(say(16)) === '[4,4,4]', JSON.stringify(say(16)));
+  bekle('açılış: 10 kare 4+3+3 (son şerit küçülmüyor)', JSON.stringify(say(10)) === '[4,3,3]', JSON.stringify(say(10)));
   const s16 = acilisSeritleri(e, kar(16)).flat().map(x => x.id);
   bekle('açılış: kare tekrar etmiyor', new Set(s16).size === s16.length);
   bekle('açılış: aynı etkinlikte aynı kareler', JSON.stringify(acilisSeritleri(e, kar(16)).flat().map(x => x.id)) === JSON.stringify(s16));

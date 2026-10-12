@@ -107,53 +107,70 @@ const kartaGit = async (p, ad, sart = async () => true) => {
   return (await kartAdi(p)) === ad;
 };
 
+// Sayfada ölçülen kısım. Kart içeriği (.w-ic) telefonun kromundan (.sayac, .w-kunye, .atla, .ilerleme) ayrı ölçülüyor:
+// içerik sayaç yazısının 8px üstünde bitmeli, kromla üst üste binmemeli.
+const OLC = (tam) => {
+  const tel = document.querySelector('.wr .tel').getBoundingClientRect();
+  const kutu = e => e.getBoundingClientRect();
+  const yazi = e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+  const yazilar = [...document.querySelectorAll('.wr .w-ic *')].filter(e => yazi(e) && kutu(e).width > 0);
+  const kalem = yazilar.filter(e => e.closest('.kalem-not, .kalem-buyuk, .kalem-puan'));
+  const engel = [...document.querySelectorAll('.wr .serit, .wr .ac-serit, .wr .lup, .wr .k-baslik, .wr .baski img')];
+  const icerik = [...document.querySelectorAll('.wr .w-ic *')].filter(e => kutu(e).width > 0 && kutu(e).height > 0 && !e.closest('.lup-sap') && (!e.children.length || e.matches('img,.serit,.ac-serit,.baski,.lup,svg')));
+  const krom = [...document.querySelectorAll('.wr .sayac, .wr .sayac *, .wr .w-kunye, .wr .atla, .wr .ilerleme')].filter(e => (yazi(e) || e.matches('.ilerleme')) && kutu(e).width > 0);
+  const sayac = [...document.querySelectorAll('.wr .sayac *')].filter(e => yazi(e) && kutu(e).width > 0);
+  const sayacUst = sayac.length ? Math.min(...sayac.map(e => kutu(e).top)) : tel.bottom;
+  const sorun = [];
+  for (const e of yazilar) { const b = kutu(e); if (!e.closest('.serit-pencere, .ac-seritler') && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1)) sorun.push('taşıyor: ' + e.textContent.trim().slice(0, 24)); }
+  for (let i = 0; i < yazilar.length; i++) for (let j = i + 1; j < yazilar.length; j++) {
+    const a = yazilar[i], c = yazilar[j]; if (a.contains(c) || c.contains(a)) continue;
+    const A = kutu(a), C = kutu(c);
+    if (Math.min(A.right, C.right) - Math.max(A.left, C.left) > 3 && Math.min(A.bottom, C.bottom) - Math.max(A.top, C.top) > 3) sorun.push(`üst üste: ${a.textContent.trim().slice(0, 16)} × ${c.textContent.trim().slice(0, 16)}`);
+  }
+  for (const e of icerik) {
+    const b = kutu(e);
+    for (const k of krom) { const K = kutu(k); if (Math.min(b.right, K.right) - Math.max(b.left, K.left) > 1 && Math.min(b.bottom, K.bottom) - Math.max(b.top, K.top) > 1) sorun.push(`krom: ${k.textContent.trim().slice(0, 10) || k.className} × ${(e.textContent || e.tagName).trim().slice(0, 16)}`); }
+    if (b.bottom > sayacUst - 8) sorun.push(`sayaca yakın (${Math.round(sayacUst - b.bottom)}px): ${(e.textContent || e.tagName).trim().slice(0, 16)}`);
+  }
+  if (!tam) return [...new Set(sorun)];
+  // Kalem payı 16px: lüpte daire (yarıçap üzerinden), baskının kâğıt payındaki numara bilerek orada
+  for (const k of kalem) for (const g of engel) {
+    if (g.contains(k) || k.contains(g) || k.closest('.baski') || g.closest('.baski')?.contains(k)) continue;
+    const K = kutu(k), G = kutu(g);
+    let d;
+    if (g.classList.contains('lup')) { const cx = G.left + G.width / 2, cy = G.top + G.height / 2; const nx = Math.max(K.left, Math.min(cx, K.right)), ny = Math.max(K.top, Math.min(cy, K.bottom)); d = Math.hypot(cx - nx, cy - ny) - G.width / 2; }
+    else d = Math.hypot(Math.max(G.left - K.right, K.left - G.right, 0), Math.max(G.top - K.bottom, K.top - G.bottom, 0));
+    if (d < 16) sorun.push(`kalem yakın (${Math.round(d)}px): ${k.textContent.trim().slice(0, 16)}`);
+  }
+  // Boşluk: kart içeriğinin dikey aralıkları (üst yazıdan sayaca kadar) ekranın beşte birinden az
+  const ust = document.querySelector('.wr .w-ic .k-ust');
+  const aralik = icerik.map(e => [kutu(e).top, kutu(e).bottom]).sort((x, y) => x[0] - y[0]);
+  let son = ust ? kutu(ust).bottom : 0, enBuyuk = 0;
+  for (const [t, bo] of aralik) { enBuyuk = Math.max(enBuyuk, t - son); son = Math.max(son, bo); }
+  enBuyuk = Math.max(enBuyuk, sayacUst - son);
+  if (enBuyuk > tel.height / 5) sorun.push(`boşluk ${Math.round(enBuyuk)}px`);
+  for (const e of document.querySelectorAll('.wr .k-alt, .wr .k-dg, .wr .w-tekrar')) if (parseFloat(getComputedStyle(e).fontSize) < 16) sorun.push('16px altı: ' + e.className);
+  const tk = document.querySelector('.wr .w-tekrar'); if (tk && kutu(tk).height < 44) sorun.push('Tekrar izle 44px altı');
+  return [...new Set(sorun)];
+};
 async function denetle(p, ad, tam = true) {
   await p.waitForTimeout(3800);
-  const r = await p.evaluate((tam) => {
-    const tel = document.querySelector('.wr .tel').getBoundingClientRect();
-    const kutu = e => e.getBoundingClientRect();
-    const yazilar = [...document.querySelectorAll('.wr .w-ic *')].filter(e => [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && kutu(e).width > 0);
-    const kalem = yazilar.filter(e => e.closest('.kalem-not, .kalem-buyuk, .kalem-puan'));
-    const engel = [...document.querySelectorAll('.wr .serit, .wr .ac-serit, .wr .lup, .wr .k-baslik, .wr .baski img')];
-    const sorun = [];
-    for (const e of yazilar) { const b = kutu(e); if (!e.closest('.serit-pencere, .ac-seritler') && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1)) sorun.push('taşıyor: ' + e.textContent.trim().slice(0, 24)); }
-    for (let i = 0; i < yazilar.length; i++) for (let j = i + 1; j < yazilar.length; j++) {
-      const a = yazilar[i], c = yazilar[j]; if (a.contains(c) || c.contains(a)) continue;
-      const A = kutu(a), C = kutu(c);
-      if (Math.min(A.right, C.right) - Math.max(A.left, C.left) > 3 && Math.min(A.bottom, C.bottom) - Math.max(A.top, C.top) > 3) sorun.push(`üst üste: ${a.textContent.trim().slice(0, 16)} × ${c.textContent.trim().slice(0, 16)}`);
-    }
-    if (!tam) return sorun;
-    // Kalem payı 16px: lüpte daire (yarıçap üzerinden), baskının kâğıt payındaki numara bilerek orada
-    for (const k of kalem) for (const g of engel) {
-      if (g.contains(k) || k.contains(g) || k.closest('.baski') || g.closest('.baski')?.contains(k)) continue;
-      const K = kutu(k), G = kutu(g);
-      let d;
-      if (g.classList.contains('lup')) { const cx = G.left + G.width / 2, cy = G.top + G.height / 2; const nx = Math.max(K.left, Math.min(cx, K.right)), ny = Math.max(K.top, Math.min(cy, K.bottom)); d = Math.hypot(cx - nx, cy - ny) - G.width / 2; }
-      else d = Math.hypot(Math.max(G.left - K.right, K.left - G.right, 0), Math.max(G.top - K.bottom, K.top - G.bottom, 0));
-      if (d < 16) sorun.push(`kalem yakın (${Math.round(d)}px): ${k.textContent.trim().slice(0, 16)}`);
-    }
-    // Boşluk: en büyük boş dikey aralık ekranın beşte birinden az
-    const kutular = [...document.querySelectorAll('.wr .tel *')].filter(e => !e.children.length || e.matches('img,.serit,.ac-serit,.baski,.lup,svg')).map(kutu).filter(q => q.height > 0)
-      .map(q => [q.top - tel.top, q.bottom - tel.top]).sort((x, y) => x[0] - y[0]);
-    let son = 0, enBuyuk = 0; for (const [t, bo] of kutular) { enBuyuk = Math.max(enBuyuk, t - son); son = Math.max(son, bo); }
-    if (enBuyuk > tel.height / 5) sorun.push(`boşluk ${Math.round(enBuyuk)}px`);
-    for (const e of document.querySelectorAll('.wr .k-alt, .wr .k-dg, .wr .w-tekrar')) if (parseFloat(getComputedStyle(e).fontSize) < 16) sorun.push('16px altı: ' + e.className);
-    const tk = document.querySelector('.wr .w-tekrar'); if (tk && kutu(tk).height < 44) sorun.push('Tekrar izle 44px altı');
-    return sorun;
-  }, tam);
-  bekle(`${ad}: taşma, çakışma${tam ? ', kalem payı, boşluk, boyut' : ''} temiz`, r.length === 0, r.slice(0, 4).join(' | '));
+  const r = await p.evaluate(OLC, tam);
+  bekle(`${ad}: taşma, çakışma, kromdan uzaklık${tam ? ', kalem payı, boşluk, boyut' : ''} temiz`, r.length === 0, r.slice(0, 4).join(' | '));
   if (r.length) await p.screenshot({ path: `${SS}/${ad.replace(/[^\wığüşöçİĞÜŞÖÇ-]+/g, '_')}.png` });
 }
 // Baştan sona bütün kartları gez, her birini denetle
 async function gez(eposta, E, etiket, w, h, tam) {
   const p = await kisi(eposta, 'no-preference', w, h);
   await ac(p, `wrapped/${E}`);
+  let ad = '';
   for (let i = 0; i < 10; i++) {
-    const ad = await kartAdi(p);
+    ad = await kartAdi(p);
     await denetle(p, `${etiket}/${w}/${i}-${ad}`, tam);
     if (ad === 'kapanis') break;
     await sag(p);
   }
+  bekle(`${etiket}/${w}: kapanış kartına varıldı`, ad === 'kapanis', ad);
   await p.context().close();
 }
 
@@ -197,7 +214,7 @@ try {
   // E5: 40 kare. Açılışta en çok 12 kare ve 3 şerit, temalar kartında şerit başına en çok 6 kare
   const F = await kisi(U40[0].eposta); await ac(F, `wrapped/${E5}`);
   const ac12 = await F.locator('.set-kontakt .ac-serit img').count(), seritler = await F.locator('.set-kontakt .ac-serit').count();
-  bekle('E5/açılış: en çok 12 kare, en çok 3 şerit', ac12 > 0 && ac12 <= 12 && seritler <= 3 && seritler >= 1, `${ac12} kare, ${seritler} şerit`);
+  bekle('E5/açılış: en çok 12 kare, tam 3 şerit', ac12 > 0 && ac12 <= 12 && seritler === 3, `${ac12} kare, ${seritler} şerit`);
   bekle('E5/temalar: kart var', await kartaGit(F, 'temalar'));
   bekle('E5/temalar: iki şerit, şerit başına en çok 6 kare', (await F.locator('.set-kontakt .tema-serit').count()) === 2 && (await F.locator('.set-kontakt .tema-serit').evaluateAll(l => l.every(x => x.querySelectorAll('.k-kare').length <= 6 && x.querySelectorAll('.k-kare').length >= 1))));
   await denetle(F, 'E5/temalar/390', false);

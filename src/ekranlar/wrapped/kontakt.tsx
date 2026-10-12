@@ -16,7 +16,7 @@ function govde(ust: string, baslik: string, icerik: ReactNode, alt?: ReactNode) 
   return (
     <div className="w-ic k-ic">
       <span className="k-ust">{ust}</span>
-      <div className={`k-baslik${baslik.length > 30 ? ' uzun' : ''}${baslik.length > 42 ? ' cok' : ''}`}>{baslik}</div>
+      <div className={`k-baslik${baslik.length > 30 ? ' uzun' : ''}`}>{baslik}</div>
       <div className="k-blok">{icerik}</div>
       {alt && <div className="k-alt">{alt}</div>}
     </div>
@@ -28,13 +28,6 @@ const ortala = (once: (SK | null)[], hedef: SK[], sonra: (SK | null)[]) => {
   const bas = [...Array(n - once.length).fill(null), ...once]
   const son = [...sonra, ...Array(n - sonra.length).fill(null)]
   return { kareler: [...bas, ...hedef, ...son], secili: hedef.map((_, j) => n + j) }
-}
-
-/** Şeritlerdeki kare sayısı en çok bir fark ediyor (4+4+2 yerine 4+3+3): üçüncü şerit tek başına büyümesin. */
-const dengele = (s: SK[][]) => {
-  const hepsi = s.flat(), taban = Math.floor(hepsi.length / s.length), fazla = hepsi.length % s.length
-  let i = 0
-  return s.map((_, j) => hepsi.slice(i, (i += taban + (j < fazla ? 1 : 0))))
 }
 
 export const KONTAKT: SetTanimi = {
@@ -49,14 +42,14 @@ export const KONTAKT: SetTanimi = {
     for (const p of plan) {
       if (p.tur === 'acilis') {
         const o = v.ozet
-        const seritler = dengele(acilisSeritleri(v.e, v.kareler))
+        const seritler = acilisSeritleri(v.e, v.kareler)
         K.push({
           ad: 'acilis', sinif: 'kt-acilis', sag: `${ay} · ${yil}`,
           govde: govde(etkinlikAdi, 'Oylar sayıldı', <>
-            <div className={`ac-seritler${seritler.length > 2 ? ' tri' : ''}`}>
+            <div className="ac-seritler">
               {seritler.map((s, j) => (
                 // Kare genişliği şeridi kenardan kenara doldursun: az karede kareler büyüyor
-                <div key={j} className="ac-serit" style={{ ['--acw' as string]: `${Math.max(118, Math.ceil(460 / s.length) - 9)}px`, animationDelay: `${j * 0.15}s` }}>
+                <div key={j} className="ac-serit" style={{ ['--acw' as string]: `${Math.max(seritler.length > 2 ? 110 : 118, Math.ceil((seritler.length > 2 ? 440 : 460) / s.length) - 9)}px`, animationDelay: `${j * 0.15}s` }}>
                   {s.map(k => <div key={k.id} className="k-kare"><Foto k={k} /></div>)}
                 </div>
               ))}
@@ -80,9 +73,9 @@ export const KONTAKT: SetTanimi = {
             <div className="notlar"><Not>{w[0].sahip_ad} {puan(w[0].ortalama)}</Not></div>
           </>
         } else if (d === 'baski') {
-          const uzun = tema.ad.length > 12
+          const uzun = tema.ad.length > 12, cokUzun = baslik.length > 42
           icerik = <>
-            <div className="masa"><Baski k={w[0]} maxW={uzun ? 270 : 310} maxH={uzun ? 200 : 240} aci={-2}>
+            <div className="masa"><Baski k={w[0]} maxW={uzun ? 270 : 310} maxH={cokUzun ? 150 : uzun ? 200 : 240} aci={-2}>
               <span className="kenar">{tema.ad} · {kenarAy} · 01</span><Daire gecikme={0.7} /></Baski></div>
             <div className="notlar"><Not gecikme={1.5}>{w[0].sahip_ad}</Not><div className="kalem-puan">{puan(w[0].ortalama)}</div></div>
           </>
@@ -98,7 +91,7 @@ export const KONTAKT: SetTanimi = {
         K.push({
           ad: 'kursu', sinif: 'kt-kursu', sag: `Sıralamaya ${p.girdi} kare girdi`,
           govde: govde(etkinlikAdi, p.az ? 'Az farkla' : 'Kürsünün kalanı', (
-            <div className="masa kursu">{p.kursu.map((k, j) => (
+            <div className="masa kt-podyum">{p.kursu.map((k, j) => (
               <div key={k.id} className={`kursu-${j + 2}`}>
                 <Baski k={k} maxW={j ? 138 : 150} maxH={j ? 190 : 210} aci={j ? 3.5 : -4} gecikme={0.1 + j * 0.35}><span className="kalem-no">{k.sira}</span></Baski>
                 <Not gecikme={1.1 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>

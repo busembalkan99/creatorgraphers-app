@@ -141,8 +141,10 @@ export function acilisSeritleri(e: { id: string }, kareler: SK[]): SK[][] {
   const sec = acilisKareleri(e, kareler, 12)
   if (!sec.length) return []
   const serit = sec.length <= 4 ? 1 : sec.length <= 8 ? 2 : 3
-  const kac = Math.ceil(sec.length / serit)
-  return Array.from({ length: serit }, (_, j) => sec.slice(j * kac, (j + 1) * kac)).filter(s => s.length)
+  // Şeritlerdeki kare sayısı en çok bir fark ediyor (10 kare 4+3+3): son şerit tek başına büyümesin
+  const taban = Math.floor(sec.length / serit), fazla = sec.length % serit
+  let i = 0
+  return Array.from({ length: serit }, (_, j) => sec.slice(i, (i += taban + (j < fazla ? 1 : 0)))).filter(s => s.length)
 }
 
 /** Tema kartlarının yerleşimi: eşitse iki baskı; değilse dönüşümlü, 1. şerit, 2. baskı (karar 130). */

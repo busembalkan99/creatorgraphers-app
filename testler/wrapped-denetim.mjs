@@ -57,6 +57,10 @@ const k3 = []; for (const u of foto.slice(0, 3)) k3.push(await yukle(u, E3, T3))
 const { E: E4, T: [T4a, T4b] } = await etkinlik(['Sokak', 'Portre fotoğrafçılığı ve sokak']);
 const k4a = [], k4b = [];
 for (const [j, u] of foto.slice(0, 5).entries()) { k4a.push(await yukle(u, E4, T4a, j === 0)); k4b.push(await yukle(u, E4, T4b, j === 0)); }
+// E6: iki tema, ikincisinin adı kısa: tek baskılı kartta kısa başlık, baskı büyük kalmalı
+const { E: E6, T: [T6a, T6b] } = await etkinlik(['Sokak', 'Işık']);
+const k6a = [], k6b = [];
+for (const u of foto.slice(0, 5)) { k6a.push(await yukle(u, E6, T6a)); k6b.push(await yukle(u, E6, T6b)); }
 // E5: kişi başına tema başına tek kare (unique tema+sahip, 0001_temel.sql): 40 kişi, 40 karelik tema ve 3 karelik ikinci tema
 const U40 = [];
 for (let i = 0; i < 40; i++) { const e = `k40-${String(i).padStart(2, '0')}@test.local`; U40.push({ ...(await kullanici(e, `Kişi ${i}`)), eposta: e }); }
@@ -65,11 +69,11 @@ const { E: E5, T: [T5a, T5b] } = await etkinlik(['Kalabalık', 'Küçük tema'])
 const k5a = []; for (const u of U40) k5a.push(await yukle(u, E5, T5a));
 const k5b = []; for (const u of U40.slice(0, 3)) k5b.push(await yukle(u, E5, T5b));
 
-const tum = [E1, E2, E3, E4, E5];
+const tum = [E1, E2, E3, E4, E5, E6];
 await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).in('id', tum);
-const sirali = [k1, k2a, k2b, k3, k4a, k4b];
+const sirali = [k1, k2a, k2b, k3, k4a, k4b, k6a, k6b];
 for (const u of U.filter(u => u !== Y)) {
-  for (const E of [E1, E2, E3, E4]) {
+  for (const E of [E1, E2, E3, E4, E6]) {
     const l = (await u.c.rpc('oylama_kareleri', { p_etkinlik: E })).data ?? [];
     for (const k of l) {
       const j = sirali.map(x => x.indexOf(k.id)).find(x => x >= 0);
@@ -121,6 +125,7 @@ const OLC = (tam) => {
   const sayac = [...document.querySelectorAll('.wr .sayac *')].filter(e => yazi(e) && kutu(e).width > 0);
   const sayacUst = sayac.length ? Math.min(...sayac.map(e => kutu(e).top)) : tel.bottom;
   const sorun = [];
+  if (!sayac.length) sorun.push('sayaç yazısı bulunamadı');
   for (const e of yazilar) { const b = kutu(e); if (!e.closest('.serit-pencere, .ac-seritler') && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1)) sorun.push('taşıyor: ' + e.textContent.trim().slice(0, 24)); }
   for (let i = 0; i < yazilar.length; i++) for (let j = i + 1; j < yazilar.length; j++) {
     const a = yazilar[i], c = yazilar[j]; if (a.contains(c) || c.contains(a)) continue;
@@ -132,6 +137,14 @@ const OLC = (tam) => {
     for (const k of krom) { const K = kutu(k); if (Math.min(b.right, K.right) - Math.max(b.left, K.left) > 1 && Math.min(b.bottom, K.bottom) - Math.max(b.top, K.top) > 1) sorun.push(`krom: ${k.textContent.trim().slice(0, 10) || k.className} × ${(e.textContent || e.tagName).trim().slice(0, 16)}`); }
     if (b.bottom > sayacUst - 8) sorun.push(`sayaca yakın (${Math.round(sayacUst - b.bottom)}px): ${(e.textContent || e.tagName).trim().slice(0, 16)}`);
   }
+  // Medya (baskı, lüp, şerit, görsel) ile düğmeler arasında en az 12px; kenar yazısı kâğıdın içinde
+  for (const m of [...document.querySelectorAll('.wr .w-ic .baski, .wr .w-ic .lup, .wr .w-ic .serit, .wr .w-ic .ac-serit, .wr .w-ic img')]) for (const d of document.querySelectorAll('.wr .w-ic .k-dg, .wr .w-ic .w-tekrar')) {
+    if (m.contains(d) || d.contains(m)) continue;
+    const M = kutu(m), D = kutu(d);
+    const bosluk = Math.hypot(Math.max(M.left - D.right, D.left - M.right, 0), Math.max(M.top - D.bottom, D.top - M.bottom, 0));
+    if (bosluk < 12) sorun.push(`düğmeye yakın (${Math.round(Math.max(M.top - D.bottom, D.top - M.bottom, bosluk > 0 ? bosluk : -Math.min(M.bottom - D.top, D.bottom - M.top)))}px): ${m.className || m.tagName} × ${d.textContent.trim().slice(0, 12)}`);
+  }
+  for (const k of document.querySelectorAll('.wr .baski .kenar')) { const K = kutu(k), B = kutu(k.closest('.baski')); const foto = k.closest('.baski').querySelector('img, .bos-foto'); if (K.right > B.right + 1 || K.left < B.left - 1 || K.bottom > B.bottom + 1 || (foto && K.top < kutu(foto).bottom - 1)) sorun.push('kenar yazısı kâğıdın ya da fotoğrafın üstünde: ' + k.textContent.trim().slice(0, 14)); }
   if (!tam) return [...new Set(sorun)];
   // Kalem payı 16px: lüpte daire (yarıçap üzerinden), baskının kâğıt payındaki numara bilerek orada
   for (const k of kalem) for (const g of engel) {
@@ -181,12 +194,23 @@ const KISILER = [
   ['E2', E2, [['birinci', ILK], ['iki-tema-sirali', foto[1].eposta], ['iki-tema-girmedi', foto[6].eposta], ['oyverdi', A.eposta], ['yoktun', Y.eposta]]],
   ['E3', E3, [['birinci', ILK], ['girmedi', foto[2].eposta], ['oyverdi', A.eposta], ['yoktun', Y.eposta]]],
   ['E4', E4, [['birinci-dikey', ILK], ['girmedi', foto[4].eposta], ['oyverdi', A.eposta], ['yoktun', Y.eposta]]],
+  ['E6', E6, [['birinci-kisa-baslik', ILK], ['girmedi', foto[4].eposta]]],
 ];
 
 try {
   for (const [w, h, tam] of [[390, 844, true], [360, 760, true], [320, 640, false]]) {
     for (const [ad, E, kisiler] of KISILER)
       await Promise.all(kisiler.map(([kad, ep]) => gez(ep, E, `${ad}-${kad}`, w, h, tam)));
+  }
+
+  // Kısa başlıklı tek baskı: baskı yüksekliği uzun başlıktaki sınırdan (100px) büyük
+  for (const [w, h] of [[390, 844], [360, 760]]) {
+    const Q = await kisi(ILK, 'no-preference', w, h); await ac(Q, `wrapped/${E6}`);
+    bekle(`E6/${w}: tek baskılı tema kartı var`, await kartaGit(Q, 'tema', async () => (await Q.locator('.wr .tel').getAttribute('class')).includes('kt-baski')));
+    await Q.waitForTimeout(1500);
+    const yuk = await Q.locator('.tel.kt-baski .baski img').first().evaluate(e => e.getBoundingClientRect().height);
+    bekle(`E6/${w}: kısa başlıkta baskı 100px sınırından büyük`, yuk > 110, String(yuk));
+    await Q.context().close();
   }
 
   // Başlıkta Türkçe nokta: 1,08'de alt satırın İ noktası üst satırın tabanına değmiyor

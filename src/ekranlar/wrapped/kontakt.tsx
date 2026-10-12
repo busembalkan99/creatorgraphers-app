@@ -86,7 +86,7 @@ export const KONTAKT: SetTanimi = {
               <Not gecikme={1.3 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>
             </div>))}</div>
         }
-        K.push({ ad: 'tema', sinif: `kt-tema kt-${d}`, sag: tek ? 'Temada tek kare' : `${w[0].oy_sayisi ?? 0} kişi puanladı`, govde: govde(etkinlikAdi, baslik, icerik, alt) })
+        K.push({ ad: 'tema', sinif: `kt-tema kt-${d}${d === 'baski' && baslik.length > 42 ? ' kt-cok' : ''}`, sag: tek ? 'Temada tek kare' : `${w[0].oy_sayisi ?? 0} kişi puanladı`, govde: govde(etkinlikAdi, baslik, icerik, alt) })
       } else if (p.tur === 'kursu') {
         K.push({
           ad: 'kursu', sinif: 'kt-kursu', sag: `Sıralamaya ${p.girdi} kare girdi`,

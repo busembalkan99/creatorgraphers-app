@@ -95,7 +95,7 @@
   rotate:var(--aci,0deg);animation:dus .7s cubic-bezier(.2,.7,.2,1) backwards}
 .wr .set-kontakt .baski img,.wr .set-kontakt .baski .bos-foto{display:block;object-fit:cover;filter:grayscale(1) contrast(1.06)}
 .wr .set-kontakt .baski .kalem-no{right:8px;top:auto;bottom:0;background:none;rotate:4deg;transform:none}
-.wr .set-kontakt .baski .kenar{position:absolute;left:12px;bottom:12px;color:var(--soluk)}
+.wr .set-kontakt .baski .kenar{position:absolute;left:12px;right:12px;bottom:12px;overflow:hidden;text-overflow:ellipsis;color:var(--soluk)}
 /* Lüp: daire ve sap tek kapta, kayma kapta */
 .wr .set-kontakt .lup-kap{position:absolute;animation:lup-kay 1.3s cubic-bezier(.3,.7,.2,1) backwards}
 .wr .set-kontakt .lup-kap.gez{animation:lup-gez 2.4s cubic-bezier(.4,0,.2,1) backwards}
@@ -121,7 +121,7 @@
 .wr .set-kontakt .tema-ad b{font-size:30px}
 .wr .set-kontakt .tema-kareleri{margin-left:calc(-1 * var(--kenar));transform-origin:left center}
 .wr .set-kontakt .tema-serit .kalem-not{margin-top:34px}
-.wr .set-kontakt .masa.yigin{display:grid;grid-template-columns:minmax(0,1fr);margin-top:10px}
+.wr .set-kontakt .masa.yigin{display:grid;grid-template-columns:minmax(0,1fr);margin:10px 0 26px}
 .wr .set-kontakt .yigin-yer{grid-area:1 / 1;margin:calc(40px - var(--y) * 6px) 0 0 calc(60px + var(--y) * 30px)}
 .wr .set-kontakt .yigin-yer:last-child{margin:56px 0 0 96px}
 
@@ -153,14 +153,16 @@
   .wr .set-kontakt .serit-pencere,.wr .set-kontakt .masa{margin-top:22px}
   .wr .set-kontakt .dev-serit{--kw:260px}
   .wr .set-kontakt .k-dugmeler{gap:8px}
-  .wr .set-kontakt .yigin .baski{--hmax:130px}
-  .wr .tel.kt-baski .baski{--hmax:100px}
+  .wr .set-kontakt .yigin .baski{--hmax:115px}
+  .wr .tel.kt-baski .baski{--hmax:150px}
+  .wr .tel.kt-cok .baski{--hmax:100px}
   .wr .set-kontakt .ac-serit{padding-block:17px}
   .wr .set-kontakt .ac-seritler{gap:8px}
   .wr .set-kontakt .k-alt{padding-top:10px}
   .wr .set-kontakt .ac-seritler{margin-top:20px}
   .wr .set-kontakt .ac-sayilar{margin-top:22px}
   .wr .set-kontakt .ac-sayilar b{font-size:52px}
+  .wr .set-kontakt .ac-sayilar.buyuk b{font-size:92px}
   .wr .tel.kt-baski .notlar{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
   .wr .tel.kt-baski .kalem-puan{margin-top:0;font-size:64px}
 }
@@ -191,7 +193,8 @@
   .wr .set-kontakt .tema-serit .kalem-not{margin-top:28px}
   .wr .set-kontakt .tema-ad{margin-bottom:4px}
   .wr .set-kontakt .tema-kareleri{padding-block:14px}
-  .wr .set-kontakt .yigin .baski{--hmax:110px}
+  .wr .set-kontakt .yigin .baski{--hmax:85px}
+  .wr .tel.kt-baski:not(.kt-cok) .baski{--hmax:120px}
   .wr .set-kontakt .lup-blok:not(.cift):not(.numarali){height:290px}
   .wr .set-kontakt .lup-blok.cift.numarali{height:276px}
   .wr .set-kontakt .lup-blok.cift .kalem-buyuk{top:calc(100px + var(--kb) * 2 / 3);font-size:84px}

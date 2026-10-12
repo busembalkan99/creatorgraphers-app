@@ -1020,7 +1020,7 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
    her kural 768+ medya sorgusunda ve rayı olan kabuğun altında. Yeni sınıflar m- önekli.
    ========================================================== */
 .m-ray{display:none}
-@media (min-width:768px){
+@media (min-width:768px) and (min-height:520px){
   .app:has(> .m-ray){--m-ray:88px;--pad:clamp(32px,4.5vw,72px);max-width:none;border:0;
     display:grid;grid-template-columns:var(--m-ray) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
   .app:has(> .m-ray) > .gecis{grid-column:2;grid-row:1;min-width:0}
@@ -1040,14 +1040,14 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .m-ray-lb{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft);padding:0 16px 10px}
   .m-ray-alt{margin-top:auto;padding-top:24px;font-size:13px;font-weight:700;color:var(--soft);text-align:center}
 }
-@media (min-width:1200px){
+@media (min-width:1200px) and (min-height:520px){
   .app:has(> .m-ray){--m-ray:280px}
   .m-ray{padding-left:28px;padding-right:28px}
   .m-ray .m-uzun{display:inline}.m-ray .m-kisa{display:none}
   .m-ray-ad,.m-ray-alt{text-align:left}.m-ray-alt{padding-left:16px}
   .m-ray a{justify-content:flex-start;padding:0 16px}
 }
-@media (min-width:1600px){
+@media (min-width:1600px) and (min-height:520px){
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */
   .app:has(> .m-ray){--pad:max(72px, calc((100vw - var(--m-ray) - 1360px) / 2))}
 }

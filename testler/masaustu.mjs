@@ -95,6 +95,12 @@ bolum('kabuk', async b => {
     bekle('700: hâlâ 480px telefon sütunu', !r2.ray && r2.app === 480, JSON.stringify(r2));
     await p.context().close();
   }
+  {
+    const p = await sayfa(b, [844, 390]); await ac(p, 'etkinlikler');
+    const r = await p.evaluate(() => ({ ray: !!document.querySelector('.m-ray')?.offsetParent, tabs: !!document.querySelector('.tabs')?.offsetParent, app: Math.round(document.querySelector('.app').getBoundingClientRect().width) }));
+    bekle('844x390 yatay telefon: ray yok, alt sekme var, sütun 480', !r.ray && r.tabs && r.app === 480, JSON.stringify(r));
+    await p.context().close();
+  }
   for (const boyut of BOYUTLAR) {
     const p = await sayfa(b, boyut);
     for (const yol of ['etkinlikler', 'siralama', 'profil']) {

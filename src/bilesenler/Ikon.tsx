@@ -19,6 +19,9 @@ const P = {
   film: '<path d="M3 5H21V21H3V5Z"/><path d="M21 9.5H3"/><path d="M7 5V2.5M17 5V2.5"/><path d="M7 13.5H9M11 13.5H13M15 13.5H17M7 17H9M11 17H13"/>',
   sira: '<polygon points="2 12 2 21 6 21 6 12"/><polygon points="18 7 18 21 22 21 22 7"/><polygon points="10 3 10 21 14 21 14 3"/>',
   kisi: '<path d="M4,20 C4,17 8,17 10,15 C11,14 8,14 8,9 C8,5.667 9.333,4 12,4 C14.667,4 16,5.667 16,9 C16,14 13,14 14,15 C16,17 20,17 20,20"/>',
+  uyeler: '<circle cx="9" cy="8" r="3.5"/><path d="M2 20C2.8 16.6 5.4 15 9 15C12.6 15 15.2 16.6 16 20"/><path d="M16 4.5A3.5 3.5 0 0 1 16 11.5"/><path d="M18 15C20 15.6 21.4 17.2 22 20"/>',
+  zil: '<path d="M6 16V11C6 7.7 8.7 5 12 5C15.3 5 18 7.7 18 11V16L20 18H4L6 16Z"/><path d="M10 20H14"/>',
+  liste: '<path d="M4 6H20"/><path d="M4 12H20"/><path d="M4 18H14"/>',
 } as const
 
 export type IkonAdi = keyof typeof P

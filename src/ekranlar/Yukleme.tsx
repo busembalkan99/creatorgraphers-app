@@ -303,13 +303,15 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
         {temalar.map(x => {
           const dx = D[x.id] ?? bosDurum()
           const etiket = dx.yukleniyor ? 'Yükleniyor' : dx.kare ? (dx.kare.id in cikan ? 'Çıkarıldı' : 'Yüklendi') : dx.ret ? 'Yüklenmedi' : 'Boş'
-          // Yüklenirken aynı temaya ikinci dosya bırakılmasın (önceki kare henüz yerine yazılmadı)
-          const alanVar = acik && !gelmedi && !dx.yukleniyor
+          // Yüklenirken ikinci dosya bırakılmasın; çıkarılan karenin yerine yenisi konmuyor (telefonda da Değiştir yok)
+          const alanVar = acik && !gelmedi && !dx.yukleniyor && !(dx.kare && dx.kare.id in cikan)
           return (
             <section key={x.id} className="m-yuk-tema" data-tema={x.id}>
               <div className="m-tema-bas"><h3 className="m-tema-ad">{x.ad}</h3><span className="m-durum">{etiket}</span></div>
               <div className="sart">{sartYaz(x, e)}</div>
               <div className={`m-alan ${suruk === x.id ? 'uzerinde' : ''}`}
+                // Alandaki kendi karesi sürüklenmesin: Chrome resmi dosya olarak taşıyor, başka temaya yüklenirdi
+                onDragStart={ev => ev.preventDefault()}
                 onDragEnter={ev => { if (!alanVar || !dosyaSurukleniyor(ev)) return; ev.preventDefault(); setSuruk(x.id) }}
                 onDragOver={ev => { if (!alanVar || !dosyaSurukleniyor(ev)) return; ev.preventDefault(); ev.dataTransfer.dropEffect = 'copy' }}
                 onDrop={ev => {

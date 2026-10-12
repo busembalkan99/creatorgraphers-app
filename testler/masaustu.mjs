@@ -205,10 +205,12 @@ bolum('etkinlikler', async b => {
   await t.context().close();
 
   await admin.from('etkinlikler').update({ iptal: true }).eq('id', E.id);   // aynı anda tek açık etkinlik
-  await acikEtkinlik('yukleme', ['ÇOK UZUN BİR TEMA ADI KIRK KARAKTERE KADAR', 'Kalabalık']);
+  // Kur'un sınırı 40 karakter (temalar_ad_check); daha uzunu veritabanına girmiyor
+  await acikEtkinlik('yukleme', ['ÇOK UZUN BİR TEMA ADI KIRK KARAKTER OLUR', 'Kalabalık']);
   for (const w of [1024, 1440]) {
     const p = await sayfa(b, [w, 900]); await ac(p, 'etkinlikler');
-    const d = await denetle(p); bekle(`${w}: 40 karakterlik tema adıyla canlı kart temiz`, d.length === 0, d.join(' | '));
+    const ad = (await p.textContent('.m-tema-durum').catch(() => '')) ?? '';
+    const d = await denetle(p); bekle(`${w}: 40 karakterlik tema adıyla canlı kart temiz`, d.length === 0 && ad.includes('KIRK KARAKTER OLUR'), d.join(' | ') || ad.slice(0, 80));
     await p.context().close();
   }
 
@@ -433,7 +435,9 @@ bolum('yukleme', async b => {
     const dt = new DataTransfer();
     for (const [ad, b64, tur] of ds) dt.items.add(new File([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], ad, { type: tur }));
     const h = document.querySelector(s);
-    for (const t of ['dragenter', 'dragover', 'drop']) h.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt }));
+    let engellendi = false;
+    for (const t of ['dragenter', 'dragover', 'drop']) { const ok = h.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt })); if (t === 'drop') engellendi = !ok }
+    return engellendi;   // sentetik olay sayfayı terk ettirmiyor; tarayıcının varsayılanı (dosyayı açmak) engellendi mi
   }, [secici, dosyalar]);
   // Yalnız sürükleme olayı (bırakmadan); dosya: true ise içinde bir File var, değilse yalnız yazı
   const surukle = (p, secici, tur, dosya = true) => p.evaluate(([s, t, f]) => {
@@ -481,8 +485,8 @@ bolum('yukleme', async b => {
   await surukle(p, '.kal', 'dragenter'); await p.waitForTimeout(200);
   bekle('alan dışında işaret kalkıyor, alanlar açık', (await p.locator('.m-alan.uzerinde').count()) === 0 && (await p.locator('.m-birak:visible').count()) === 3);
   // alan dışına bırakmak: sayfada kal, yükleme yok
-  await birak(p, '.sc', [['dogru.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(800);
-  bekle('alan dışına bırakmak sayfada kalıyor, yükleme yok', p.url().endsWith('#/yukle') && (await karem(t1.id)).length === 0 && (await p.locator('.m-birak:visible').count()) === 0);
+  const disEngel = await birak(p, '.sc', [['dogru.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(800);
+  bekle('alan dışına bırakmak sayfada kalıyor (varsayılan engellendi), yükleme yok', disEngel === true && (await karem(t1.id)).length === 0 && (await p.locator('.m-birak:visible').count()) === 0, String(disEngel));
   // pencereden çıkınca alanlar kapanıyor
   await surukle(p, null, 'dragenter'); await surukle(p, '.kal', 'dragenter'); await surukle(p, null, 'dragleave'); await p.waitForTimeout(150);
   const acikKaldi = (await p.locator('.m-birak:visible').count()) === 3;
@@ -500,12 +504,13 @@ bolum('yukleme', async b => {
   await birak(p, `${TEMA(t1.id)} .m-alan`, [['yanlis.jpg', jpg('yanlis'), 'image/jpeg']]); await p.waitForTimeout(3000);
   bekle('tarih tutmayan değiştirme reddedildi, önceki kare yerinde (karar 93)', ilk && (await karem(t1.id))[0]?.dosya === ilk && (await p.textContent('.sc')).includes('buluşma günü çekilmemiş'));
   const d = await denetle(p); bekle('1440 dolu, ret ve boş temalar: denetim temiz', d.length === 0, d.join(' | '));
-  await yuklemeKenar(b, p, birak, karem, E);   // Step 8-9
+  await yuklemeKenar(b, p, birak, karem, E, surukle);   // Step 8-9
   await p.context().close();
   await temizle(); kurulan.length = 0;
 });
 
-async function yuklemeKenar(b, p, birak, karem, E) {
+const jpg64 = n => fs.readFileSync(`/tmp/cgapp/${n}.jpg`).toString('base64');
+async function yuklemeKenar(b, p, birak, karem, E, surukle) {
   const t2 = E.temalar[1];
   await birak(p, `${TEMA(t2.id)} .m-alan`, [['not.txt', btoa('merhaba'), 'text/plain']]); await p.waitForTimeout(1500);
   const metin = (await p.locator(`${TEMA(t2.id)} .hata`).textContent().catch(() => '')) ?? '';
@@ -514,6 +519,21 @@ async function yuklemeKenar(b, p, birak, karem, E) {
   const [secici] = await Promise.all([p.waitForEvent('filechooser'), p.locator(`${TEMA(t2.id)} .m-alan button.bos`).click()]);
   await secici.setFiles('/tmp/cgapp/dikey.jpg'); await p.waitForTimeout(4000);
   bekle('alana tıklayıp seçilen kare o temaya yüklendi', (await karem(t2.id)).length === 1);
+  // Alandaki kendi karesini sürüklemek başka alana taşımasın (Chrome resmi Files olarak sürükletiyor)
+  const resimSurukle = await p.evaluate(s => { const i = document.querySelector(s); return !!i && !i.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true })) }, `${TEMA(t2.id)} .m-alan img`);
+  bekle('alandaki kare sürüklenmiyor', resimSurukle);
+  // Yarışmadan çıkarılan kare: telefonda Değiştir yok, masaüstünde alan da bırakma almıyor
+  const t3 = E.temalar[2];
+  const [cikanKare] = await karem(t3.id);
+  await admin.from('diskalifiye').insert({ kare: cikanKare.id, neden: 'Başka gün çekilmiş', eden: await kimlik('kurucu@test.local') });
+  await ac(p, 'yukle');
+  await surukle(p, null, 'dragenter'); await p.waitForTimeout(200);
+  const acik3 = await p.locator(`${TEMA(t3.id)} .m-birak`).count(), acikDiger = await p.locator('.m-birak:visible').count();
+  await surukle(p, null, 'dragleave');
+  await birak(p, `${TEMA(t3.id)} .m-alan`, [['dogru.jpg', jpg64('dogru'), 'image/jpeg']]); await p.waitForTimeout(3000);
+  const sonra = await karem(t3.id), m3 = (await p.textContent(TEMA(t3.id))) ?? '';
+  bekle('çıkarılan karenin alanı bırakma almıyor, satır aynı', acik3 === 0 && acikDiger === 2 && sonra.length === 1 && sonra[0].dosya === cikanKare.dosya
+    && (await p.locator(`${TEMA(t3.id)} .hata, ${TEMA(t3.id)} .kart.ret`).count()) === 0 && m3.includes('Yarışmadan çıkarıldı'), JSON.stringify({ acik3, acikDiger, n: sonra.length }));
   for (const w of [1024, 1440]) {
     await p.setViewportSize({ width: w, height: 900 }); await p.waitForTimeout(300);
     await p.screenshot({ path: `/tmp/cgapp/ss/yukleme-${w}-${b.browserType().name()}-dolu.png` });

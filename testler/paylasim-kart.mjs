@@ -49,7 +49,8 @@ for (const motor of [chromium, webkit]) {
       const baskalari = olcum.filter(x => x.tur === 'foto' && x.kaynak === 'serit').flatMap(x => doygun(g, x, [0.1, 0.3, 0.5, 0.7, 0.9], lup));
       out[`${d}/${h}`] = { k: olcum, w: cv.width, h: cv.height, senin, bos, baskalari };
     }
-    const dar = ['900 100px "ArchivoDar"', '700 100px "ArchivoDar75"'].map(f => document.fonts.check(f, 'İğş'));
+    // document.fonts.check, o adda yüz hiç yokken de true dönüyor: yüzün kendisi yüklenmiş olmalı
+    const dar = ['ArchivoDar', 'ArchivoDar75'].map(a => [...document.fonts].some(f => f.family === a && f.status === 'loaded'));
     return { out, dar, duzenler: D.DUZENLER.map(x => x.ad), basliklar: D.DUZENLER.map(x => x.baslik) };
   }, SIRA);
   motorlar[m] = sonuc.out;
@@ -100,6 +101,36 @@ for (const motor of [chromium, webkit]) {
   const seritSay = h => sonuc.out[`sayfa/${h}`].k.filter(x => x.tur === 'foto' && x.kaynak === 'serit').length;
   bekle(`${m}: sayfa ızgarası 5/2/2/2/0`, [seritSay('birinci'), seritSay('ortak'), seritSay('ucuncu'), seritSay('galeride'), seritSay('tek')].join() === '5,2,2,2,0',
     ['birinci', 'ortak', 'ucuncu', 'galeride', 'tek'].map(seritSay).join());
+  await b.close();
+}
+
+// Google Fonts takılırsa paylaşım ekranı beklemiyor: kart süre içinde fontStretch yoluyla çiziliyor, sonraki çağrı yeniden deniyor
+{
+  const b = await chromium.launch(); const p = await b.newPage();
+  const hatalar = []; p.on('pageerror', e => hatalar.push(String(e)));
+  const DAR_CSS = /fonts\.googleapis\.com\/css2\?family=Archivo:wdth,wght@(62\.5|75),/;
+  await p.route(DAR_CSS, () => {});   // hiç cevap vermiyor
+  await p.goto(APP); await p.waitForFunction(() => window.__sb);
+  const takili = await p.evaluate(async () => {
+    const D = await import('/src/lib/paylasimKarti.ts');
+    const t0 = performance.now();
+    await D.fontlarHazir();
+    const k = [];
+    for (const d of ['lup', 'baski', 'sayfa']) D.kartCiz(d, { ay: 'Ekim', yil: '2026', tema: 'Sokak', ad: 'Can Öz', baslik: 'Tema birincisi', puan: '9,0', alt: '9 kişi puanladı', sira: '01', temaKare: 3, foto: null, serit: [], tohum: 'x' }, k);
+    const c = document.createElement('canvas').getContext('2d'); c.font = '900 200px Archivo'; c.fontStretch = 'extra-condensed';
+    return { ms: performance.now() - t0, dar: [...document.fonts].filter(f => f.family.startsWith('ArchivoDar')).length,
+      tema: k.find(x => x.t === 'TEMA')?.g, dar62: c.measureText('TEMA').width };
+  });
+  bekle('takılan font isteği: kart 6 sn içinde çiziliyor', takili.ms < 6000, `${Math.round(takili.ms)} ms`);
+  bekle('takılan font isteği: dar yüz kalmıyor, başlık fontStretch ile dar', takili.dar === 0 && Math.abs(takili.tema - takili.dar62) < 1, JSON.stringify(takili));
+  await p.unroute(DAR_CSS);
+  const sonra = await p.evaluate(async () => {
+    const D = await import('/src/lib/paylasimKarti.ts');
+    await D.fontlarHazir();
+    return ['ArchivoDar', 'ArchivoDar75'].map(a => [...document.fonts].some(f => f.family === a && f.status === 'loaded'));
+  });
+  bekle('takılan font isteği: istek açılınca sonraki çağrı yeniden deniyor', sonra.every(Boolean), JSON.stringify(sonra));
+  bekle('takılan font isteği: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
   await b.close();
 }
 

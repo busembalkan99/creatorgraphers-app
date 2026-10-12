@@ -61,35 +61,49 @@ const ORNEK = 'AZaz09İĞŞÇÖÜığşçöü'
 /**
  * Dar Archivo kesimleri (wdth 62,5 ve 75) kendi aile adlarıyla: WebKit tuvalinde fontStretch yok, değişken yazının
  * genişliği orada seçilemiyor. Google'ın tek değer istenen CSS'i genişliği sabitlenmiş dosyalar veriyor; alt kümeler
- * (latin, latin-ext) unicode-range'leriyle ekleniyor. Yüklenemezse (çevrimdışı) fontStretch yolu kalıyor.
+ * (latin, latin-ext) unicode-range'leriyle ekleniyor. Yüklenemezse ya da 4 sn'de gelmezse fontStretch yolu kalıyor.
  */
 const DAR = [['ArchivoDar', '62.5', '900'], ['ArchivoDar75', '75', '700']] as const
 let DAR_VAR = false
 let darSoz: Promise<boolean> | null = null
+// Yavaş ya da takılan bağlantıda paylaşım ekranı beklemesin: süre dolunca fontStretch yolu
+const DAR_SURE = 4000
 async function darYukle() {
-  const eklenen: FontFace[] = []
-  darSoz ??= (async () => {
+  darSoz ??= darDene()
+  DAR_VAR = await darSoz
+}
+function darDene(): Promise<boolean> {
+  const eklenen: FontFace[] = [], iptal = new AbortController()
+  const dene = (async () => {
     try {
       for (const [aile, wdth, k] of DAR) {
-        const r = await fetch(`https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@${wdth},${k}&display=swap`)
+        const r = await fetch(`https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@${wdth},${k}&display=swap`, { signal: iptal.signal })
         if (!r.ok) return false
         for (const [, b] of (await r.text()).matchAll(/@font-face\s*\{([^}]*)\}/g)) {
           const src = /src:\s*(url\([^)]+\))/.exec(b)?.[1], ur = /unicode-range:\s*([^;]+);/.exec(b)?.[1]
-          if (!src) continue
+          if (!src || iptal.signal.aborted) continue
           const y = new FontFace(aile, src, { weight: k, ...(ur && { unicodeRange: ur.trim() }) })
           document.fonts.add(y); eklenen.push(y)
         }
         const l = await document.fonts.load(`${k} 100px "${aile}"`, ORNEK)
         if (!l.length || l.some(x => x.status !== 'loaded')) return false
       }
-      return true
+      return !iptal.signal.aborted
     } catch { return false }
-  })().then(ok => {
-    // Başarısızsa yüzler siliniyor ve bir sonraki çağrı yeniden deniyor
-    if (!ok) { darSoz = null; for (const y of eklenen) document.fonts.delete(y) }
+  })()
+  let sayac = 0
+  const sure = new Promise<boolean>(r => { sayac = window.setTimeout(() => r(false), DAR_SURE) })
+  const soz: Promise<boolean> = Promise.race([dene, sure]).then(ok => {
+    clearTimeout(sayac)
+    if (!ok) {
+      // Başarısız ya da süresi doldu: bu denemenin yüzleri (geç yüklenseler de) siliniyor, bir sonraki çağrı yeniden deniyor
+      iptal.abort()
+      if (darSoz === soz) darSoz = null
+      void dene.then(() => { for (const y of eklenen) document.fonts.delete(y) })
+    }
     return ok
   })
-  DAR_VAR = await darSoz
+  return soz
 }
 
 /** Harf aralıklı metin: ctx.letterSpacing her tarayıcıda yok, harf harf çiziliyor */

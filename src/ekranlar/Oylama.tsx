@@ -10,6 +10,7 @@ import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 import type { TahminDurumu } from './Tahmin'
 import { kareAdresleri } from '../lib/imza'
+import { MASAUSTU } from '../lib/masaustu'
 
 /**
  * Oylama (kararlar 5, 6, 7, 9, 20, 24, 37, 42, 48, 94).
@@ -209,6 +210,24 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
     }
   }, [uye.id])
 
+  // Masaüstü kısayolları: yazı alanında ve pencerede çalışmaz, yalnız 768+ (telefonda klavye yok sayılıyor)
+  useEffect(() => {
+    const tus = (ev: KeyboardEvent) => {
+      if (!matchMedia(MASAUSTU).matches || kilitli || ev.metaKey || ev.ctrlKey || ev.altKey) return
+      const h = ev.target as HTMLElement
+      // Büyüteç ya da çıkarma penceresi açıkken odak gövdede kalabiliyor: açık pencere de yeter
+      if (h.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]') || document.querySelector('[aria-modal="true"]')) return
+      const ak = akis.current; if (!ak) return
+      const i = Math.round(ak.scrollTop / ak.clientHeight)
+      const k = kareler[i]
+      if (/^[0-9]$/.test(ev.key) && k) { ev.preventDefault(); oyVer(k.id, ev.key === '0' ? 10 : Number(ev.key)) }
+      else if (ev.key === 'ArrowRight' && i + 1 <= kareler.length) { ev.preventDefault(); ak.scrollTo({ top: (i + 1) * ak.clientHeight, behavior: 'smooth' }) }
+      else if (ev.key === 'ArrowLeft' && i > 0) { ev.preventDefault(); ak.scrollTo({ top: (i - 1) * ak.clientHeight, behavior: 'smooth' }) }
+    }
+    addEventListener('keydown', tus)
+    return () => removeEventListener('keydown', tus)
+  }, [kareler, kilitli, oyVer])
+
   if (hata) return <div className="sc"><Kunye sol="Oylama" geri="oyla" sag="Oylama" /><Hata metin={hata} /></div>
   if (e === undefined) return <Yukleniyor />
   if (e === null || !tema) {
@@ -246,7 +265,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           </div>
           <div className="ince" />
           <div className="sahne">
-            <div className="tutucu">
+            <div className="tutucu" style={{ ['--en' as string]: k.genislik, ['--boy' as string]: k.yukseklik }}>
               {k.url ? (
                 <img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik} alt={`${tema.ad} ${i + 1}. kare`} draggable={false}
                   {...tetik(olcek => setBuyuk({ url: (k.tam ?? k.url)!, baslik: tema.ad, sag: `${iki(i + 1)} / ${iki(kareler.length)}`, olcek }))} />
@@ -257,17 +276,26 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
             </div>
           </div>
           <div className="ince" />
-          {kilitli ? (
-            <p className="kilit-not"><Ikon ad="kilit" />Puanın {k.puan != null ? iki(k.puan) : 'yok'}. Tahmin oyununu başlattığın için kilitli.</p>
-          ) : (
-            <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
-          )}
-          {ipucu && k.puan != null && (
-            <p className="kaydir-ipucu" role="status">
-              <Ikon ad="yukari" />
-              {i + 1 < kareler.length ? 'Sonraki kare için yukarı kaydır' : 'Bitirmek için yukarı kaydır'}
-            </p>
-          )}
+          <div className="m-panel">
+            {kilitli ? (
+              <p className="kilit-not"><Ikon ad="kilit" />Puanın {k.puan != null ? iki(k.puan) : 'yok'}. Tahmin oyununu başlattığın için kilitli.</p>
+            ) : (
+              <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
+            )}
+            {ipucu && k.puan != null && (
+              <p className="kaydir-ipucu" role="status">
+                <Ikon ad="yukari" />
+                {i + 1 < kareler.length ? 'Sonraki kare için yukarı kaydır' : 'Bitirmek için yukarı kaydır'}
+              </p>
+            )}
+            {!kilitli && <div className="m-puan-bas"><span className="lab">Puanın</span><b>{k.puan == null ? '' : iki(k.puan)}</b></div>}
+            {!kilitli && <PuanDugmeleri puan={k.puan} degisti={p => oyVer(k.id, p)} kilitli={kilitli} />}
+            <div className="m-gez">
+              <button className="btn ik" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}>Önceki</button>
+              <button className="btn" onClick={() => i + 1 < kareler.length ? kaydir(kareler[i + 1].id) : akis.current?.querySelector('.bitti')?.scrollIntoView({ behavior: 'smooth' })}>Sonraki</button>
+            </div>
+            <p className="m-ipucu">1-0 puan · ← → kareler arası</p>
+          </div>
         </section>
       ))}
 
@@ -301,6 +329,17 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
         <CikarPenceresi kare={cikar} kapat={() => setCikar(null)}
           bitti={() => { setKareler(ks => ks.filter(x => x.id !== cikar)); setCikar(null); setCikti(true) }} />
       )}
+    </div>
+  )
+}
+
+// Masaüstü puanı (karar 129): kaydırıcı 768+'da gizli, puan tıklanarak. Telefonda görünmüyor.
+function PuanDugmeleri({ puan, degisti, kilitli }: { puan: number | null; degisti: (p: number) => void; kilitli: boolean }) {
+  return (
+    <div className="m-puanlar" role="group" aria-label="Puan">
+      {Array.from({ length: 10 }, (_, j) => j + 1).map(v => (
+        <button key={v} className={puan === v ? 'on' : ''} aria-pressed={puan === v} disabled={kilitli} onClick={() => degisti(v)}>{v}</button>
+      ))}
     </div>
   )
 }

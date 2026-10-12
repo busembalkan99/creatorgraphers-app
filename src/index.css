@@ -1024,6 +1024,8 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 .m-podyum,.m-baslik-sira,.m-odul-bas,.m-kazananlar{display:contents}
 .m-tema-durum{display:none}
 .m-profil-ust,.m-sol,.m-sag,.m-profil-alt,.m-profil-alt > div,.m-iki{display:contents}
+.m-panel{display:contents}
+.m-puan-bas,.m-puanlar,.m-gez,.m-ipucu{display:none}
 @media (min-width:768px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:8px;--s-ic:16px;--s-blok:36px;--s-bolum:54px}
   .app:has(> .m-ray){--m-ray:88px;--pad:clamp(32px,4.5vw,72px);max-width:none;border:0;
@@ -1092,6 +1094,28 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .row .m-pk img{width:auto;height:auto}
   .app:has(> .m-ray) .habit .k{width:104px}
   .app:has(> .m-ray) .m-profil-alt > div:empty{display:none}
+  /* Oylama: kaydırıcı yerine puan düğmeleri; bilgi fotoğrafın üstünde, puan altında. Ekran kaymıyor. */
+  .app:has(> .m-ray) .kare .puan{display:none}
+  .app:has(> .m-ray) .kare .kaydir-ipucu{display:none}
+  .app:has(> .m-ray) .kare{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto;
+    grid-template-areas:"mast" "rb" "plaka" "sahne" "panel";column-gap:clamp(40px,3.9vw,56px);padding:0 var(--pad)}
+  .app:has(> .m-ray) .kare > .mast{grid-area:mast}
+  .app:has(> .m-ray) .kare > .rb{grid-area:rb}
+  .app:has(> .m-ray) .kare > .plaka{grid-area:plaka}
+  .app:has(> .m-ray) .kare .ince{display:none}
+  .app:has(> .m-ray) .kare .sahne{grid-area:sahne;min-height:0;padding:16px 0;container-type:size}
+  /* Tutucu fotoğrafın oranında: yoksa genişliği doğal boyda kalıyor, köşe işaretleri fotoğraftan uzakta duruyordu */
+  .app:has(> .m-ray) .kare .tutucu:has(> img){width:min(100cqw, 100cqh * var(--en) / var(--boy));aspect-ratio:var(--en) / var(--boy)}
+  .app:has(> .m-ray) .kare .tutucu > img{width:100%;height:100%}
+  .app:has(> .m-ray) .kare .m-panel{grid-area:panel;display:flex;flex-direction:column;min-width:0;padding-bottom:24px}
+  /* Puansızken değer boş ama yükseklik aynı: puan verince düğmeler kaymasın */
+  .app:has(> .m-ray) .m-puan-bas{display:flex;justify-content:space-between;align-items:flex-end;height:clamp(40px,5.5dvh,64px);margin-top:clamp(8px,1.6dvh,16px)}
+  .app:has(> .m-ray) .m-puan-bas b{font-size:clamp(30px,4.4dvh,56px);line-height:.9;letter-spacing:-.02em;font-variation-settings:"wdth" 74,"wght" 900}
+  .app:has(> .m-ray) .m-puanlar{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;margin-top:10px}
+  .app:has(> .m-ray) .m-puanlar button{height:clamp(52px,7dvh,64px);border:0;border-radius:2px;background:#18181a;color:var(--dim);font:inherit;font-size:18px;font-weight:900;cursor:pointer}
+  .app:has(> .m-ray) .m-puanlar button:hover:not(.on){background:#222225;color:var(--ink)}
+  .app:has(> .m-ray) .m-puanlar button.on{background:var(--ink);color:var(--paper)}
+  .app:has(> .m-ray) .m-puanlar button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 }
 @media (min-width:1200px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:10px;--s-ic:20px;--s-blok:48px;--s-bolum:72px}
@@ -1129,6 +1153,18 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   /* Yan sütun en az 420px: daha darda başlıklar kırılıyordu */
   .app:has(> .m-ray) .m-iki:has(> .m-sag){display:grid;grid-template-columns:clamp(420px,31vw,480px) minmax(0,1fr);gap:0 clamp(40px,4vw,64px);align-items:start}
   .app:has(> .m-ray) .m-iki > div{display:block;min-width:0}
+  /* Oylama paneli fotoğrafın yanında: 1440 altında ray + panel yatay kareyi 505x336'ya sıkıştırıyordu */
+  .app:has(> .m-ray) .kare{grid-template-columns:minmax(0,1fr) clamp(340px,27vw,400px);grid-template-rows:auto auto auto minmax(0,1fr);
+    grid-template-areas:"mast mast" "rb rb" "sahne plaka" "sahne panel"}
+  .app:has(> .m-ray) .kare > .plaka{padding-top:16px}
+  .app:has(> .m-ray) .kare .m-panel{padding:0 0 24px;min-height:0}
+  .app:has(> .m-ray) .m-puan-bas{height:98px;margin-top:clamp(16px,3dvh,40px);padding-top:20px;border-top:4px solid var(--ink)}
+  .app:has(> .m-ray) .m-puan-bas b{font-size:64px}
+  .app:has(> .m-ray) .m-puanlar{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:20px}
+  .app:has(> .m-ray) .m-puanlar button{height:64px;font-size:20px}
+  .app:has(> .m-ray) .m-gez{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto;padding-top:24px}
+  .app:has(> .m-ray) .m-gez .btn{margin-top:0;min-height:60px}
+  .app:has(> .m-ray) .m-ipucu{display:block;font-size:13px;color:var(--soft);margin-top:14px}
 }
 @media (min-width:1600px) and (min-height:520px){
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */

@@ -156,6 +156,8 @@ bolum('kabuk', async b => {
   const u = await sayfa(b, [1440, 900], 'baris@test.local'); await ac(u, 'etkinlikler');
   bekle('üyeye Yönetim grubu yok', (await u.locator('.m-ray-grup').count()) === 0);
   await u.context().close();
+  // Açık yükleme etkinliği kalırsa oylama bölümünün etkinliği açık etkinlik sayılmıyor
+  await temizle(); kurulan.length = 0;
 });
 
 // ---------------------------------------------------------------- ölçek
@@ -310,6 +312,82 @@ bolum('profil', async b => {
   }
   await temizle(); kurulan.length = 0;
 });
+
+// ---------------------------------------------------------------- oylama
+bolum('oylama', async b => {
+  const E = await acikEtkinlik('oylama');
+  const T = E.temalar[0];
+  for (const [e, f] of [['baris@test.local', 'dogru'], ['can@test.local', 'dikey'], ['deniz@test.local', 'dogru']]) await kareKoy(E.id, T.id, e, f);
+  const ben = await kimlik('kurucu@test.local');
+  const puanim = async () => ((await admin.from('oylar').select('puan, kare').eq('veren', ben)).data ?? []);
+  for (const boyut of BOYUTLAR) {
+    await admin.from('oylar').delete().eq('veren', ben);
+    const p = await sayfa(b, boyut); await ac(p, `oyla/${T.id}`);
+    const r = await p.evaluate(() => {
+      const k = document.querySelector('.kare'), d = k.querySelectorAll('.m-puanlar button');
+      return { dugme: d.length, kaydirici: !!k.querySelector('.kaydirici')?.offsetParent, belge: document.documentElement.scrollHeight <= innerHeight,
+        panelYanda: (() => { const f = k.querySelector('.sahne').getBoundingClientRect(), pn = k.querySelector('.m-panel').getBoundingClientRect(); return pn.left >= f.right })(),
+        tekSatir: new Set([...d].map(x => Math.round(x.getBoundingClientRect().top))).size,
+        // Köşe işaretleri fotoğrafa otursun: resim kutusu fotoğrafın oranında (yatay ve dikey kare)
+        oran: [...document.querySelectorAll('.kare .tutucu img')].map(i => { const a = i.getBoundingClientRect(); return +(a.width / a.height - i.getAttribute('width') / i.getAttribute('height')).toFixed(3) }) };
+    });
+    bekle(`${boyut[0]}: resim kutusu fotoğrafın oranında`, r.oran.length === 3 && r.oran.every(x => Math.abs(x) < 0.02), JSON.stringify(r.oran));
+    bekle(`${boyut[0]}: 10 puan düğmesi, kaydırıcı gizli, belge kaymıyor`, r.dugme === 10 && !r.kaydirici && r.belge, JSON.stringify(r));
+    bekle(`${boyut[0]}: panel ${boyut[0] >= 1440 ? 'fotoğrafın yanında, 5x2' : 'altta, tek satır'}`, boyut[0] >= 1440 ? r.panelYanda && r.tekSatir === 2 : !r.panelYanda && r.tekSatir === 1, JSON.stringify(r));
+    // düğmeyle puan: düğmeler yerinden oynamıyor
+    const once = await p.evaluate(() => [...document.querySelectorAll('.kare')[0].querySelectorAll('.m-puanlar button')].map(x => Math.round(x.getBoundingClientRect().top)).join());
+    await p.locator('.kare').first().locator('.m-puanlar button', { hasText: /^8$/ }).click(); await p.waitForTimeout(700);
+    const sonra = await p.evaluate(() => [...document.querySelectorAll('.kare')[0].querySelectorAll('.m-puanlar button')].map(x => Math.round(x.getBoundingClientRect().top)).join());
+    bekle(`${boyut[0]}: düğmeyle 8 puan yazıldı`, (await puanim()).some(x => x.puan === 8));
+    bekle(`${boyut[0]}: puan verince düğmeler kaymadı`, once === sonra, `${once} → ${sonra}`);
+    // klavye: 3 puan, sonra sağ ok bir sonraki kare
+    await p.keyboard.press('3'); await p.waitForTimeout(600);
+    bekle(`${boyut[0]}: 3 tuşu puanı 3 yaptı`, (await puanim()).some(x => x.puan === 3));
+    const y0 = await p.evaluate(() => document.querySelector('.akis').scrollTop);
+    await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900);
+    const y1 = await p.evaluate(() => document.querySelector('.akis').scrollTop);
+    bekle(`${boyut[0]}: sağ ok sonraki kareye geçti`, y1 > y0, `${y0} → ${y1}`);
+    const d = await denetle(p); bekle(`${boyut[0]} oylama: denetim temiz`, d.length === 0, d.join(' | '));
+    if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) for (const i of [0, 1, 2]) {
+      await p.evaluate(i => { const ak = document.querySelector('.akis'); ak.scrollTo({ top: i * ak.clientHeight }) }, i); await p.waitForTimeout(500);
+      const yon = await p.evaluate(i => { const im = document.querySelectorAll('.kare')[i].querySelector('img'); return im && im.naturalHeight > im.naturalWidth ? 'dikey' : 'yatay' }, i);
+      await p.screenshot({ path: `/tmp/cgapp/ss/oylama-${boyut[0]}-${i + 1}-${yon}.png` });
+    }
+    await p.context().close();
+  }
+  await kenarDurumlari(b, E, T, puanim);   // Step 6-8
+  await temizle(); kurulan.length = 0;
+});
+
+async function kenarDurumlari(b, E, T, puanim) {
+  const p = await sayfa(b, [1440, 900]); await ac(p, `oyla/${T.id}`);
+  await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900);
+  const hangi = () => p.evaluate(() => { const ak = document.querySelector('.akis'); return Math.round(ak.scrollTop / ak.clientHeight) });
+  const once = await hangi();
+  await p.setViewportSize({ width: 1024, height: 768 }); await p.waitForTimeout(800);
+  const orta = await hangi();
+  await p.setViewportSize({ width: 1440, height: 900 }); await p.waitForTimeout(800);
+  bekle('pencere daralıp genişleyince aynı kare', once === 1 && orta === 1 && (await hangi()) === 1, `${once} ${orta}`);
+
+  await p.locator('.kare').first().locator('button.cikar').click();   // kurucu yönetici: "Yarışmadan çıkar"
+  // CikarPenceresi'nde gerekçe tek satırlık input (#cikar-neden)
+  const alan = p.locator('[role="dialog"] textarea, [role="dialog"] input, .pencere textarea').first();
+  if (await alan.count()) {
+    await admin.from('oylar').delete().eq('veren', await kimlik('kurucu@test.local'));
+    await alan.click(); await p.keyboard.type('1 nedeni');
+    await p.waitForTimeout(500);
+    bekle('çıkarma gerekçesine 1 yazmak puan vermedi', (await puanim()).length === 0);
+    await p.keyboard.press('Escape');
+    if (await p.locator('[role="dialog"]').count()) await p.locator('[role="dialog"] button', { hasText: 'Vazgeç' }).click();
+  } else bekle('çıkarma penceresinde yazı alanı bulundu', false, 'seçiciyi CikarPenceresi\'ne göre düzelt');
+
+  // Çıkar düğmesine tıklamak akışı ilk kareye kaydırıyor: ölçü ikinci karenin kendi üstüne göre
+  await p.setViewportSize({ width: 1366, height: 600 }); await p.waitForTimeout(600);
+  const r = await p.evaluate(() => { const k = document.querySelectorAll('.kare')[1], ust = k.getBoundingClientRect().top;
+    return [...k.querySelectorAll('.m-puanlar button')].every(x => x.getBoundingClientRect().bottom - ust <= Math.min(innerHeight, k.clientHeight)) });
+  bekle('1366x600: puan düğmeleri pencerede', r);
+  await p.context().close();
+}
 
 // ---------------------------------------------------------------- çalıştır
 try {

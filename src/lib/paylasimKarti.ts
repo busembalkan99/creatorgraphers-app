@@ -1,18 +1,31 @@
 /**
- * Paylaşım kartı (karar 104): dört düzen, 1080x1920 tuvale çiziliyor. Seçim ekranındaki önizleme
+ * Paylaşım kartı (karar 104, 130): yedi düzen, 1080x1920 tuvale çiziliyor. Seçim ekranındaki önizleme
  * ve indirilen/paylaşılan PNG aynı tuvalden çıkıyor, yani görülen birebir paylaşılan.
- * Ölçüler .superpowers/.../paylasim-duzen.html'deki P1-P4'ten birebir.
+ * Ölçüler .superpowers/.../paylasim-duzen.html'deki P1-P4'ten birebir; Lüp, Baskı ve Kontakt sayfası (Kontakt dili,
+ * karar 130) brainstorm'daki paylasim-haller-v1 maketinden (uret-paylasim.mjs A, B, C').
  * Metin (M2 + M4): kazanan "Tema birincisi" (karar 111), eşit birinci "Ortak birinci", sıralamaya giren tek
  * kelime sıra ("Üçüncü"), girmeyen "Galeride".
  */
 
-export type Duzen = 'dev' | 'kontakt' | 'egik' | 'bilet'
+import { izgaraKareleri } from '../ekranlar/wrapped/plan.ts'
+import { baskiOlcu } from '../ekranlar/wrapped/bicim.ts'
+
+export type Duzen = 'dev' | 'kontakt' | 'egik' | 'bilet' | 'lup' | 'baski' | 'sayfa'
 export const DUZENLER: { ad: Duzen; baslik: string }[] = [
   { ad: 'dev', baslik: 'Dev puan' },
   { ad: 'kontakt', baslik: 'Kontakt' },
   { ad: 'egik', baslik: 'Eğik' },
   { ad: 'bilet', baslik: 'Bilet' },
+  { ad: 'lup', baslik: 'Lüp' },
+  { ad: 'baski', baslik: 'Baskı' },
+  { ad: 'sayfa', baslik: 'Kontakt sayfası' },
 ]
+
+/** Ölçüm kutusu (testler/paylasim-kart.mjs): çizilen yazının mürekkebi ya da görselin tuvaldeki yeri */
+export type Kutu = {
+  tur: 'yazi' | 'kalem' | 'foto' | 'serit' | 'lup' | 'baslik' | 'daire'
+  x: number; y: number; w: number; h: number; t?: string; kaynak?: 'foto' | 'serit'
+}
 
 export type KartVeri = {
   ay: string          // "Eylül"
@@ -34,7 +47,12 @@ const up = (s: string) => s.toLocaleUpperCase('tr-TR')
 
 export async function fontlarHazir() {
   const f = ['400 100px Anton', '700 24px "Space Mono"', '400 24px "Space Mono"', 'italic 400 90px "Instrument Serif"', '400 90px "Instrument Serif"']
-  await Promise.all(f.map(x => document.fonts.load(x).catch(() => [])))
+  // Türkçe harfler ayrı alt kümede (latin-ext); örnek metin verilmezse tuval o harfleri yedek yazıyla çiziyor
+  const k = ['900 200px Archivo', '700 30px Archivo', '400 96px Mansalva']
+  await Promise.all([
+    ...f.map(x => document.fonts.load(x).catch(() => [])),
+    ...k.map(x => document.fonts.load(x, 'AZaz09İĞŞÇÖÜığşçöü').catch(() => [])),
+  ])
 }
 
 /** Harf aralıklı metin: ctx.letterSpacing her tarayıcıda yok, harf harf çiziliyor */
@@ -57,21 +75,22 @@ function sigdir(c: CanvasRenderingContext2D, t: string, font: (px: number) => st
   while (s > 12 && olc(c, t, aralik * (s / px)) > maxW) { s -= 2; c.font = font(s) }
   return s
 }
-/** Kelimeleri satırlara böl, en çok `satir` satır; sığmazsa yazıyı küçült */
-function satirla(c: CanvasRenderingContext2D, t: string, font: (px: number) => string, px: number, maxW: number, satir = 2) {
+/** Kelimeleri satırlara böl, en çok `satir` satır; sığmazsa yazıyı küçült. `aralik`: harf aralığı, yazı boyunun oranı */
+function satirla(c: CanvasRenderingContext2D, t: string, font: (px: number) => string, px: number, maxW: number, satir = 2, aralik = 0) {
   let s = px
   for (;;) {
     c.font = font(s)
+    const g = (x: string) => olc(c, x, aralik * s)
     const kelime = t.split(' ')
     const l: string[] = []
     let su = ''
     for (const k of kelime) {
       const d = su ? `${su} ${k}` : k
-      if (c.measureText(d).width <= maxW || !su) su = d
+      if (g(d) <= maxW || !su) su = d
       else { l.push(su); su = k }
     }
     if (su) l.push(su)
-    if ((l.length <= satir && l.every(x => c.measureText(x).width <= maxW)) || s <= 20) return { satirlar: l, px: s }
+    if ((l.length <= satir && l.every(x => g(x) <= maxW)) || s <= 20) return { satirlar: l, px: s }
     s -= 4
   }
 }
@@ -175,8 +194,14 @@ function kontakt(c: CanvasRenderingContext2D, v: KartVeri) {
   c.fillStyle = '#6d6a63'; c.font = MONO(20)
   yaz(c, up(`${v.ay} etkinliğinin diğer kareleri`), 72, H - 140, 2.8)
   c.font = MONO(22)
-  yaz(c, up(v.ad), 72, H - 70, 4.4)
-  yaz(c, up(`Creatorgraphers · ${v.ay} ${v.yil}`), 1008, H - 70, 4.4, 'right')
+  const sag = up(`Creatorgraphers · ${v.ay} ${v.yil}`)
+  const sagW = olc(c, sag, 4.4)
+  // Uzun isim sağdaki künyeye değmesin: sığmazsa küçült (karar 130'daki canlı hata)
+  const adPx = sigdir(c, up(v.ad), x => MONO(x), 22, 936 - sagW - 40, 4.4)
+  c.font = MONO(adPx)
+  yazK(c, up(v.ad), 72, H - 70, 4.4 * adPx / 22)
+  c.font = MONO(22)
+  yazK(c, sag, 1008, H - 70, 4.4, 'right')
 }
 
 // ------------------------------------------------ P3 · Diyagonal eksen
@@ -286,13 +311,277 @@ function bilet(c: CanvasRenderingContext2D, v: KartVeri) {
   yaz(c, `${v.sira} / ${String(v.temaKare).padStart(2, '0')}`, bx + 880 - 8, by + icH + 96, 4.4, 'right')
 }
 
-const CIZ: Record<Duzen, (c: CanvasRenderingContext2D, v: KartVeri) => void> = { dev, kontakt, egik, bilet }
+// ------------------------------------------------ Kontakt dili (karar 130): Lüp, Baskı, Kontakt sayfası
+// Tuvalde dar biçim için fontStretch (yazı tanımındaki "extra-condensed"); WebKit'te yok, orada yazı geniş kalıyor
+// ve sigdir/satirla küçülterek sığdırıyor.
+const ARCH = (px: number) => `900 extra-condensed ${px}px Archivo, sans-serif`
+const AK = (px: number) => `700 condensed ${px}px Archivo, sans-serif`
+const KALEM = (px: number) => `400 ${px}px Mansalva, cursive`
+const KALEM_R = '#b52d12', KAGIT = '#efeae0', SOLUK = '#6d655b', MUREKKEP = '#141210', FILM = '#161412', BOS = '#24201c', LUP = '#232020'
+const DAIRE_FOTO = 'M26 104 C 18 30, 274 14, 286 92 C 296 166, 72 198, 30 132 C 16 108, 58 60, 124 52'
+const DAIRE_YAZI = 'M60 40 C 130 6, 252 10, 286 80 C 302 150, 204 194, 120 188 C 40 182, 2 132, 14 92 C 22 58, 62 30, 116 20'
 
-export function kartCiz(duzen: Duzen, v: KartVeri): HTMLCanvasElement {
+let OLC: Kutu[] | null = null
+
+/** Yerel dikdörtgeni o anki dönüşümle tuvale çevirip ölçüme yazar. Görseller tuvalle kırpılıyor: şerit kenardan taşarak çiziliyor. */
+function kutu(c: CanvasRenderingContext2D, tur: Kutu['tur'], x0: number, y0: number, x1: number, y1: number, t?: string, kaynak?: Kutu['kaynak']) {
+  if (!OLC) return
+  const m = c.getTransform()
+  const p = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f])
+  kutuYaz(tur, Math.min(...p.map(q => q[0])), Math.min(...p.map(q => q[1])), Math.max(...p.map(q => q[0])), Math.max(...p.map(q => q[1])), t, kaynak)
+}
+function kutuYaz(tur: Kutu['tur'], x0: number, y0: number, x1: number, y1: number, t?: string, kaynak?: Kutu['kaynak']) {
+  if (tur === 'foto' || tur === 'serit' || tur === 'lup') {
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1)
+    if (x1 <= x0 || y1 <= y0) return
+  }
+  OLC?.push({ tur, x: x0, y: y0, w: x1 - x0, h: y1 - y0, ...(t != null && { t }), ...(kaynak && { kaynak }) })
+}
+/** Lüpün dairesi ve eğik sapı tek dikdörtgene sığmıyor (köşeler boş): dışbükey şekil 8px'lik yatay dilimlerle ölçülüyor */
+function sekilKutu(c: CanvasRenderingContext2D, tur: Kutu['tur'], nokta: [number, number][]) {
+  if (!OLC) return
+  const m = c.getTransform()
+  const p = nokta.map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f])
+  const ys = p.map(q => q[1]), y0 = Math.min(...ys), y1 = Math.max(...ys)
+  for (let a = y0; a < y1; a += 8) {
+    const b = Math.min(y1, a + 8), xs: number[] = []
+    p.forEach((q, i) => {
+      const r = p[(i + 1) % p.length]
+      if (q[1] >= a && q[1] <= b) xs.push(q[0])
+      for (const s of [a, b]) if ((q[1] - s) * (r[1] - s) < 0) xs.push(q[0] + (s - q[1]) / (r[1] - q[1]) * (r[0] - q[0]))
+    })
+    if (xs.length) kutuYaz(tur, Math.min(...xs), a, Math.max(...xs), b)
+  }
+}
+/** Dairenin dışına çizilmiş çokgen (yarıçap 1/cos(π/n) büyütülmüş, ölçüm şekli hiç kesmesin) */
+function cember(cx: number, cy: number, r: number, bas = 0, son = Math.PI * 2, n = 64): [number, number][] {
+  const R = r / Math.cos(Math.PI / n), l: [number, number][] = []
+  for (let i = 0; i <= n * (son - bas) / (Math.PI * 2); i++) { const a = bas + i * Math.PI * 2 / n; l.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]) }
+  return l
+}
+/** Harf aralıklı yazı + ölçüm kutusu */
+function yazK(c: CanvasRenderingContext2D, t: string, x: number, y: number, aralik = 0, hiza: CanvasTextAlign = 'left', tur: Kutu['tur'] = 'yazi') {
+  yaz(c, t, x, y, aralik, hiza)
+  const gen = olc(c, t, aralik), x0 = hiza === 'right' ? x - gen : hiza === 'center' ? x - gen / 2 : x
+  const m = c.measureText(t)
+  kutu(c, tur, x0, y - m.actualBoundingBoxAscent, x0 + gen, y + m.actualBoundingBoxDescent, t)
+  return gen
+}
+/** Sol hizalı tek satırın mürekkep kutusu */
+function murekkep(c: CanvasRenderingContext2D, tur: Kutu['tur'], t: string, x: number, y: number) {
+  const m = c.measureText(t)
+  kutu(c, tur, x - m.actualBoundingBoxLeft, y - m.actualBoundingBoxAscent, x + m.actualBoundingBoxRight, y + m.actualBoundingBoxDescent, t)
+}
+/** Çok satırlı yazı tek kutu: satırların mürekkebi döndürülmüş blokta birbirine değebiliyor, bu çakışma değil */
+function blok(cizim: () => void) {
+  const once = OLC?.length ?? 0
+  cizim()
+  const k = OLC?.splice(once) ?? []
+  if (!k.length) return
+  const x0 = Math.min(...k.map(q => q.x)), y0 = Math.min(...k.map(q => q.y))
+  const x1 = Math.max(...k.map(q => q.x + q.w)), y1 = Math.max(...k.map(q => q.y + q.h))
+  OLC?.push({ tur: k[0].tur, x: x0, y: y0, w: x1 - x0, h: y1 - y0, t: k.map(q => q.t).join(' / ') })
+}
+/** CSS satır kutusunun üstünden taban çizgisine uzaklık (yarım satır aralığı + yazının üst payı) */
+function taban(c: CanvasRenderingContext2D, satirH?: number) {
+  const m = c.measureText('H')
+  const a = m.fontBoundingBoxAscent ?? m.actualBoundingBoxAscent, d = m.fontBoundingBoxDescent ?? 0
+  return { y: ((satirH ?? a + d) - (a + d)) / 2 + a, a, d }
+}
+/** Maketteki .AK: büyük harf, harf aralığı .12em, satır yüksekliği normal; sığmazsa küçülüyor. Dönüş: çizilen genişlik */
+function akYaz(c: CanvasRenderingContext2D, t: string, x: number, y: number, px: number, maxW: number, hiza: CanvasTextAlign = 'left', alttan = false) {
+  const u = up(t)
+  const s = sigdir(c, u, AK, px, maxW, px * 0.12)
+  c.font = AK(s)
+  const b = taban(c)
+  return yazK(c, u, x, alttan ? y - b.d : y + b.a, s * 0.12, hiza)
+}
+/** Maketteki .A başlık, satır yüksekliği 1,08 */
+function baslikYaz(c: CanvasRenderingContext2D, t: string, x: number, ust: number, px: number, maxW: number, renk: string, satir = 2) {
+  const b = satirla(c, up(t), ARCH, px, maxW, satir)
+  c.font = ARCH(b.px); c.fillStyle = renk; c.textAlign = 'left'
+  const L = b.px * 1.08, tb = taban(c, L).y
+  b.satirlar.forEach((s, i) => { c.fillText(s, x, ust + i * L + tb); murekkep(c, 'baslik', s, x, ust + i * L + tb) })
+  return { n: b.satirlar.length, L }
+}
+/** Kalem yazısı: CSS'teki gibi sol üstü (x, ust), genişliği kutuW olan blok, merkezinden `aci` derece dönüyor */
+function kalemBlok(c: CanvasRenderingContext2D, satirlar: string[], px: number, lh: number, x: number, ust: number, kutuW: number, aci: number, renk: string) {
+  c.font = KALEM(px)
+  const L = px * lh, kh = satirlar.length * L, tb = taban(c, L).y
+  c.save(); c.translate(x + kutuW / 2, ust + kh / 2); c.rotate(aci * Math.PI / 180)
+  c.fillStyle = renk; c.textAlign = 'left'
+  blok(() => satirlar.forEach((s, i) => { const y = -kh / 2 + i * L + tb; c.fillText(s, -kutuW / 2, y); murekkep(c, 'kalem', s, -kutuW / 2, y) }))
+  c.restore()
+  return kh
+}
+function daireCiz(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, tur: 'foto' | 'yazi') {
+  const p = new Path2D(tur === 'foto' ? DAIRE_FOTO : DAIRE_YAZI)
+  // Maketteki SVG gibi (viewBox 300x200, preserveAspectRatio none): çizgi kalınlığı da kutuyla esniyor
+  c.save(); c.translate(x, y); c.scale(w / 300, h / 200)
+  c.strokeStyle = KALEM_R; c.lineWidth = 14; c.lineCap = 'round'; c.stroke(p)
+  kutu(c, 'daire', 0, 0, 300, 200, 'daire')
+  c.restore()
+}
+/** Başkalarının kareleri gri. ctx.filter WebKit'te yok: orada renk doygunluğu düz griyle siliniyor. */
+function griCiz(c: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number, saydam = 1) {
+  const filtre = typeof (c as { filter?: unknown }).filter === 'string'
+  c.save(); c.globalAlpha = saydam
+  if (filtre) c.filter = 'grayscale(1) contrast(1.06)'
+  kapla(c, img, x, y, w, h)
+  c.restore()
+  if (!filtre) { c.save(); c.globalCompositeOperation = 'saturation'; c.fillStyle = '#808080'; c.fillRect(x, y, w, h); c.restore() }
+}
+const digerleri = (v: KartVeri) => v.serit.filter((x): x is HTMLImageElement => !!x?.naturalWidth)
+
+function kunyeUst(c: CanvasRenderingContext2D, v: KartVeri, renk: string) {
+  c.fillStyle = renk
+  akYaz(c, 'Creatorgraphers', 80, 90, 30, 440)
+  akYaz(c, `${v.ay} ${v.yil}`, 1000, 90, 30, 400, 'right')
+}
+function kunyeAlt(c: CanvasRenderingContext2D, v: KartVeri, renk: string) {
+  c.fillStyle = renk
+  const sagW = akYaz(c, 'creatorgraphers.com', 1000, H - 90, 30, 440, 'right', true)
+  akYaz(c, v.alt, 80, H - 90, 30, Math.min(560, 920 - sagW - 40), 'left', true)
+}
+
+// ------------------------------------------------ A · Lüp: gri şerit, lüpte senin karen renkli
+function lup(c: CanvasRenderingContext2D, v: KartVeri) {
+  c.fillStyle = KAGIT; c.fillRect(0, 0, W, H)
+  c.textBaseline = 'alphabetic'
+  kunyeUst(c, v, SOLUK)
+  akYaz(c, `${v.tema} · ${v.ay} etkinliği`, 80, 220, 34, 920)
+  const b = baslikYaz(c, v.baslik, 80, 270, 200, 920, MUREKKEP)
+  // Tek satırlı başlıkta blok yukarı geliyor
+  const kay = 270 + b.n * b.L - 702
+  const sx = -260, sy = 940 + kay, sw = 28 * 2 + 4 * 420 + 3 * 24
+  c.fillStyle = FILM; c.fillRect(sx, sy, sw, 408)
+  kutu(c, 'serit', sx, sy, sx + sw, sy + 408)
+  c.fillStyle = KAGIT
+  for (let x = sx + 19; x < sx + sw; x += 52) for (const y of [sy + 18, sy + 368]) c.fillRect(x, y, Math.min(16, sx + sw - x), 22)
+  const d = digerleri(v)
+  ;[d[0] ?? null, 'sen' as const, d[1] ?? null, d[2] ?? null].forEach((k, i) => {
+    const x = sx + 28 + i * 444, y = sy + 64, img = k === 'sen' ? v.foto : k
+    if (x >= W) return
+    if (!img?.naturalWidth) { c.fillStyle = BOS; c.fillRect(x, y, 420, 280); return }
+    griCiz(c, img, x, y, 420, 280)
+    kutu(c, 'foto', x, y, x + 420, y + 280, undefined, k === 'sen' ? 'foto' : 'serit')
+  })
+  // Lüp: koyu çerçeve ve gölge, içinde senin karen renkli ve büyütülmüş
+  const cx = 590, cy = 1110 + kay
+  c.save(); c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = 90; c.shadowOffsetY = 40
+  c.fillStyle = LUP; c.beginPath(); c.arc(cx, cy, 320, 0, Math.PI * 2); c.fill()
+  c.restore()
+  c.save(); c.beginPath(); c.arc(cx, cy, 284, 0, Math.PI * 2); c.clip()
+  c.fillStyle = BOS; c.fill()
+  if (v.foto?.naturalWidth) { kapla(c, v.foto, 126, 800 + kay, 940, 627); kutu(c, 'foto', cx - 284, cy - 284, cx + 284, cy + 284, undefined, 'foto') }
+  c.restore()
+  sekilKutu(c, 'lup', cember(cx, cy, 320))
+  c.save(); c.translate(910, 1481 + kay); c.rotate(42 * Math.PI / 180)
+  c.strokeStyle = LUP; c.lineWidth = 66; c.lineCap = 'round'
+  c.beginPath(); c.moveTo(-97, 0); c.lineTo(97, 0); c.stroke()
+  sekilKutu(c, 'lup', [...cember(97, 0, 33, -Math.PI / 2, Math.PI / 2, 32), ...cember(-97, 0, 33, Math.PI / 2, Math.PI * 1.5, 32)])
+  c.restore()
+  // Kalem: sıra (Galeride yok, karar 52), isim ve puan
+  if (v.sira !== '—') {
+    const n = String(Number(v.sira))
+    c.font = KALEM(210)
+    const w = c.measureText(n).width
+    // Maketten 16px sağda ve yukarıda (sağ kenar payı 80): "2" ve "3" lüpün kenarına 16px'ten fazla yaklaşıyordu
+    kalemBlok(c, [n], 210, 1, 1000 - w, 690 + kay, w, 8, KALEM_R)
+  }
+  const isim = satirla(c, `${v.ad} ${v.puan}`, KALEM, 88, 900, 2)
+  kalemBlok(c, isim.satirlar, isim.px, 1.05, 80, 1550 + kay, 900, -2, KALEM_R)
+  kunyeAlt(c, v, SOLUK)
+}
+
+// ------------------------------------------------ B · Baskı: masaya konmuş baskı, puan alt payda kalemle
+function baski(c: CanvasRenderingContext2D, v: KartVeri) {
+  c.fillStyle = KAGIT; c.fillRect(0, 0, W, H)
+  c.textBaseline = 'alphabetic'
+  kunyeUst(c, v, SOLUK)
+  // Baskı fotoğrafın kendi oranında: yatay 880 genişlik, dikey 900 yükseklik
+  const { w, h } = baskiOlcu({ genislik: v.foto?.naturalWidth ?? 0, yukseklik: v.foto?.naturalHeight ?? 0 }, 880, 900)
+  const baskiH = 26 + h + 230, toplam = baskiH + 70 + 162 + 30 + 160
+  const ust0 = Math.max(170, Math.round((H - 180 - toplam) / 2) + 60)
+  const sol = Math.round((W - (w + 52)) / 2)
+  c.save(); c.translate(sol + (w + 52) / 2, ust0 + baskiH / 2); c.rotate(-3 * Math.PI / 180)
+  const X = -(w + 52) / 2, Y = -baskiH / 2
+  c.save(); c.shadowColor = 'rgba(20,18,16,.28)'; c.shadowBlur = 70; c.shadowOffsetY = 30
+  c.fillStyle = '#fbf8f1'; c.fillRect(X, Y, w + 52, baskiH)
+  c.restore()
+  if (v.foto?.naturalWidth) { kapla(c, v.foto, X + 26, Y + 26, w, h); kutu(c, 'foto', X + 26, Y + 26, X + 26 + w, Y + 26 + h, undefined, 'foto') }
+  else { c.fillStyle = '#3a3a3a'; c.fillRect(X + 26, Y + 26, w, h) }
+  // Alt payda solda tema, ay, sıra
+  c.fillStyle = SOLUK
+  const tema = satirla(c, up(v.tema), AK, 26, w - 360, 2, 0.12)
+  const satirlar = [...tema.satirlar.map(t => [t, tema.px] as const), [up(`${v.ay} ${v.yil}`), 26] as const, ...(v.sira !== '—' ? [[v.sira, 26] as const] : [])]
+  let y = Y + 26 + h + 40
+  blok(() => {
+    for (const [t, px] of satirlar) {
+      c.font = AK(px)
+      const b = taban(c)
+      yazK(c, t, X + 30, y + b.a, px * 0.12)
+      y += b.a + b.d
+    }
+  })
+  // Sağda puan, sıraya girdiyse daire içinde (Galeride daire yok, karar 52)
+  c.font = KALEM(124)
+  const bw = c.measureText(v.puan).width + 148, bh = 124 * 1.15 + 64
+  const bx = X + 26 + w - 20 - bw, by = Y + 26 + h + 4
+  c.save(); c.translate(bx + bw / 2, by + bh / 2); c.rotate(-4 * Math.PI / 180)
+  c.fillStyle = KALEM_R; c.textAlign = 'left'
+  const ty = -bh / 2 + 34 + taban(c, 124 * 1.15).y
+  c.fillText(v.puan, -bw / 2 + 74, ty); murekkep(c, 'kalem', v.puan, -bw / 2 + 74, ty)
+  if (v.sira !== '—') daireCiz(c, -bw / 2, -bh / 2, bw, bh, 'yazi')
+  c.restore()
+  c.restore()
+  const baslikUst = ust0 + baskiH + 70
+  const b = baslikYaz(c, v.baslik, 80, baslikUst, 150, 920, MUREKKEP, 1)
+  const isim = satirla(c, v.ad, KALEM, 72, 920, 2)
+  kalemBlok(c, isim.satirlar, isim.px, 1.05, 80, baslikUst + b.L + 30, 920, -2, KALEM_R)
+  kunyeAlt(c, v, SOLUK)
+}
+
+// ------------------------------------------------ C' · Kontakt sayfası: koyu sayfa, senin karen 2x2 ve kalemle işaretli
+function sayfa(c: CanvasRenderingContext2D, v: KartVeri) {
+  const ALTIN = '#e3a13b'
+  c.fillStyle = FILM; c.fillRect(0, 0, W, H)
+  c.textBaseline = 'alphabetic'
+  kunyeUst(c, v, ALTIN)
+  const b = baslikYaz(c, v.baslik, 80, 170, 190, 920, KAGIT)
+  const baslikAlt = 170 + b.n * b.L
+  // Izgara hep tam dolsun diye senin karenin yanına 5 ya da 2 kare (az kare varsa olduğu kadar); satır yüksekliği sabit
+  const o = digerleri(v).slice(0, izgaraKareleri(digerleri(v).length))
+  const satir = Math.max(2, Math.ceil((4 + o.length) / 3)), izgaraH = satir * 204 + (satir - 1) * 22
+  const isim = satirla(c, `${v.ad} ${v.puan}`, KALEM, 96, 920, 2)
+  const blokH = izgaraH + 70 + 50 + isim.satirlar.length * isim.px * 1.05
+  const ust0 = baslikAlt + Math.max(50, Math.round((H - 170 - baslikAlt - blokH) / 2))
+  const sw = (960 - 44) / 3, hx = (s: number) => 60 + s * (sw + 22), hy = (r: number) => ust0 + r * 226
+  const senW = 2 * sw + 22, senH = 2 * 204 + 22
+  if (v.foto?.naturalWidth) { kapla(c, v.foto, 60, ust0, senW, senH); kutu(c, 'foto', 60, ust0, 60 + senW, ust0 + senH, undefined, 'foto') }
+  else { c.fillStyle = '#3a3a3a'; c.fillRect(60, ust0, senW, senH) }
+  const hucre = Array.from({ length: satir * 3 }, (_, i) => i).filter(i => !(i % 3 < 2 && i < 6))
+  hucre.forEach((i, j) => {
+    const x = hx(i % 3), y = hy(Math.floor(i / 3)), img = o[j]
+    if (img) { griCiz(c, img, x, y, sw, 204, 0.75); kutu(c, 'foto', x, y, x + sw, y + 204, undefined, 'serit') }
+    else { c.fillStyle = BOS; c.fillRect(x, y, sw, 204) }
+  })
+  if (v.sira !== '—') daireCiz(c, 60 - 34, ust0 - 34, senW + 68, senH + 68, 'foto')
+  c.fillStyle = ALTIN
+  akYaz(c, `▸ ${v.sira !== '—' ? `${v.sira} · ` : ''}${v.tema} · ${v.temaKare} kare arasından`, 80, ust0 + izgaraH + 70, 26, 920)
+  kalemBlok(c, isim.satirlar, isim.px, 1.05, 80, ust0 + izgaraH + 140, 920, -2, '#e0563a')
+  kunyeAlt(c, v, ALTIN)
+}
+
+const CIZ: Record<Duzen, (c: CanvasRenderingContext2D, v: KartVeri) => void> = { dev, kontakt, egik, bilet, lup, baski, sayfa }
+
+/** `olcum` verilirse yeni düzenlerin (ve kontakt'ın alt satırının) yazı ve görsel kutuları içine ekleniyor */
+export function kartCiz(duzen: Duzen, v: KartVeri, olcum?: Kutu[]): HTMLCanvasElement {
   const cv = document.createElement('canvas')
   cv.width = W; cv.height = H
   const c = cv.getContext('2d')!
-  CIZ[duzen](c, v)
+  OLC = olcum ?? null
+  try { CIZ[duzen](c, v) } finally { OLC = null }
   return cv
 }
 

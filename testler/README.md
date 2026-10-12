@@ -21,7 +21,8 @@ node testler/wrapped.mjs                      # sonuç açılışının sayılar
 node testler/davranis-wrapped.mjs             # Wrapped ekranda: kart kümesi, gezinme, kişisel kartın altı durumu
 node testler/wrapped-denetim.mjs              # Kontakt v2: uç verilerle taşma, çakışma, kalem payı, boşluk, 16px, hareketi azalt (karar 130)
 node testler/paylasim.mjs                     # paylaşım kartının kontakt şeridi: afiş izni, sunucu kuralları
-node testler/davranis-paylas.mjs              # paylaşım ekranı: dört düzen, indirilen PNG, kimde düğme var
+node testler/davranis-paylas.mjs              # paylaşım ekranı: yedi düzen, indirilen PNG, kimde düğme var
+node testler/paylasim-kart.mjs                # paylaşım kartı: Lüp, Baskı, Kontakt sayfası; taşma, çakışma, kalem payı, Galeride (Chromium + WebKit)
 node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon ağırlığı, Serbest tablosu, ekranlar
 node testler/bayes.mjs                        # sıralama puanı: temadaki yer, Bayes çekimi 50'ye, iki tablo, ağırlık, eşik, en iyi kare (0021, 0023)
 node testler/sure.mjs                         # bitiş saatlerini değiştirme, oylamayı bitirme, bekleyen bildirimler (0022)

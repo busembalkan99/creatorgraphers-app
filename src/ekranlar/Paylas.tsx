@@ -9,7 +9,7 @@ import { imzala } from '../lib/imza'
 import { resimYukle } from '../lib/resim'
 
 /**
- * Paylaşım kartı seçim ekranı (karar 104, B): dört düzen, tek kart ortada, yanlara kaydırmalı.
+ * Paylaşım kartı seçim ekranı (karar 104, B; karar 130): yedi düzen, tek kart ortada, yanlara kaydırmalı.
  * Önizleme ile paylaşılan PNG aynı tuvalden çıkıyor. Seçilen düzen cihazda hatırlanıyor.
  * Yalnız yarışan bir karesi olan görür: kare vermeyene ve karesi çıkarılana kart yok (spec 10.3).
  */

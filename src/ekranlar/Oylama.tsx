@@ -213,16 +213,22 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
   // Masaüstü kısayolları: yazı alanında ve pencerede çalışmaz, yalnız 768+ (telefonda klavye yok sayılıyor)
   useEffect(() => {
     const tus = (ev: KeyboardEvent) => {
-      if (!matchMedia(MASAUSTU).matches || kilitli || ev.metaKey || ev.ctrlKey || ev.altKey) return
+      if (!matchMedia(MASAUSTU).matches || ev.metaKey || ev.ctrlKey || ev.altKey) return
       const h = ev.target as HTMLElement
       // Büyüteç ya da çıkarma penceresi açıkken odak gövdede kalabiliyor: açık pencere de yeter
       if (h.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]') || document.querySelector('[aria-modal="true"]')) return
       const ak = akis.current; if (!ak) return
-      const i = Math.round(ak.scrollTop / ak.clientHeight)
+      const bolumler = [...ak.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')]
+      const i = bolumler.reduce((en, b, j) => Math.abs(b.offsetTop - ak.scrollTop) < Math.abs(bolumler[en].offsetTop - ak.scrollTop) ? j : en, 0)
       const k = kareler[i]
-      if (/^[0-9]$/.test(ev.key) && k) { ev.preventDefault(); oyVer(k.id, ev.key === '0' ? 10 : Number(ev.key)) }
-      else if (ev.key === 'ArrowRight' && i + 1 <= kareler.length) { ev.preventDefault(); ak.scrollTo({ top: (i + 1) * ak.clientHeight, behavior: 'smooth' }) }
-      else if (ev.key === 'ArrowLeft' && i > 0) { ev.preventDefault(); ak.scrollTo({ top: (i - 1) * ak.clientHeight, behavior: 'smooth' }) }
+      if (/^[0-9]$/.test(ev.key) && k && !kilitli) {
+        ev.preventDefault()
+        // Tıklanmış eski düğmede odak halkası kalmasın
+        if ((document.activeElement as HTMLElement | null)?.closest('.m-puanlar')) (document.activeElement as HTMLElement).blur()
+        oyVer(k.id, ev.key === '0' ? 10 : Number(ev.key))
+      }
+      else if (ev.key === 'ArrowRight' && i + 1 < bolumler.length) { ev.preventDefault(); ak.scrollTo({ top: bolumler[i + 1].offsetTop, behavior: 'smooth' }) }
+      else if (ev.key === 'ArrowLeft' && i > 0) { ev.preventDefault(); ak.scrollTo({ top: bolumler[i - 1].offsetTop, behavior: 'smooth' }) }
     }
     addEventListener('keydown', tus)
     return () => removeEventListener('keydown', tus)
@@ -290,12 +296,13 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
             )}
             {!kilitli && <div className="m-puan-bas"><span className="lab">Puanın</span><b>{k.puan == null ? '' : iki(k.puan)}</b></div>}
             {!kilitli && <PuanDugmeleri puan={k.puan} degisti={p => oyVer(k.id, p)} kilitli={kilitli} />}
-            <div className="m-gez">
-              <button className="btn ik" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}>Önceki</button>
-              <button className="btn" onClick={() => i + 1 < kareler.length ? kaydir(kareler[i + 1].id) : akis.current?.querySelector('.bitti')?.scrollIntoView({ behavior: 'smooth' })}>Sonraki</button>
-            </div>
-            <p className="m-ipucu">1-0 puan · ← → kareler arası</p>
           </div>
+          {/* 768-1439 fotoğrafın iki yanında ok, 1440+ panelin altında yazılı */}
+          <div className="m-gez">
+            <button className="btn ik" aria-label="Önceki kare" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}><Ikon ad="geri" /><span className="m-gez-ad">Önceki</span></button>
+            <button className="btn" aria-label="Sonraki kare" onClick={() => i + 1 < kareler.length ? kaydir(kareler[i + 1].id) : akis.current?.scrollTo({ top: akis.current.querySelector<HTMLElement>('.bitti')?.offsetTop ?? 0, behavior: 'smooth' })}><span className="m-gez-ad">Sonraki</span><Ikon ad="sag" /></button>
+          </div>
+          <p className="m-ipucu">1-0 puan · ← → kareler arası</p>
         </section>
       ))}
 

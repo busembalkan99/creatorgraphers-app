@@ -97,7 +97,7 @@ async function olc(p, ad) {
   const r = await p.evaluate(() => {
     const tel = document.querySelector('.wr .tel').getBoundingClientRect();
     const tasma = [...document.querySelectorAll('.wr .w-ic *')].filter(e => {
-      if (e.closest('.serit-pencere')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
+      if (e.closest('.serit-pencere') || e.closest('.lup')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor; lüpteki büyük kare dairede kesiliyor
       const yatay = !!e.closest('.ac-seritler');       // açılış şeritleri yalnız sağdan soldan taşıyor, alttan değil
       if (e.closest('.h')) return false;               // pano kutusundaki dönüş harfleri kutunun içinde gizli (overflow)
       const b = e.getBoundingClientRect(); return b.width && ((!yatay && (b.right > tel.right + 1 || b.left < tel.left - 1)) || b.bottom > tel.bottom + 1);
@@ -171,6 +171,7 @@ try {
     // Kişisel: birinci
     bekle(`${SET}/kişisel: kart var`, await kartaGit(P, 'kisisel'));
     await olc(P, `${no + 3}-${SET}-kisisel-birinci`);
+    if (SET === 'kontakt') bekle('kontakt/kişisel birinci: lüp karende, kalemle "1" şeridin altında', (await P.locator('.set-kontakt .lup').count()) === 1 && (await P.locator('.set-kontakt .kalem-buyuk').innerText()) === '1');
     bekle(`${SET}/kişisel: "Senin karen birinci"`, await var_(P, 'Senin karen birinci'), await metin(P));
     if (SET === 'pano') bekle('pano/kişisel: senin satırın vurgulu', (await P.locator('.set-pano .vurgu-kayit .h').first().evaluate(e => getComputedStyle(e).boxShadow)) !== 'none');
     bekle(`${SET}/kişisel: eski setin pembe kişisel kart rengi sızmıyor`, (await P.locator('.wr .tel').evaluate(e => getComputedStyle(e).backgroundColor)) === (SET === 'pano' ? 'rgb(14, 16, 19)' : 'rgb(239, 234, 224)'), await P.locator('.wr .tel').evaluate(e => getComputedStyle(e).backgroundColor));
@@ -206,7 +207,7 @@ try {
     bekle(`${SET}/girmedi: gizlilik cümlesi`, await var_(S, 'Puanını yalnız sen görüyorsun'), await metin(S));
     if (SET === 'pano') bekle('pano/girmedi: boş satır ekran okuyucuya isimsiz resim olarak gitmiyor', (await S.locator('.set-pano .pano-satir[role=img][aria-label=""]').count()) === 0);
     if (SET === 'pano') bekle('pano/girmedi: durum boş', /\|$/.test(await panoMetni(S)) || (await panoMetni(S)).split('|').pop() === '', await panoMetni(S));
-    else bekle('kontakt/girmedi: daire yok, numara yok', (await S.locator('.set-kontakt .kalem-daire').count()) === 0 && (await S.locator('.set-kontakt .kare-no').count()) === 0);
+    else bekle('kontakt/girmedi: lüp var, numara yok', (await S.locator('.set-kontakt .lup').count()) === 1 && (await S.locator('.set-kontakt .kalem-buyuk').count()) === 0 && (await S.locator('.set-kontakt .kare-no').count()) === 0);
 
     // Dar telefon (360 px): 12 harflik satır kenar boşluğunu aşmıyor
     if (SET === 'pano') {
@@ -222,7 +223,8 @@ try {
     const O = await kisiselMetin(A.eposta);   // oy verdi, kare vermedi
     await olc(O, `${no + 8}-${SET}-kisisel-oyverdi`);
     if (SET === 'kontakt') bekle('kontakt/oy verdin: hepsini puanlayana "Bütün kareleri puanladın"', (await O.locator('.set-kontakt .kalem-not').first().innerText()).trim() === 'Bütün kareleri puanladın');
-    if (SET === 'kontakt') bekle('kontakt/oy verdin: puan verdiği karelerden şerit, numarasız ve çizgisiz', (await O.locator('.set-kontakt img').count()) === 3 && (await O.locator('.set-kontakt .kare-no').count()) === 0 && (await O.locator('.set-kontakt .kalem-daire').count()) === 0, String(await O.locator('.set-kontakt img').count()));
+    if (SET === 'kontakt') bekle('kontakt/oy verdin: puan verdiği karelerden şerit, numarasız ve çizgisiz', (await O.locator('.set-kontakt .serit img').count()) === 3 && (await O.locator('.set-kontakt .kare-no').count()) === 0 && (await O.locator('.set-kontakt .kalem-daire').count()) === 0, String(await O.locator('.set-kontakt .serit img').count()));
+    if (SET === 'kontakt') bekle('kontakt/oy verdin: lüp geziyor', (await O.locator('.set-kontakt .lup-kap.gez').count()) === 1);
     if (SET === 'kontakt') bekle('kontakt/oy verdin: başlık, kalem notu, alt', await var_(O, 'Bu sefer oylayan sendin') && /\d+ kareye puan verdin|Bütün kareleri puanladın/.test(await O.locator('.set-kontakt .kalem-not').first().innerText()) && await var_(O, 'Sıradaki etkinlikte senin karen de şeritte olsun'), await metin(O));
     else bekle('pano/oy verdin: başlık, pano, alt', await var_(O, 'Oy verdin') && /^\d+\|\d+$/.test(await panoMetni(O)) && await var_(O, 'Sıradaki etkinlikte panoda senin satırın da olsun'), `${await metin(O)} | ${await panoMetni(O)}`);
     const Yp = await kisiselMetin(Y.eposta);   // hiç katılmadı
@@ -233,7 +235,7 @@ try {
     const C = await kisiselMetin(foto[foto.length - 1].eposta);   // karesi çıkarıldı
     await olc(C, `${no + 10}-${SET}-kisisel-cikarildi`);
     bekle(`${SET}/çıkarıldı: "Karen sayılmadı", neden ve yönetici`, await var_(C, 'Karen sayılmadı') && await var_(C, 'Buluşmaya katılmadın') && await var_(C, 'Yöneticiyle konuşabilirsin'), await metin(C));
-    if (SET === 'kontakt') bekle('kontakt/çıkarıldı: daire yok, kare soluk', (await C.locator('.set-kontakt .kalem-daire').count()) === 0 && (await C.locator('.set-kontakt .gri').count()) === 1);
+    if (SET === 'kontakt') bekle('kontakt/çıkarıldı: lüp yok, kare soluk', (await C.locator('.set-kontakt .lup').count()) === 0 && (await C.locator('.set-kontakt .gri').count()) === 1);
     else bekle('pano/çıkarıldı: durum ÇIKARILDI', (await panoMetni(C)).endsWith('|ÇIKARILDI'), await panoMetni(C));
     await O.context().close(); await Yp.context().close(); await C.context().close();
 
@@ -241,7 +243,7 @@ try {
     if (SET === 'kontakt') {
       const Kp = await kisiselMetin(KISMI.eposta);
       const dosyalar = (await admin.from('kareler').select('dosya').in('id', k1.slice(0, 2))).data.map(x => x.dosya.split('/').pop());
-      const srcler = await Kp.locator('.set-kontakt img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
+      const srcler = await Kp.locator('.set-kontakt .serit img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
       bekle('kontakt/kısmi oy: şeritte yalnız puan verdiği iki kare', srcler.length === 2 && srcler.every(u => dosyalar.some(d => u.includes(d))), JSON.stringify({ srcler: srcler.length, dosyalar }));
       bekle('kontakt/kısmi oy: kalem notu "2 kareye puan verdin"', (await Kp.locator('.set-kontakt .kalem-not').first().innerText()).trim() === '2 kareye puan verdin');
       await Kp.context().close();
@@ -257,7 +259,7 @@ try {
     const I2 = await kisiselMetin(foto[1].eposta);
     bekle(`${SET}/sırada: "Senin karen 2."`, await var_(I2, 'Senin karen 2.'), await metin(I2));
     if (SET === 'pano') bekle('pano/sırada: durum 2.', (await panoMetni(I2)).endsWith('|2.'), await panoMetni(I2));
-    else bekle('kontakt/sırada: tek daire, kalemle "2"', (await I2.locator('.set-kontakt .kalem-daire').count()) === 1 && (await I2.locator('.set-kontakt .kalem-no').first().innerText()) === '2');
+    else bekle('kontakt/sırada: kalemle "2"', (await I2.locator('.set-kontakt .kalem-buyuk').innerText()) === '2');
     await I2.context().close();
 
     // İki temada karesi olan (E2): iki kare yan yana; ortak birinci
@@ -265,7 +267,7 @@ try {
     await olc(B2, `${no + 11}-${SET}-kisisel-iki-tema`);
     bekle(`${SET}/iki tema: "Ortak birinci oldun"`, await var_(B2, 'Ortak birinci oldun'), await metin(B2));
     if (SET === 'pano') bekle('pano/iki tema: iki vurgulu kayıt', (await B2.locator('.set-pano .vurgu-kayit').count()) === 2);
-    else bekle('kontakt/iki tema: iki kare, ikisi de daireli', (await B2.locator('.set-kontakt img').count()) === 2 && (await B2.locator('.set-kontakt .kalem-daire').count()) === 2);
+    else bekle('kontakt/iki tema: iki kare, ilki daireli, lüp ikincide', (await B2.locator('.set-kontakt .serit img').count()) === 2 && (await B2.locator('.set-kontakt .kalem-daire').count()) === 1 && (await B2.locator('.set-kontakt .lup').count()) === 1);
     await B2.context().close();
 
     // Kapanış düğmeleri: paylaş yalnız yarışan karesi olana; Tekrar izle başa, Sonuçlara geç sonuçlara

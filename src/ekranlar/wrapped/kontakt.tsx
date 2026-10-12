@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { acilisSeritleri, kapanisYigini, kartPlani, temaDuzeni, temaSeridiKareleri, type KisiselDurum, type Ozet, type SK } from './plan'
 import { Dugmeler, Foto, type Kart, type SetTanimi } from './ortak'
 import { puan } from './bicim'
-import { Baski, Daire, Not, Serit } from './kontakt-parca'
+import { Baski, Daire, Lup, Not, Serit } from './kontakt-parca'
 import { paylasilacakKare } from '../Paylas'
 
 /**
@@ -140,43 +140,54 @@ export const KONTAKT: SetTanimi = {
 function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy: string; ozet: Ozet; temaSayisi: number; oylanan: SK[] }): Kart {
   const kart = (baslik: string, sag: string, icerik: ReactNode, alt?: ReactNode): Kart =>
     ({ ad: 'kisisel', sinif: 'kt-kisisel', sag, govde: govde(`Sen · ${c.ay}`, baslik, icerik, alt) })
-  // Kişinin kareleri şeritte; sırada olan(lar) çizili. Sıraya girmeyen çizilmiyor, numarası da yok (karar 52).
-  const serit = (l: (SK | null)[], cizili: boolean) => {
+  // Lüp bloğu: kareler şeritte, lüp hedef karede, numara lübün sol altında (şeridin altında). Karar 52: sıraya girmeyende numara yok.
+  // İki kare yan yana (cift); üç ya da daha fazlasında (oy verdin) lüp ortadaki karede geziyor.
+  const lupBlok = (l: (SK | null)[], numara: number | null, opt: { gez?: boolean; soluk?: boolean } = {}) => {
     const kareler = l.filter(Boolean) as SK[]
-    const { kareler: dizi, secili } = kareler.length > 1
-      ? { kareler: [null, ...kareler, null], secili: cizili ? kareler.map((k, j) => (k.sirali ? j + 1 : -1)).filter(j => j > 0) : [] }
-      : ortala([], kareler, [])
-    return <Serit kareler={dizi} secili={cizili ? secili : []} kucuk={kareler.length > 1} kenar={`${kareler.map(k => k.tema_ad).join(' · ')} · ${c.kenarAy}`} />
+    const cift = kareler.length === 2
+    const dizi = cift ? [null, ...kareler, null] : ortala([], kareler.length ? kareler : [null as unknown as SK], []).kareler
+    const hedef = cift ? 2 : Math.floor(dizi.length / 2)
+    const boy = cift ? 170 : 280
+    const hedefOrta = cift ? 280 : 195
+    return (
+      <div className={`lup-blok${cift ? ' cift' : ''}${numara != null ? ' numarali' : ''}`}>
+        <div className={opt.soluk ? 'gri' : undefined}>
+          <Serit kareler={dizi} secili={cift && numara != null ? [1] : []} kucuk={cift} numarasiz kenar={`${kareler.map(k => k.tema_ad).join(' · ')} · ${c.kenarAy}`} />
+        </div>
+        {!opt.soluk && <Lup k={dizi[hedef]} boy={boy} sol={hedefOrta - boy / 2} ust={32 + 24 + (cift ? 53.5 : 70) - boy / 2} gez={opt.gez} />}
+        {numara != null && <span className="kalem-buyuk" style={{ left: 20, top: cift ? 205 : 242 }}>{numara}</span>}
+      </div>
+    )
   }
   const not = (k: SK) => <div className="notlar"><Not>{k.tema_ad} {puan(k.ortalama)}</Not></div>
   switch (d.tur) {
     case 'birinci':
       return kart(d.ortak ? 'Ortak birinci oldun' : d.ikisi ? 'İki temayı sen kazandın' : 'Senin karen birinci',
-        `${d.kare.oy_sayisi ?? 0} kişi puanladı`, <>{serit([d.kare, d.ikinci], true)}{not(d.kare)}</>,
+        `${d.kare.oy_sayisi ?? 0} kişi puanladı`, <>{lupBlok([d.kare, d.ikinci], 1)}{not(d.kare)}</>,
         d.ortak ? `${d.kare.tema_ad} temasında ortak birinci oldun` : undefined)
     case 'sirali':
       return kart(`Senin karen ${d.kare.sira}.`, `${d.kare.oy_sayisi ?? 0} kişi puanladı`,
-        <>{serit([d.kare, d.ikinci], true)}{not(d.kare)}</>,
+        <>{lupBlok([d.kare, d.ikinci], d.kare.sira)}{not(d.kare)}</>,
         d.kac > 1 ? `${d.kac} temada sıralamaya girdin` : undefined)
     case 'girmedi':
-      return kart('Senin karen', `${d.kare.oy_sayisi ?? 0} kişi puanladı`, <>{serit([d.kare, d.ikinci], false)}{not(d.kare)}</>,
+      return kart('Senin karen', `${d.kare.oy_sayisi ?? 0} kişi puanladı`, <>{lupBlok([d.kare, d.ikinci], null)}{not(d.kare)}</>,
         <>{d.kare.ortalama == null ? 'Bu kareye kimse puan vermemiş' : 'Puanını yalnız sen görüyorsun'} · Temada {d.n} kare vardı</>)
     case 'oylanmamis':
-      return kart('Senin karen', `${c.ay} · ${d.kare.tema_ad}`, serit([d.kare, d.ikinci], false),
+      return kart('Senin karen', `${c.ay} · ${d.kare.tema_ad}`, lupBlok([d.kare, d.ikinci], null),
         <>Bu temayı kimse oylamamış · Temada {d.n} kare vardı</>)
     // Öteki durumlar setin kendi sesiyle (Buse onayladı, 2026-10-05). Çıkarılan kare soluk, üstünde çizgi yok.
     case 'cikarildi':
       return kart('Karen sayılmadı', `${c.ay} · ${d.kare.tema_ad}`,
-        <><div className="gri">{serit([d.kare], false)}</div><div className="notlar"><Not>{d.kare.cikarma_nedeni || 'Yarışmadan çıkarıldı'}</Not></div></>,
+        <>{lupBlok([d.kare], null, { soluk: true })}<div className="notlar"><Not>{d.kare.cikarma_nedeni || 'Yarışmadan çıkarıldı'}</Not></div></>,
         'Yöneticiyle konuşabilirsin')
     case 'oyverdi':
       return kart('Bu sefer oylayan sendin', `${d.adet} / ${c.ozet.kare} kare`,
-        <>{c.oylanan.length > 0 && <Serit numarasiz kenar={c.kenarAy} kareler={ortala(c.oylanan.slice(1, 2), c.oylanan.slice(0, 1), c.oylanan.slice(2, 3)).kareler} />}
+        <>{c.oylanan.length > 0 && lupBlok(c.oylanan.slice(0, 3), null, { gez: true })}
           <div className="notlar"><Not>{d.hepsi ? 'Bütün kareleri puanladın' : `${d.adet} kareye puan verdin`}</Not></div></>,
         'Sıradaki etkinlikte senin karen de şeritte olsun')
     default:
       return kart('Bu sefer yoktun', c.etkinlikAdi,
-        <><Serit kareler={[null, null, null]} kenar={c.kenarAy} /><div className="notlar"><Not>{c.ozet.kare} kare, {c.temaSayisi} tema</Not></div></>,
+        <>{lupBlok([null, null, null], null)}<div className="notlar"><Not>{c.ozet.kare} kare, {c.temaSayisi} tema</Not></div></>,
         'Bir sonraki buluşmada seni de aramızda görmek isteriz')
   }
 }

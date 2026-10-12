@@ -130,3 +130,9 @@
 @keyframes dus{from{opacity:0;transform:translateY(-70px) scale(1.08)}}
 @keyframes lup-kay{from{transform:translateX(-260px) rotate(-20deg)}}
 @keyframes lup-gez{0%{transform:translateX(-260px)}45%{transform:translateX(150px)}70%{transform:translateX(-90px)}100%{transform:none}}
+/* Lüp bloğu: kesilmiyor, sap şeridin dışına taşıyor */
+.wr .set-kontakt .lup-blok{position:relative;margin:0 calc(-1 * var(--kenar));height:330px}
+.wr .set-kontakt .lup-blok.numarali{height:366px}
+.wr .set-kontakt .lup-blok .serit-pencere{margin-top:32px;--kw:210px}
+.wr .set-kontakt .lup-blok.cift .serit-pencere{--kw:160px}
+.wr .set-kontakt .lup-blok.cift .lup-sap{left:74%;width:60px}

@@ -97,7 +97,7 @@ async function olc(p, ad) {
   const r = await p.evaluate(() => {
     const tel = document.querySelector('.wr .tel').getBoundingClientRect();
     const tasma = [...document.querySelectorAll('.wr .w-ic *')].filter(e => {
-      if (e.closest('.serit-pencere')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
+      if (e.closest('.serit-pencere, .ac-seritler')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
       if (e.closest('.h')) return false;               // pano kutusundaki dönüş harfleri kutunun içinde gizli (overflow)
       const b = e.getBoundingClientRect(); return b.width && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1);
     }).map(e => e.className).slice(0, 3);
@@ -128,9 +128,9 @@ try {
       bekle('pano/açılış: harfler son hâlinde (kişi, kare, puan)', /^\d+\|\d+\|\d+$/.test(await panoMetni(P)), await panoMetni(P));
       bekle('pano/açılış: ekran okuyucu satırı düz okuyor', /^\d+$/.test((await P.locator('.set-pano .pano-satir').first().getAttribute('aria-label')) ?? ''));
     } else {
-      bekle('kontakt/açılış: rastgele üç kare görünüyor', (await P.locator('.set-kontakt img').count()) === 3, String(await P.locator('.set-kontakt img').count()));
+      bekle('kontakt/açılış: 7 kareli etkinlikte 7 kare, iki şerit', (await P.locator('.set-kontakt .ac-serit img').count()) === 7 && (await P.locator('.set-kontakt .ac-serit').count()) === 2, String(await P.locator('.set-kontakt .ac-serit img').count()));
       bekle('kontakt/açılış: kazanan söylenmiyor (sıra numarası, daire yok)', (await P.locator('.set-kontakt .kare-no').count()) === 0 && (await P.locator('.set-kontakt .kalem-daire').count()) === 0);
-      bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /\d+ kişi · \d+ kare · \d+ puan/.test((await metin(P)).toLocaleLowerCase('tr-TR')), await metin(P));
+      bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /^\d+ KİŞİ \d+ KARE \d+ PUAN$/.test((await P.locator('.set-kontakt .ac-sayilar').innerText()).replace(/\s+/g, ' ').trim()), await metin(P));
     }
 
     await sag(P);
@@ -144,6 +144,7 @@ try {
       bekle('pano/tema: başlık', await var_(P, 'Sokak temasının birincisi'));
     } else {
       bekle('kontakt/tema: başlık', await var_(P, 'Sokak temasının birincisi'));
+      bekle('kontakt/tema: dev şerit', (await P.locator('.set-kontakt .dev-serit').count()) === 1);
       const not = (await P.locator('.set-kontakt .kalem-not').first().innerText()).replace(/\s+/g, ' ');
       bekle('kontakt/tema: kalem notu isim ve puan, ünlemsiz', /^Muhammed Mustafa Karaosmanoğlu \d+,\d$/.test(not) && !(await metin(P)).includes('!'), not);
       const pay = await P.locator('.set-kontakt .serit > div').first().evaluate(e => getComputedStyle(e).paddingTop + ' ' + getComputedStyle(e).paddingBottom);
@@ -164,7 +165,7 @@ try {
     await olc(P, `${no + 2}-${SET}-kursu`);
     bekle(`${SET}/kürsü: başlık`, await var_(P, 'Kürsünün kalanı') || await var_(P, 'Az farkla'));
     if (SET === 'pano') bekle('pano/kürsü: durum 2. ve 3., fark eksi', /\|2\.\|−\d,\d\|/.test(await panoMetni(P)) && /\|3\.\|−\d,\d/.test(await panoMetni(P)), await panoMetni(P));
-    else bekle('kontakt/kürsü: iki daire, "2" ve "3"', (await P.locator('.set-kontakt .kalem-daire').count()) === 2 && (await P.locator('.set-kontakt .kalem-no').allInnerTexts()).join() === '2,3');
+    else bekle('kontakt/kürsü: iki baskı, "2" ve "3"', (await P.locator('.set-kontakt .baski').count()) === 2 && (await P.locator('.set-kontakt .baski .kalem-no').allInnerTexts()).join() === '2,3');
 
     // Kişisel: birinci
     bekle(`${SET}/kişisel: kart var`, await kartaGit(P, 'kisisel'));
@@ -176,19 +177,25 @@ try {
     await olc(P, `${no + 4}-${SET}-kapanis`);
     if (SET === 'pano') bekle('pano/kapanış: üç satır', (await panoMetni(P)) === 'SIRADAKİ|ETKİNLİKTE|GÖRÜŞÜRÜZ', await panoMetni(P));
     else bekle('kontakt/kapanış: cümle', await var_(P, 'Sıradaki etkinlikte görüşürüz'));
+    if (SET === 'kontakt') bekle('kontakt/kapanış: baskı yığını, en üstte kendi karesi', (await P.locator('.set-kontakt .yigin .yigin-yer').last().getAttribute('data-kare')) === (await admin.from('kareler').select('id').eq('sahip', foto[0].id).eq('tema', T1).single()).data.id);
     bekle(`${SET}: yasak kelime yok (kapanış)`, !YASAK.test(await metin(P)));
 
     // Eşit birincilik (E2 Portre)
     await ac(P, `wrapped/${E2}`);
+    if (SET === 'kontakt') {
+      await kartaGit(P, 'tema');
+      bekle('kontakt/iki tema: 1. tema dev şerit', (await P.locator('.set-kontakt .dev-serit').count()) === 1 && (await P.locator('.wr .tel').getAttribute('class')).includes('kt-serit'));
+    }
     bekle(`${SET}/eşit: Portre kartı`, await kartaGit(P, 'tema', () => var_(P, 'Portre fotoğrafçılığı temasında')));
     await olc(P, `${no + 5}-${SET}-esit`);
     bekle(`${SET}/eşit: başlık "iki birinci"`, await var_(P, 'Portre fotoğrafçılığı temasında iki birinci'), await metin(P));
     if (SET === 'pano') bekle('pano/eşit: uzun tema adı kesilmeden iki satırda', (await panoMetni(P)).startsWith('PORTRE FOTOĞ|RAFÇILIĞI|'), await panoMetni(P));
     if (SET === 'pano') bekle('pano/eşit: iki satır EŞİT', ((await panoMetni(P)).match(/\|EŞİT/g) ?? []).length === 2, await panoMetni(P));
-    else bekle('kontakt/eşit: iki daire, iki not, "Eşit puan aldılar"', (await P.locator('.set-kontakt .kalem-daire').count()) === 2 && (await P.locator('.set-kontakt .kalem-not').count()) === 2 && await var_(P, 'Eşit puan aldılar'));
+    else bekle('kontakt/eşit: iki baskı, iki "1", iki not', (await P.locator('.set-kontakt .baski').count()) === 2 && (await P.locator('.set-kontakt .baski .kalem-no').allInnerTexts()).join() === '1,1' && (await P.locator('.set-kontakt .kalem-not').count()) === 2 && await var_(P, 'Eşit puan aldılar'));
     bekle(`${SET}/temalar: iki temalı etkinlikte kart var`, await kartaGit(P, 'temalar'));
     if (SET === 'pano') bekle('pano/temalar: uzun tema adı iki satırda', (await panoMetni(P)).startsWith('IŞIK VE|GÖLGE OYUNU|'), await panoMetni(P));
     await olc(P, `${no + 6}-${SET}-temalar`);
+    if (SET === 'kontakt') bekle('kontakt/temalar: iki şerit, şerit başına en çok 6 kare', (await P.locator('.set-kontakt .tema-serit').count()) === 2 && (await P.locator('.set-kontakt .tema-serit').evaluateAll(l => l.every(x => x.querySelectorAll('.k-kare').length <= 6))));
 
     // Sıraya girmeyen (sondan ikinci fotoğrafçı; sonuncunun karesi çıkarıldı): sırası yazmıyor, puanı yalnız ona
     const S = await kisi(foto[foto.length - 2].eposta);

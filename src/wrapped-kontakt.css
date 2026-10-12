@@ -106,6 +106,20 @@
 /* Kalem yazısı dairesi: içe kıvrılmıyor, rakamı kesmiyor */
 .wr .set-kontakt .kalem-daire.yazi{inset:0;width:100%;height:100%}
 
+.wr .set-kontakt .kalem-puan{font:400 76px/1 Mansalva,cursive;color:var(--kalem);rotate:-3deg;margin-top:30px;animation:kalem-bel .4s 1.8s backwards}
+.wr .set-kontakt .masa.esit{display:flex;justify-content:space-between;margin-inline:-6px}
+.wr .set-kontakt .esit-baski{width:168px}.wr .set-kontakt .esit-baski .kalem-not{font-size:26px;margin-top:16px}
+.wr .set-kontakt .masa.kursu{height:470px}
+.wr .set-kontakt .kursu-2{position:absolute;left:0;top:0}.wr .set-kontakt .kursu-3{position:absolute;right:2px;top:112px;text-align:right}
+.wr .set-kontakt .kursu-2 .kalem-not{position:absolute;left:2px;top:306px;width:150px}
+.wr .set-kontakt .kursu-3 .kalem-not{position:absolute;right:6px;top:280px;white-space:nowrap}
+.wr .set-kontakt .tema-ad{display:block;font:800 20px/1.1 Archivo,sans-serif;font-stretch:75%;text-transform:uppercase;margin-bottom:10px}
+.wr .set-kontakt .tema-ad b{font-size:30px}
+.wr .set-kontakt .tema-serit .ac-serit{margin-left:calc(-1 * var(--kenar));transform-origin:left center}
+.wr .set-kontakt .masa.yigin{height:300px;margin-top:10px}
+.wr .set-kontakt .yigin-yer{position:absolute;left:calc(60px + var(--y) * 30px);top:calc(40px - var(--y) * 6px)}
+.wr .set-kontakt .yigin-yer:last-child{left:96px;top:56px}
+
 @keyframes serit-kay{from{transform:translateX(70%)}}
 @keyframes kalem-ciz{from{stroke-dashoffset:1}}
 @keyframes kalem-bel{from{opacity:0}}

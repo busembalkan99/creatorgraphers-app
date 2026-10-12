@@ -1,9 +1,9 @@
 import '../../wrapped-kontakt.css'
 import type { ReactNode } from 'react'
-import { acilisKareleri, kartPlani, type KisiselDurum, type Ozet, type SK } from './plan'
-import { Dugmeler, type Kart, type SetTanimi } from './ortak'
+import { acilisSeritleri, kapanisYigini, kartPlani, temaDuzeni, temaSeridiKareleri, type KisiselDurum, type Ozet, type SK } from './plan'
+import { Dugmeler, Foto, type Kart, type SetTanimi } from './ortak'
 import { puan } from './bicim'
-import { Not, Serit } from './kontakt-parca'
+import { Baski, Daire, Not, Serit } from './kontakt-parca'
 import { paylasilacakKare } from '../Paylas'
 
 /**
@@ -12,12 +12,12 @@ import { paylasilacakKare } from '../Paylas'
  * Kelimeler düz: "seçilen, banyoda, rulo" yok. Hangi kartın olduğu plan.ts'te, eski setle aynı.
  */
 
-function govde(ust: string, baslik: ReactNode, icerik: ReactNode, alt?: ReactNode) {
+function govde(ust: string, baslik: string, icerik: ReactNode, alt?: ReactNode) {
   return (
     <div className="w-ic k-ic">
       <span className="k-ust">{ust}</span>
-      <div className="k-baslik">{baslik}</div>
-      {icerik}
+      <div className={`k-baslik${baslik.length > 30 ? ' uzun' : ''}`}>{baslik}</div>
+      <div className="k-blok">{icerik}</div>
       {alt && <div className="k-alt">{alt}</div>}
     </div>
   )
@@ -38,50 +38,78 @@ export const KONTAKT: SetTanimi = {
     const { ay, yil, etkinlikAdi, temaKareleri } = b
     const kenarAy = `${ay} ${yil}`
     const K: Kart[] = []
+    const duzen = temaDuzeni(plan); let temaSira = 0
     for (const p of plan) {
       if (p.tur === 'acilis') {
         const o = v.ozet
-        // Etkinlikten rastgele kareler, numarasız ve çizgisiz: kazananı söylemiyor (karar 39'un sürprizi; Buse, 2026-10-05)
-        const sec = acilisKareleri(v.e, v.kareler)
-        const kareler = sec.length ? ortala(sec.slice(1, 2), sec.slice(0, 1), sec.slice(2, 3)).kareler : [null, null, null]
+        const seritler = acilisSeritleri(v.e, v.kareler)
         K.push({
           ad: 'acilis', sinif: 'kt-acilis', sag: `${ay} · ${yil}`,
-          govde: govde(etkinlikAdi, 'Oylar sayıldı',
-            <Serit kareler={kareler} numarasiz kenar={`${o.kisi} kişi · ${o.kare} kare · ${o.puan} puan`} />,
-            `${kenarAy} · ${v.temalar.map(t => t.ad).join(', ')}`),
+          govde: govde(etkinlikAdi, 'Oylar sayıldı', <>
+            <div className="ac-seritler">
+              {seritler.map((s, j) => (
+                // Kare genişliği şeridi kenardan kenara doldursun: az karede kareler büyüyor
+                <div key={j} className="ac-serit" style={{ ['--acw' as string]: `${Math.max(118, Math.ceil(460 / s.length) - 9)}px`, animationDelay: `${j * 0.15}s` }}>
+                  {s.map(k => <div key={k.id} className="k-kare"><Foto k={k} /></div>)}
+                </div>
+              ))}
+            </div>
+            <div className={`ac-sayilar${seritler.length < 3 ? ' buyuk' : ''}`}>
+              <div><b>{o.kisi}</b><span>KİŞİ</span></div><div><b>{o.kare}</b><span>KARE</span></div><div><b>{o.puan}</b><span>PUAN</span></div>
+            </div>
+          </>, `${kenarAy} · ${v.temalar.map(t => t.ad).join(', ')}`),
         })
       } else if (p.tur === 'tema') {
         const { tema, kazananlar: w, tek, adet } = p
-        const esit = w.length > 1
-        const digerleri = temaKareleri(tema.id).filter(k => k.sirali && k.sira != null && k.sira > 1).sort((a, c) => a.sira! - c.sira!)
-        const { kareler, secili } = ortala(digerleri.slice(0, 1), w.slice(0, 2), digerleri.slice(1, 2))
-        K.push({
-          ad: 'tema', sinif: 'kt-tema', sag: tek ? 'Temada tek kare' : `${w[0].oy_sayisi ?? 0} kişi puanladı`,
-          govde: govde(etkinlikAdi, esit ? `${tema.ad} temasında ${w.length === 2 ? 'iki' : w.length} birinci` : `${tema.ad} temasının birincisi`, <>
-            <Serit kareler={kareler} secili={secili} kucuk={esit} kenar={`${tema.ad} · ${kenarAy}`} />
-            <div className="notlar">{w.map((k, j) => <Not key={k.id} gecikme={1.9 + j * 0.5}>{k.sahip_ad} {puan(k.ortalama)}</Not>)}</div>
-          </>, esit ? 'Eşit puan aldılar' : `${adet} kare arasından · ${w[0].oy_sayisi ?? 0} kişi puanladı`),
-        })
+        const d = duzen[temaSira++]
+        const baslik = d === 'esit' ? `${tema.ad} temasında ${w.length === 2 ? 'iki' : w.length} birinci` : `${tema.ad} temasının birincisi`
+        const alt = d === 'esit' ? 'Eşit puan aldılar' : `${adet} kare arasından · ${w[0].oy_sayisi ?? 0} kişi puanladı`
+        let icerik: ReactNode
+        if (d === 'serit') {
+          const digerleri = temaKareleri(tema.id).filter(k => k.sirali && k.sira != null && k.sira > 1).sort((a, c) => a.sira! - c.sira!)
+          const { kareler, secili } = ortala(digerleri.slice(0, 1), w.slice(0, 1), digerleri.slice(1, 2))
+          icerik = <>
+            <div className="dev-serit"><Serit kareler={kareler} secili={secili} kenar={`${tema.ad} · ${kenarAy}`} /></div>
+            <div className="notlar"><Not>{w[0].sahip_ad} {puan(w[0].ortalama)}</Not></div>
+          </>
+        } else if (d === 'baski') {
+          const uzun = tema.ad.length > 12
+          icerik = <>
+            <div className="masa"><Baski k={w[0]} maxW={uzun ? 270 : 310} maxH={uzun ? 200 : 240} aci={-2}>
+              <span className="kenar">{tema.ad} · {kenarAy} · 01</span><Daire gecikme={0.7} /></Baski></div>
+            <div className="notlar"><Not gecikme={1.5}>{w[0].sahip_ad}</Not><div className="kalem-puan">{puan(w[0].ortalama)}</div></div>
+          </>
+        } else {
+          icerik = <div className="masa esit">{w.slice(0, 2).map((k, j) => (
+            <div key={k.id} className="esit-baski">
+              <Baski k={k} maxW={152} maxH={190} aci={j ? 3 : -3} gecikme={j * 0.35}><span className="kalem-no">1</span></Baski>
+              <Not gecikme={1.3 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>
+            </div>))}</div>
+        }
+        K.push({ ad: 'tema', sinif: `kt-tema kt-${d}`, sag: tek ? 'Temada tek kare' : `${w[0].oy_sayisi ?? 0} kişi puanladı`, govde: govde(etkinlikAdi, baslik, icerik, alt) })
       } else if (p.tur === 'kursu') {
-        const { kareler, secili } = ortala([p.ilk], p.kursu, [])
         K.push({
           ad: 'kursu', sinif: 'kt-kursu', sag: `Sıralamaya ${p.girdi} kare girdi`,
-          govde: govde(etkinlikAdi, p.az ? 'Az farkla' : 'Kürsünün kalanı', <>
-            <Serit kareler={kareler} secili={secili} kucuk kenar={`${p.tema.ad} · ${kenarAy}`} />
-            <div className="notlar">{p.kursu.map((k, j) => <Not key={k.id} gecikme={1.9 + j * 0.5}>{k.sahip_ad} {puan(k.ortalama)}</Not>)}</div>
-          </>, `Birinciyle fark ${p.farklar.map(f => puan(f)).join(' · ')}`),
+          govde: govde(etkinlikAdi, p.az ? 'Az farkla' : 'Kürsünün kalanı', (
+            <div className="masa kursu">{p.kursu.map((k, j) => (
+              <div key={k.id} className={`kursu-${j + 2}`}>
+                <Baski k={k} maxW={j ? 170 : 190} maxH={j ? 206 : 230} aci={j ? 3.5 : -4} gecikme={0.1 + j * 0.35}><span className="kalem-no">{k.sira}</span></Baski>
+                <Not gecikme={1.1 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>
+              </div>))}</div>
+          ), `Birinciyle fark ${p.farklar.map(f => puan(f)).join(' · ')}`),
         })
       } else if (p.tur === 'temalar') {
-        const enCok = Math.max(...p.satirlar.map(s => s.adet), 1)
         K.push({
           ad: 'temalar', sinif: 'kt-temalar', sag: `${p.toplam} kare`,
           govde: govde(etkinlikAdi, 'Hangi temaya kaç kare', (
             <div className="tema-seritler">
               {p.satirlar.map(({ tema, adet, enYuksek }, j) => (
                 <div key={tema.id} className="tema-serit">
-                  <span className="kenar">{tema.ad} · {adet} kare{enYuksek ? ` · en yüksek ${puan(enYuksek.ortalama)}` : ''}</span>
-                  {/* Şeridin boyu kare sayısı kadar; en kalabalık tema tam boy */}
-                  <div className="serit-boy" style={{ width: `${Math.max(12, (adet / enCok) * 100)}%`, animationDelay: `${0.3 + j * 0.4}s` }} />
+                  <span className="tema-ad">{tema.ad} · <b>{adet} kare</b></span>
+                  <div className="ac-serit tema-kareleri" style={{ ['--acw' as string]: '52px', animationName: 'boy-uza', animationDelay: `${0.1 + j * 0.3}s` }}>
+                    {temaSeridiKareleri(v.kareler, tema.id).map(k => <div key={k.id} className="k-kare"><Foto k={k} /></div>)}
+                  </div>
+                  {enYuksek && <Not gecikme={1 + j * 0.3}>en yüksek {puan(enYuksek.ortalama)}</Not>}
                 </div>
               ))}
             </div>
@@ -91,10 +119,14 @@ export const KONTAKT: SetTanimi = {
         const oylanan = (v.oylanan ?? []).map(id => v.kareler.find(k => k.id === id)).filter((k): k is SK => !!k)
         K.push(kisisel(p.durum, { ay, etkinlikAdi, kenarAy, ozet: v.ozet, temaSayisi: v.temalar.length, oylanan }))
       } else {
+        const yigin = kapanisYigini(v.kareler)
         K.push({
           ad: 'kapanis', sinif: 'kt-kapanis', sag: `${ay} · ${yil}`,
           govde: govde(etkinlikAdi, 'Sıradaki etkinlikte görüşürüz', <>
-            <Serit kareler={[null, null, null]} kenar="Creatorgraphers" />
+            <div className="masa yigin">{yigin.map((k, j) => (
+              <div key={k.id} data-kare={k.id} className="yigin-yer" style={{ ['--y' as string]: j }}>
+                <Baski k={k} maxW={150} maxH={180} aci={j === yigin.length - 1 ? -1 : [-12, 9, -5][j % 3]} gecikme={0.1 + j * 0.25} />
+              </div>))}</div>
             <Dugmeler eylem={eylem} paylas={!!paylasilacakKare(v.kareler)} />
           </>),
         })

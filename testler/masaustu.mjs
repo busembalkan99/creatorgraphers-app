@@ -259,6 +259,8 @@ bolum('sonuc', async b => {
     const d = await denetle(p); bekle(`${boyut[0]} sonuç: denetim temiz`, d.length === 0, d.join(' | '));
     await p.context().close();
   }
+  // Kurucunun karesi olan sonuçlanmış etkinlik kalırsa sonraki bölümlerde Wrapped açılışı araya giriyor
+  await temizle(); kurulan.length = 0;
 });
 
 // ---------------------------------------------------------------- çalıştır

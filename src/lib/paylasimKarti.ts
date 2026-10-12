@@ -21,10 +21,11 @@ export const DUZENLER: { ad: Duzen; baslik: string }[] = [
   { ad: 'sayfa', baslik: 'Kontakt sayfası' },
 ]
 
-/** Ölçüm kutusu (testler/paylasim-kart.mjs): çizilen yazının mürekkebi ya da görselin tuvaldeki yeri */
+/** Ölçüm kutusu (testler/paylasim-kart.mjs): çizilen yazının mürekkebi ya da görselin tuvaldeki yeri; senin karen yüklenemediyse boş çerçeve t: 'bos' */
 export type Kutu = {
   tur: 'yazi' | 'kalem' | 'foto' | 'serit' | 'lup' | 'baslik' | 'daire'
   x: number; y: number; w: number; h: number; t?: string; kaynak?: 'foto' | 'serit'
+  g?: number   // yazının ilerleme genişliği: WebKit mürekkebin yatay sınırını vermiyor, motorlar bununla karşılaştırılıyor
 }
 
 export type KartVeri = {
@@ -51,8 +52,44 @@ export async function fontlarHazir() {
   const k = ['900 200px Archivo', '700 30px Archivo', '400 96px Mansalva']
   await Promise.all([
     ...f.map(x => document.fonts.load(x).catch(() => [])),
-    ...k.map(x => document.fonts.load(x, 'AZaz09İĞŞÇÖÜığşçöü').catch(() => [])),
+    ...k.map(x => document.fonts.load(x, ORNEK).catch(() => [])),
+    darYukle(),
   ])
+}
+const ORNEK = 'AZaz09İĞŞÇÖÜığşçöü'
+
+/**
+ * Dar Archivo kesimleri (wdth 62,5 ve 75) kendi aile adlarıyla: WebKit tuvalinde fontStretch yok, değişken yazının
+ * genişliği orada seçilemiyor. Google'ın tek değer istenen CSS'i genişliği sabitlenmiş dosyalar veriyor; alt kümeler
+ * (latin, latin-ext) unicode-range'leriyle ekleniyor. Yüklenemezse (çevrimdışı) fontStretch yolu kalıyor.
+ */
+const DAR = [['ArchivoDar', '62.5', '900'], ['ArchivoDar75', '75', '700']] as const
+let DAR_VAR = false
+let darSoz: Promise<boolean> | null = null
+async function darYukle() {
+  const eklenen: FontFace[] = []
+  darSoz ??= (async () => {
+    try {
+      for (const [aile, wdth, k] of DAR) {
+        const r = await fetch(`https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@${wdth},${k}&display=swap`)
+        if (!r.ok) return false
+        for (const [, b] of (await r.text()).matchAll(/@font-face\s*\{([^}]*)\}/g)) {
+          const src = /src:\s*(url\([^)]+\))/.exec(b)?.[1], ur = /unicode-range:\s*([^;]+);/.exec(b)?.[1]
+          if (!src) continue
+          const y = new FontFace(aile, src, { weight: k, ...(ur && { unicodeRange: ur.trim() }) })
+          document.fonts.add(y); eklenen.push(y)
+        }
+        const l = await document.fonts.load(`${k} 100px "${aile}"`, ORNEK)
+        if (!l.length || l.some(x => x.status !== 'loaded')) return false
+      }
+      return true
+    } catch { return false }
+  })().then(ok => {
+    // Başarısızsa yüzler siliniyor ve bir sonraki çağrı yeniden deniyor
+    if (!ok) { darSoz = null; for (const y of eklenen) document.fonts.delete(y) }
+    return ok
+  })
+  DAR_VAR = await darSoz
 }
 
 /** Harf aralıklı metin: ctx.letterSpacing her tarayıcıda yok, harf harf çiziliyor */
@@ -312,10 +349,10 @@ function bilet(c: CanvasRenderingContext2D, v: KartVeri) {
 }
 
 // ------------------------------------------------ Kontakt dili (karar 130): Lüp, Baskı, Kontakt sayfası
-// Tuvalde dar biçim için fontStretch (yazı tanımındaki "extra-condensed"); WebKit'te yok, orada yazı geniş kalıyor
-// ve sigdir/satirla küçülterek sığdırıyor.
-const ARCH = (px: number) => `900 extra-condensed ${px}px Archivo, sans-serif`
-const AK = (px: number) => `700 condensed ${px}px Archivo, sans-serif`
+// Dar biçim önce sabit genişlikli kesimden (darYukle); o yüklenemediyse fontStretch (yazı tanımındaki "extra-condensed"),
+// o da yoksa (WebKit) yazı geniş kalıyor ve sigdir/satirla küçülterek sığdırıyor.
+const ARCH = (px: number) => (DAR_VAR ? `900 ${px}px "ArchivoDar", Archivo, sans-serif` : `900 extra-condensed ${px}px Archivo, sans-serif`)
+const AK = (px: number) => (DAR_VAR ? `700 ${px}px "ArchivoDar75", Archivo, sans-serif` : `700 condensed ${px}px Archivo, sans-serif`)
 const KALEM = (px: number) => `400 ${px}px Mansalva, cursive`
 const KALEM_R = '#b52d12', KAGIT = '#efeae0', SOLUK = '#6d655b', MUREKKEP = '#141210', FILM = '#161412', BOS = '#24201c', LUP = '#232020'
 const DAIRE_FOTO = 'M26 104 C 18 30, 274 14, 286 92 C 296 166, 72 198, 30 132 C 16 108, 58 60, 124 52'
@@ -324,18 +361,18 @@ const DAIRE_YAZI = 'M60 40 C 130 6, 252 10, 286 80 C 302 150, 204 194, 120 188 C
 let OLC: Kutu[] | null = null
 
 /** Yerel dikdörtgeni o anki dönüşümle tuvale çevirip ölçüme yazar. Görseller tuvalle kırpılıyor: şerit kenardan taşarak çiziliyor. */
-function kutu(c: CanvasRenderingContext2D, tur: Kutu['tur'], x0: number, y0: number, x1: number, y1: number, t?: string, kaynak?: Kutu['kaynak']) {
+function kutu(c: CanvasRenderingContext2D, tur: Kutu['tur'], x0: number, y0: number, x1: number, y1: number, t?: string, kaynak?: Kutu['kaynak'], g?: number) {
   if (!OLC) return
   const m = c.getTransform()
   const p = [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f])
-  kutuYaz(tur, Math.min(...p.map(q => q[0])), Math.min(...p.map(q => q[1])), Math.max(...p.map(q => q[0])), Math.max(...p.map(q => q[1])), t, kaynak)
+  kutuYaz(tur, Math.min(...p.map(q => q[0])), Math.min(...p.map(q => q[1])), Math.max(...p.map(q => q[0])), Math.max(...p.map(q => q[1])), t, kaynak, g)
 }
-function kutuYaz(tur: Kutu['tur'], x0: number, y0: number, x1: number, y1: number, t?: string, kaynak?: Kutu['kaynak']) {
+function kutuYaz(tur: Kutu['tur'], x0: number, y0: number, x1: number, y1: number, t?: string, kaynak?: Kutu['kaynak'], g?: number) {
   if (tur === 'foto' || tur === 'serit' || tur === 'lup') {
     x0 = Math.max(0, x0); y0 = Math.max(0, y0); x1 = Math.min(W, x1); y1 = Math.min(H, y1)
     if (x1 <= x0 || y1 <= y0) return
   }
-  OLC?.push({ tur, x: x0, y: y0, w: x1 - x0, h: y1 - y0, ...(t != null && { t }), ...(kaynak && { kaynak }) })
+  OLC?.push({ tur, x: x0, y: y0, w: x1 - x0, h: y1 - y0, ...(t != null && { t }), ...(kaynak && { kaynak }), ...(g != null && { g }) })
 }
 /** Lüpün dairesi ve eğik sapı tek dikdörtgene sığmıyor (köşeler boş): dışbükey şekil 8px'lik yatay dilimlerle ölçülüyor */
 function sekilKutu(c: CanvasRenderingContext2D, tur: Kutu['tur'], nokta: [number, number][]) {
@@ -364,13 +401,13 @@ function yazK(c: CanvasRenderingContext2D, t: string, x: number, y: number, aral
   yaz(c, t, x, y, aralik, hiza)
   const gen = olc(c, t, aralik), x0 = hiza === 'right' ? x - gen : hiza === 'center' ? x - gen / 2 : x
   const m = c.measureText(t)
-  kutu(c, tur, x0, y - m.actualBoundingBoxAscent, x0 + gen, y + m.actualBoundingBoxDescent, t)
+  kutu(c, tur, x0, y - m.actualBoundingBoxAscent, x0 + gen, y + m.actualBoundingBoxDescent, t, undefined, gen)
   return gen
 }
 /** Sol hizalı tek satırın mürekkep kutusu */
 function murekkep(c: CanvasRenderingContext2D, tur: Kutu['tur'], t: string, x: number, y: number) {
   const m = c.measureText(t)
-  kutu(c, tur, x - m.actualBoundingBoxLeft, y - m.actualBoundingBoxAscent, x + m.actualBoundingBoxRight, y + m.actualBoundingBoxDescent, t)
+  kutu(c, tur, x - m.actualBoundingBoxLeft, y - m.actualBoundingBoxAscent, x + m.actualBoundingBoxRight, y + m.actualBoundingBoxDescent, t, undefined, m.width)
 }
 /** Çok satırlı yazı tek kutu: satırların mürekkebi döndürülmüş blokta birbirine değebiliyor, bu çakışma değil */
 function blok(cizim: () => void) {
@@ -380,7 +417,7 @@ function blok(cizim: () => void) {
   if (!k.length) return
   const x0 = Math.min(...k.map(q => q.x)), y0 = Math.min(...k.map(q => q.y))
   const x1 = Math.max(...k.map(q => q.x + q.w)), y1 = Math.max(...k.map(q => q.y + q.h))
-  OLC?.push({ tur: k[0].tur, x: x0, y: y0, w: x1 - x0, h: y1 - y0, t: k.map(q => q.t).join(' / ') })
+  OLC?.push({ tur: k[0].tur, x: x0, y: y0, w: x1 - x0, h: y1 - y0, t: k.map(q => q.t).join(' / '), g: Math.max(...k.map(q => q.g ?? 0)) })
 }
 /** CSS satır kutusunun üstünden taban çizgisine uzaklık (yarım satır aralığı + yazının üst payı) */
 function taban(c: CanvasRenderingContext2D, satirH?: number) {
@@ -474,6 +511,7 @@ function lup(c: CanvasRenderingContext2D, v: KartVeri) {
   c.save(); c.beginPath(); c.arc(cx, cy, 284, 0, Math.PI * 2); c.clip()
   c.fillStyle = BOS; c.fill()
   if (v.foto?.naturalWidth) { kapla(c, v.foto, 126, 800 + kay, 940, 627); kutu(c, 'foto', cx - 284, cy - 284, cx + 284, cy + 284, undefined, 'foto') }
+  else kutu(c, 'foto', cx - 284, cy - 284, cx + 284, cy + 284, 'bos', 'foto')
   c.restore()
   sekilKutu(c, 'lup', cember(cx, cy, 320))
   c.save(); c.translate(910, 1481 + kay); c.rotate(42 * Math.PI / 180)
@@ -510,7 +548,7 @@ function baski(c: CanvasRenderingContext2D, v: KartVeri) {
   c.fillStyle = '#fbf8f1'; c.fillRect(X, Y, w + 52, baskiH)
   c.restore()
   if (v.foto?.naturalWidth) { kapla(c, v.foto, X + 26, Y + 26, w, h); kutu(c, 'foto', X + 26, Y + 26, X + 26 + w, Y + 26 + h, undefined, 'foto') }
-  else { c.fillStyle = '#3a3a3a'; c.fillRect(X + 26, Y + 26, w, h) }
+  else { c.fillStyle = '#3a3a3a'; c.fillRect(X + 26, Y + 26, w, h); kutu(c, 'foto', X + 26, Y + 26, X + 26 + w, Y + 26 + h, 'bos', 'foto') }
   // Alt payda solda tema, ay, sıra
   c.fillStyle = SOLUK
   const tema = satirla(c, up(v.tema), AK, 26, w - 360, 2, 0.12)
@@ -559,7 +597,7 @@ function sayfa(c: CanvasRenderingContext2D, v: KartVeri) {
   const sw = (960 - 44) / 3, hx = (s: number) => 60 + s * (sw + 22), hy = (r: number) => ust0 + r * 226
   const senW = 2 * sw + 22, senH = 2 * 204 + 22
   if (v.foto?.naturalWidth) { kapla(c, v.foto, 60, ust0, senW, senH); kutu(c, 'foto', 60, ust0, 60 + senW, ust0 + senH, undefined, 'foto') }
-  else { c.fillStyle = '#3a3a3a'; c.fillRect(60, ust0, senW, senH) }
+  else { c.fillStyle = '#3a3a3a'; c.fillRect(60, ust0, senW, senH); kutu(c, 'foto', 60, ust0, 60 + senW, ust0 + senH, 'bos', 'foto') }
   const hucre = Array.from({ length: satir * 3 }, (_, i) => i).filter(i => !(i % 3 < 2 && i < 6))
   hucre.forEach((i, j) => {
     const x = hx(i % 3), y = hy(Math.floor(i / 3)), img = o[j]

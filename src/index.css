@@ -1020,6 +1020,8 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
    her kural 768+ medya sorgusunda ve rayı olan kabuğun altında. Yeni sınıflar m- önekli.
    ========================================================== */
 .m-ray{display:none}
+.m-pk{display:contents}
+.m-tema-durum{display:none}
 @media (min-width:768px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:8px;--s-ic:16px;--s-blok:36px;--s-bolum:54px}
   .app:has(> .m-ray){--m-ray:88px;--pad:clamp(32px,4.5vw,72px);max-width:none;border:0;
@@ -1040,6 +1042,23 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .m-ray-grup a{height:48px;font-size:13px}
   .m-ray-lb{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--soft);padding:0 16px 10px}
   .m-ray-alt{margin-top:auto;padding-top:24px;font-size:13px;font-weight:700;color:var(--soft);text-align:center}
+  /* Etkinlikler: canlı kartta tema listesi (kartın kendi renkleriyle), vitrin üç sütun ve paspartu */
+  .m-tema-durum{display:block;list-style:none;margin-top:var(--s-blok);border-top:1px solid rgba(10,10,11,.2)}
+  .m-tema-durum li{display:flex;align-items:baseline;gap:16px;padding:14px 0;border-bottom:1px solid rgba(10,10,11,.2)}
+  .m-tema-durum .m-no{font-size:14px;font-weight:800;opacity:.55;width:24px;flex:0 0 auto}
+  .m-tema-durum b{flex:1;min-width:0;font-size:18px;font-weight:900;text-transform:uppercase;overflow-wrap:anywhere}
+  .m-tema-d{font-size:13px;font-weight:700;opacity:.6;white-space:nowrap}
+  .m-tema-d.tamam{opacity:1}
+  .app:has(> .m-ray) .live{padding:clamp(24px,2.6vw,40px);display:grid;grid-template-columns:minmax(0,1fr);column-gap:48px;align-content:start}
+  /* Bildirim daveti ve Tema öner: yatay şerit */
+  .app:has(> .m-ray) .bildirim-karti,.app:has(> .m-ray) .oneri-karti{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px}
+  .app:has(> .m-ray) .m-pk{display:flex;align-items:center;justify-content:center;background:#111113;overflow:hidden}
+  .app:has(> .m-ray) .vitrin{overflow:visible;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:0;padding:0}
+  .app:has(> .m-ray) .vt{flex:none}
+  .app:has(> .m-ray) .vt .m-pk{aspect-ratio:4/5}
+  .app:has(> .m-ray) .m-pk img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain}
+  .app:has(> .m-ray) .kart.katildigin{display:grid;grid-template-columns:minmax(0,240px) 1fr auto;gap:32px;align-items:center}
+  .app:has(> .m-ray) .katildigin .m-pk{aspect-ratio:3/2}
 }
 @media (min-width:1200px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:10px;--s-ic:20px;--s-blok:48px;--s-bolum:72px}
@@ -1048,6 +1067,13 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .m-ray .m-uzun{display:inline}.m-ray .m-kisa{display:none}
   .m-ray-ad,.m-ray-alt{text-align:left}.m-ray-alt{padding-left:16px}
   .m-ray a{justify-content:flex-start;padding:0 16px}
+  /* Kartın sol sütunu bugünkü içerik, sağ sütun liste (bütün satırları kaplar) */
+  .app:has(> .m-ray) .live{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .app:has(> .m-ray) .live > :not(.m-tema-durum){grid-column:1}
+  .m-tema-durum{grid-column:2;grid-row:1 / span 20;margin-top:0;align-self:start}
+  .app:has(> .m-ray) .ev{display:grid;grid-template-columns:64px 200px 1fr auto;align-items:center}
+  .app:has(> .m-ray) .ev .top{display:contents}
+  .app:has(> .m-ray) .ev .alt{margin:0}
 }
 @media (min-width:1600px) and (min-height:520px){
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */

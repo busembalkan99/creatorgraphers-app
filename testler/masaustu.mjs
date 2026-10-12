@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { chromium, webkit } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, depo, bekle, rapor } from './ortak.mjs';
+import { temaDurumu } from '../src/lib/temaDurumu.ts';
 
 const APP = process.env.CG_APP ?? 'http://localhost:5180/';
 export const BOYUTLAR = [[768, 1024], [1024, 768], [1280, 800], [1440, 900], [1920, 1080]];
@@ -148,6 +149,44 @@ bolum('olcek', async b => {
     bekle(`${boyut[0]}: künye ${mast}px, bölüm başlığı ${kb}px`, m === mast && k === kb, `${m} ${k}`);
     const s = await p.evaluate(() => getComputedStyle(document.querySelector('.sc')).getPropertyValue('--s-bolum').trim());
     bekle(`${boyut[0]}: bölüm boşluğu`, s === { 390: '36px', 1024: '54px', 1440: '72px' }[boyut[0]], s);
+    await p.context().close();
+  }
+});
+
+// ---------------------------------------------------------------- etkinlikler
+bolum('etkinlikler', async b => {
+  const ben = new Set(['a']);
+  const oy = [{ tema: 'a', toplam: 12, puanladigim: 5 }, { tema: 'b', toplam: 4, puanladigim: 4 }, { tema: 'c', toplam: 0, puanladigim: 0 }];
+  bekle('durum: yüklemede kare verdin', JSON.stringify(temaDurumu('yukleme', 'a', true, ben, null)) === '{"metin":"Kare verdin","tamam":true}');
+  bekle('durum: yüklemede henüz yok', temaDurumu('yukleme', 'b', true, ben, null).metin === 'Henüz yok');
+  bekle('durum: oylamada 5 / 12 puanladın', temaDurumu('oylama', 'a', true, ben, oy).metin === '5 / 12 puanladın');
+  bekle('durum: oylamada bitti', temaDurumu('oylama', 'b', true, ben, oy).metin === 'Bitti');
+  bekle('durum: oylanacak kare yok (yalnız kendi karesi)', temaDurumu('oylama', 'c', true, ben, oy).metin === 'Oylanacak kare yok');
+  bekle('durum: başlamadıda buluşmada / serbest', temaDurumu('baslamadi', 'a', true, ben, null).metin === 'Buluşmada' && temaDurumu('baslamadi', 'a', false, ben, null).metin === 'Serbest');
+  bekle('durum: oy verisi okunamadıysa boş', temaDurumu('oylama', 'a', true, ben, null).metin === '');
+
+  const E = await acikEtkinlik('yukleme');
+  await kareKoy(E.id, E.temalar[0].id, 'kurucu@test.local');
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut); await ac(p, 'etkinlikler');
+    const r = await p.evaluate(() => [...document.querySelectorAll('.m-tema-durum li')].map(li => li.querySelector('.m-tema-d')?.textContent));
+    bekle(`${boyut[0]}: canlı kartta üç tema, ilki Kare verdin`, r.length === 3 && r[0] === 'Kare verdin' && r[1] === 'Henüz yok', JSON.stringify(r));
+    if (boyut[0] >= 1200) {
+      const yan = await p.evaluate(() => { const l = document.querySelector('.m-tema-durum').getBoundingClientRect(), a = document.querySelector('.live .act').getBoundingClientRect(); return l.left > a.right });
+      bekle(`${boyut[0]}: liste kartın sağında`, yan);
+    }
+    const d = await denetle(p); bekle(`${boyut[0]} etkinlikler: denetim temiz`, d.length === 0, d.join(' | '));
+    await p.context().close();
+  }
+  const t = await sayfa(b, [390, 844]); await ac(t, 'etkinlikler');
+  bekle('390: tema listesi telefonda görünmüyor', (await t.locator('.m-tema-durum').isVisible()) === false);
+  await t.context().close();
+
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', E.id);   // aynı anda tek açık etkinlik
+  await acikEtkinlik('yukleme', ['ÇOK UZUN BİR TEMA ADI KIRK KARAKTERE KADAR', 'Kalabalık']);
+  for (const w of [1024, 1440]) {
+    const p = await sayfa(b, [w, 900]); await ac(p, 'etkinlikler');
+    const d = await denetle(p); bekle(`${w}: 40 karakterlik tema adıyla canlı kart temiz`, d.length === 0, d.join(' | '));
     await p.context().close();
   }
 });

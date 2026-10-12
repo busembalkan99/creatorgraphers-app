@@ -2,7 +2,7 @@ import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/
 import exifr from '../node_modules/exifr/dist/full.esm.mjs';
 import { admin, sifirla, bekle, rapor, depo } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const SS = '/tmp/cgapp/ss';
 import fs from 'node:fs'; fs.mkdirSync(SS, { recursive: true });
 await sifirla();
@@ -16,7 +16,7 @@ const b = await chromium.launch();
 const hatalar = [];
 async function kisi(eposta) {
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-  await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://localhost:5180' });
+  await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL((process.env.CG_APP ?? 'http://localhost:5180/')).origin });
   const p = await ctx.newPage();
   p.on('pageerror', e => hatalar.push(`${eposta}: ${e}`));
   p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) hatalar.push(`${eposta}: ${m.text()}`); });

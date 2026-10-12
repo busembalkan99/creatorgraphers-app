@@ -5,6 +5,7 @@ Yerel Supabase'e karşı çalışır, gerçek hesaplara dokunmaz.
 ```
 npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,mailpit,postgres-meta
 npm run dev                                   # ayrı pencerede, localhost:5180
+# CG_APP=http://localhost:5182/ node testler/... ile başka portta çalışan sunucuya bağlanılabilir (verilmezse 5180).
 node testler/exifjpeg.mjs "$(date +%Y:%m:%d)"  # /tmp/cgapp altına test kareleri
 node testler/rls.mjs                          # sunucu kuralları
 node testler/siralama.mjs                     # sezon sıralaması, profil, çekim tarifi

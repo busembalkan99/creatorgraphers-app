@@ -5,7 +5,7 @@
 // 2. Lightroom iOS makine bilgisini bozuk yazabiliyor: diyafram, enstantane ve odak aynı anlamsız sayı.
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const sonuclar = [];
 const bekle = (ad, kosul, ayrinti = '') => sonuclar.push({ ad, ok: !!kosul, ayrinti: kosul ? '' : JSON.stringify(ayrinti) });
 

@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import { chromium, webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 
 // Fikstür: ham 1200x800, sol yarı kırmızı sağ yarı mavi; EXIF Orientation 6 (90° saat yönünde göster)
 {

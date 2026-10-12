@@ -3,7 +3,7 @@
 // Ön koşul: yerel Supabase, npx supabase functions serve, npm run dev, node testler/exifjpeg.mjs
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor } from './ortak.mjs';
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 await sifirla();
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya'); await A.c.rpc('kulubu_kur', { p_ad: 'Ayşe Kaya' });
 await admin.from('uyeler').update({ hosgeldin_goruldu: true }).eq('id', A.id);

@@ -54,9 +54,11 @@ export const Not = ({ children, gecikme = 1.9 }: { children: ReactNode; gecikme?
 export function Baski({ k, maxW, maxH, aci, gecikme = 0, children }:
   { k: SK | null; maxW: number; maxH: number; aci: number; gecikme?: number; children?: ReactNode }) {
   const { w, h } = baskiOlcu(k ?? { genislik: 0, yukseklik: 0 }, maxW, maxH)
+  // Dar ya da kısa ekranda kap --bmax (genişlik) ve --hmax (yükseklik) verir: boyut küçülür, oran kalır
+  const boy = { width: `min(${w}px, var(--bmax, ${w}px), calc(var(--hmax, ${h}px) * ${w / h}))`, height: 'auto', aspectRatio: `${w} / ${h}` }
   return (
     <div className="baski" style={{ ['--aci' as string]: `${aci}deg`, animationDelay: `${gecikme}s` }}>
-      {k?.url ? <Foto k={k} stil={{ width: w, height: h }} /> : <span className="bos-foto" style={{ display: 'block', width: w, height: h }} />}
+      {k?.url ? <Foto k={k} stil={boy} /> : <span className="bos-foto" style={{ display: 'block', ...boy }} />}
       {children}
     </div>
   )

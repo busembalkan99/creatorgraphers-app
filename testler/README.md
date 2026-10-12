@@ -19,6 +19,7 @@ node testler/davranis-yoklama.mjs             # aynı özelliğin davranış tes
 node testler/oy-ilerleme.mjs                  # yöneticinin gördüğü oylama ilerlemesi, sunucu kuralları
 node testler/wrapped.mjs                      # sonuç açılışının sayıları ve izlendi kaydı, sunucu kuralları
 node testler/davranis-wrapped.mjs             # Wrapped ekranda: kart kümesi, gezinme, kişisel kartın altı durumu
+node testler/wrapped-denetim.mjs              # Kontakt v2: uç verilerle taşma, çakışma, kalem payı, boşluk, 16px, hareketi azalt (karar 130)
 node testler/paylasim.mjs                     # paylaşım kartının kontakt şeridi: afiş izni, sunucu kuralları
 node testler/davranis-paylas.mjs              # paylaşım ekranı: dört düzen, indirilen PNG, kimde düğme var
 node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon ağırlığı, Serbest tablosu, ekranlar

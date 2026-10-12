@@ -3,11 +3,12 @@ import { Ikon } from './Ikon'
 import { sb } from '../lib/supabase'
 import { git, sekmeGit } from '../lib/yol'
 import { SEKMELER, YONETIM } from '../lib/sekmeler'
+import { MASAUSTU } from '../lib/masaustu'
 
 /** Masaüstü gezinmesi (karar 129). 768+'da alt sekme çubuğunun yerinde; telefonda CSS'le gizli. */
 export function Ray({ sekme, yol, yonetici }: { sekme: string; yol: string; yonetici: boolean }) {
   const [uyeSayisi, setUyeSayisi] = useState<number | null>(null)
-  useEffect(() => { sb.rpc('uye_sayisi').then(r => { if (!r.error) setUyeSayisi(Number(r.data)) }) }, [])
+  useEffect(() => { if (!matchMedia(MASAUSTU).matches) return; sb.rpc('uye_sayisi').then(r => { if (!r.error) setUyeSayisi(Number(r.data)) }) }, [])
   const yonetimde = YONETIM.find(y => y.yol === yol)
   return (
     <nav className="m-ray" aria-label="Gezinme">

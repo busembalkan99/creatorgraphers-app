@@ -122,6 +122,16 @@ bolum('kabuk', async b => {
     bekle(`${boyut[0]}: raydan Sıralama'ya geçiş`, p.url().endsWith('#/siralama'), p.url());
     await p.context().close();
   }
+  {
+    await acikEtkinlik('yukleme');
+    const p = await sayfa(b, [1440, 900]);
+    const renk = () => p.evaluate(() => getComputedStyle(document.querySelector('.m-ray a.on')).backgroundColor);
+    await ac(p, 'yukle'); await p.waitForTimeout(1500);
+    bekle('ray rengi yükleme aşamasını izliyor (veri geldikten sonra)', (await renk()) === 'rgb(181, 45, 18)', await renk());
+    await p.locator('.m-ray a[aria-label="Sıralama"]').click(); await p.waitForTimeout(1200);
+    bekle('Sıralama\'da ray rengi mürekkep', (await renk()) === 'rgb(237, 237, 234)', await renk());
+    await p.context().close();
+  }
   const u = await sayfa(b, [1440, 900], 'baris@test.local'); await ac(u, 'etkinlikler');
   bekle('üyeye Yönetim grubu yok', (await u.locator('.m-ray-grup').count()) === 0);
   await u.context().close();

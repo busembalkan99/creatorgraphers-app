@@ -107,11 +107,20 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
 
   // Rayın seçili rengi ekranın aşamasını izliyor; --acc ekran kökünde, ray onun dışında.
   // .app'e değil .m-ray'e yazılır: telefonda alt sekme çubuğunun rengi değişmesin.
+  // Ekran aşamayı veri geldikten sonra koyabiliyor: yalnız çizimde bakmak eski rengi bırakır.
   useEffect(() => {
-    const a = document.querySelector('.gecis [data-asama]')?.getAttribute('data-asama')
-    const ray = document.querySelector('.m-ray')
-    if (a) ray?.setAttribute('data-asama', a); else ray?.removeAttribute('data-asama')
-  })
+    const kap = sarmal.current
+    if (!kap) return
+    const yaz = () => {
+      const a = kap.querySelector('[data-asama]')?.getAttribute('data-asama')
+      const ray = document.querySelector('.m-ray')
+      if (a) ray?.setAttribute('data-asama', a); else ray?.removeAttribute('data-asama')
+    }
+    yaz()
+    const g = new MutationObserver(yaz)
+    g.observe(kap, { attributes: true, attributeFilter: ['data-asama'], childList: true, subtree: true })
+    return () => g.disconnect()
+  }, [yol])
 
   // Sekmeler önceden: açılış ekranı oturduktan sonra Sıralama ve Profil sessizce yükleniyor,
   // ilk açılışta yükleniyor çizgisi ve boş ekran görünmüyor (Buse, 2026-09-27)

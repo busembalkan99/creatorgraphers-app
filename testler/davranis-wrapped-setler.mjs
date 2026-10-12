@@ -97,9 +97,10 @@ async function olc(p, ad) {
   const r = await p.evaluate(() => {
     const tel = document.querySelector('.wr .tel').getBoundingClientRect();
     const tasma = [...document.querySelectorAll('.wr .w-ic *')].filter(e => {
-      if (e.closest('.serit-pencere, .ac-seritler')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
+      if (e.closest('.serit-pencere')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
+      const yatay = !!e.closest('.ac-seritler');       // açılış şeritleri yalnız sağdan soldan taşıyor, alttan değil
       if (e.closest('.h')) return false;               // pano kutusundaki dönüş harfleri kutunun içinde gizli (overflow)
-      const b = e.getBoundingClientRect(); return b.width && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1);
+      const b = e.getBoundingClientRect(); return b.width && ((!yatay && (b.right > tel.right + 1 || b.left < tel.left - 1)) || b.bottom > tel.bottom + 1);
     }).map(e => e.className).slice(0, 3);
     const kucuk = [...document.querySelectorAll('.wr button')].filter(e => { const b = e.getBoundingClientRect(); return b.width && b.height < 44; }).map(e => e.textContent.trim()).slice(0, 3);
     // Pano: fotoğraf alanı ile pano üst üste binmesin (taşma ölçümü telefonun kenarına bakıyor, bunu görmüyor)

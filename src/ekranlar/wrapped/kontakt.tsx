@@ -93,7 +93,7 @@ export const KONTAKT: SetTanimi = {
           govde: govde(etkinlikAdi, p.az ? 'Az farkla' : 'Kürsünün kalanı', (
             <div className="masa kursu">{p.kursu.map((k, j) => (
               <div key={k.id} className={`kursu-${j + 2}`}>
-                <Baski k={k} maxW={j ? 170 : 190} maxH={j ? 206 : 230} aci={j ? 3.5 : -4} gecikme={0.1 + j * 0.35}><span className="kalem-no">{k.sira}</span></Baski>
+                <Baski k={k} maxW={j ? 138 : 150} maxH={j ? 190 : 210} aci={j ? 3.5 : -4} gecikme={0.1 + j * 0.35}><span className="kalem-no">{k.sira}</span></Baski>
                 <Not gecikme={1.1 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>
               </div>))}</div>
           ), `Birinciyle fark ${p.farklar.map(f => puan(f)).join(' · ')}`),

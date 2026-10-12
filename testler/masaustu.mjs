@@ -23,7 +23,7 @@ async function ac(p, yol) { await p.goto(APP + '#/' + yol); await p.reload(); aw
 
 // Maketlerde kullanılan denetim; her kontrol kusur geri konarak sınandı (2026-10-12).
 // Tek satır kalması gereken etiketler: yeni görevler kendi sınıflarını buraya ekler.
-const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.habit .l', '.row .nm'];
+const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.m-yuk-tema .m-durum', '.habit .l', '.row .nm'];
 async function denetle(p) {
   return p.evaluate(tekSatir => {
     const R = e => e.getBoundingClientRect(), out = [];
@@ -418,6 +418,119 @@ async function kenarDurumlari(b, E, T, puanim, sifirla) {
     return [...k.querySelectorAll('.m-puanlar button')].every(x => x.getBoundingClientRect().bottom - ust <= Math.min(innerHeight, k.clientHeight)) });
   bekle('1366x600: puan düğmeleri pencerede', r);
   await p.context().close();
+}
+
+// ---------------------------------------------------------------- yükleme
+// Tema sütunu .m-yuk-tema: .m-tema Profil'de kare altı tema adı (Task 5), aynı ad başka anlamla kullanılmıyor
+const TEMA = id => `.m-yuk-tema[data-tema="${id}"]`;
+bolum('yukleme', async b => {
+  const E = await acikEtkinlik('yukleme');
+  const ben = await kimlik('kurucu@test.local');
+  const karem = async tema => (await admin.from('kareler').select('id, dosya').eq('tema', tema).eq('sahip', ben)).data ?? [];
+  const jpg = n => fs.readFileSync(`/tmp/cgapp/${n}.jpg`).toString('base64');
+  // Tarayıcı içinde dosya bırakma: DataTransfer kurulup hedefe dragenter/dragover/drop gönderiliyor
+  const birak = (p, secici, dosyalar) => p.evaluate(async ([s, ds]) => {
+    const dt = new DataTransfer();
+    for (const [ad, b64, tur] of ds) dt.items.add(new File([Uint8Array.from(atob(b64), c => c.charCodeAt(0))], ad, { type: tur }));
+    const h = document.querySelector(s);
+    for (const t of ['dragenter', 'dragover', 'drop']) h.dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, [secici, dosyalar]);
+  // Yalnız sürükleme olayı (bırakmadan); dosya: true ise içinde bir File var, değilse yalnız yazı
+  const surukle = (p, secici, tur, dosya = true) => p.evaluate(([s, t, f]) => {
+    const dt = new DataTransfer();
+    if (f) dt.items.add(new File(['x'], 'a.jpg', { type: 'image/jpeg' })); else dt.setData('text/plain', 'yazı');
+    (s ? document.querySelector(s) : document).dispatchEvent(new DragEvent(t, { bubbles: true, cancelable: true, dataTransfer: dt }));
+  }, [secici, tur, dosya]);
+  const gorunen = (p, s) => p.evaluate(s => [...document.querySelectorAll(s)].filter(e => e.getClientRects().length).length, s);
+  {
+    const p = await sayfa(b, [390, 844]); await ac(p, 'yukle');
+    const r = { temalar: await gorunen(p, '.m-temalar'), kontakt: await gorunen(p, '.kontakt'), bas: await gorunen(p, '.m-govde-tel .kart-bas'), afis: await gorunen(p, '.satir-kartlari.afis') };
+    bekle('390 yükleme: kontakt ve tek gövde, masaüstü listesi yok', r.temalar === 0 && r.kontakt === 1 && r.bas === 1 && r.afis === 1, JSON.stringify(r));
+    await p.context().close();
+  }
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut); await ac(p, 'yukle');
+    const r = await p.evaluate(() => [...document.querySelectorAll('.m-alan')].map(a => { const x = a.getBoundingClientRect(); return [Math.round(x.top), Math.round(x.bottom), Math.round(x.left)] }));
+    bekle(`${boyut[0]}: üç bırakma alanı`, r.length === 3, JSON.stringify(r));
+    if (boyut[0] >= 1200) bekle(`${boyut[0]}: üç alan yan yana, aynı pikselde`, new Set(r.map(x => x[0] + ',' + x[1])).size === 1 && r[0][2] < r[1][2], JSON.stringify(r));
+    else bekle(`${boyut[0]}: temalar alt alta`, r.length === 3 && r[0][1] <= r[1][0] && r[1][1] <= r[2][0], JSON.stringify(r));
+    const g = { kontakt: await gorunen(p, '.kontakt'), tel: await gorunen(p, '.m-govde-tel'), afis: await gorunen(p, '.satir-kartlari.afis') };
+    bekle(`${boyut[0]}: kontakt ve telefon gövdesi gizli, afiş görünür`, g.kontakt === 0 && g.tel === 0 && g.afis === 1, JSON.stringify(g));
+    const d = await denetle(p); bekle(`${boyut[0]} yükleme: denetim temiz`, d.length === 0, d.join(' | '));
+    if (boyut[0] === 1024 || boyut[0] === 1440) {
+      const ss = `/tmp/cgapp/ss/yukleme-${boyut[0]}-${b.browserType().name()}`;
+      await p.screenshot({ path: `${ss}-bos.png` });
+      await surukle(p, null, 'dragenter'); await surukle(p, `${TEMA(E.temalar[1].id)} .m-alan`, 'dragenter'); await p.waitForTimeout(200);
+      await p.screenshot({ path: `${ss}-surukle.png` });
+    }
+    await p.context().close();
+  }
+  const p = await sayfa(b, [1440, 900]); await ac(p, 'yukle');
+  const [t1, t2, t3] = E.temalar;
+  // dosya olmayan sürükleme (sayfadaki bir yazı ya da resim) alanları açmıyor
+  await surukle(p, null, 'dragenter', false); await p.waitForTimeout(200);
+  bekle('dosya olmayan sürükleme alanları açmıyor', (await p.locator('.m-birak:visible').count()) === 0);
+  await surukle(p, null, 'dragleave', false);
+  // sürüklerken bütün alanlar açık
+  await surukle(p, null, 'dragenter'); await p.waitForTimeout(200);
+  bekle('sürüklerken alanlar "Buraya bırak"', (await p.locator('.m-birak:visible').count()) === 3);
+  // alanın üstü yalnız o alan; alandan çıkıp boş yere gelince işaret kalkıyor, alanlar açık kalıyor
+  await surukle(p, `${TEMA(t2.id)} .m-alan`, 'dragenter'); await p.waitForTimeout(200);
+  const ust1 = await p.evaluate(() => [...document.querySelectorAll('.m-alan.uzerinde')].map(a => a.closest('[data-tema]').dataset.tema));
+  bekle('üstündeki alan işaretli, yalnız o', ust1.length === 1 && ust1[0] === t2.id, JSON.stringify(ust1));
+  await surukle(p, '.kal', 'dragenter'); await p.waitForTimeout(200);
+  bekle('alan dışında işaret kalkıyor, alanlar açık', (await p.locator('.m-alan.uzerinde').count()) === 0 && (await p.locator('.m-birak:visible').count()) === 3);
+  // alan dışına bırakmak: sayfada kal, yükleme yok
+  await birak(p, '.sc', [['dogru.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(800);
+  bekle('alan dışına bırakmak sayfada kalıyor, yükleme yok', p.url().endsWith('#/yukle') && (await karem(t1.id)).length === 0 && (await p.locator('.m-birak:visible').count()) === 0);
+  // pencereden çıkınca alanlar kapanıyor
+  await surukle(p, null, 'dragenter'); await surukle(p, '.kal', 'dragenter'); await surukle(p, null, 'dragleave'); await p.waitForTimeout(150);
+  const acikKaldi = (await p.locator('.m-birak:visible').count()) === 3;
+  await surukle(p, '.kal', 'dragleave'); await p.waitForTimeout(200);
+  bekle('pencereden çıkınca alanlar kapanıyor (içeride gezerken değil)', acikKaldi && (await p.locator('.m-birak:visible').count()) === 0);
+  // iki dosya: hata
+  await birak(p, `${TEMA(t3.id)} .m-alan`, [['a.jpg', jpg('dogru'), 'image/jpeg'], ['b.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(800);
+  bekle('iki dosya: "Her temaya bir kare bırak."', (await p.textContent('.sc')).includes('Her temaya bir kare bırak.') && (await karem(t3.id)).length === 0);
+  // serbest temaya doğru kare
+  await birak(p, `${TEMA(t3.id)} .m-alan`, [['dogru.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(4000);
+  bekle('bırakılan kare serbest temaya yüklendi', (await karem(t3.id)).length === 1);
+  // buluşmada temaya önce doğru, sonra tarihi tutmayan: önceki yerinde
+  await birak(p, `${TEMA(t1.id)} .m-alan`, [['dogru.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(4000);
+  const ilk = (await karem(t1.id))[0]?.dosya;
+  await birak(p, `${TEMA(t1.id)} .m-alan`, [['yanlis.jpg', jpg('yanlis'), 'image/jpeg']]); await p.waitForTimeout(3000);
+  bekle('tarih tutmayan değiştirme reddedildi, önceki kare yerinde (karar 93)', ilk && (await karem(t1.id))[0]?.dosya === ilk && (await p.textContent('.sc')).includes('buluşma günü çekilmemiş'));
+  const d = await denetle(p); bekle('1440 dolu, ret ve boş temalar: denetim temiz', d.length === 0, d.join(' | '));
+  await yuklemeKenar(b, p, birak, karem, E);   // Step 8-9
+  await p.context().close();
+  await temizle(); kurulan.length = 0;
+});
+
+async function yuklemeKenar(b, p, birak, karem, E) {
+  const t2 = E.temalar[1];
+  await birak(p, `${TEMA(t2.id)} .m-alan`, [['not.txt', btoa('merhaba'), 'text/plain']]); await p.waitForTimeout(1500);
+  const metin = (await p.locator(`${TEMA(t2.id)} .hata`).textContent().catch(() => '')) ?? '';
+  bekle('txt bırakmak yüklemiyor, dosya hatası gösteriyor, sayfada kalıyor', p.url().endsWith('#/yukle') && (await karem(t2.id)).length === 0 && metin.includes('Bu dosya açılamadı'), metin.slice(0, 120));
+  // Alana tıklayıp seçmek: dosya seçicisi tıklanan temaya yüklüyor (seçili temaya değil)
+  const [secici] = await Promise.all([p.waitForEvent('filechooser'), p.locator(`${TEMA(t2.id)} .m-alan button.bos`).click()]);
+  await secici.setFiles('/tmp/cgapp/dikey.jpg'); await p.waitForTimeout(4000);
+  bekle('alana tıklayıp seçilen kare o temaya yüklendi', (await karem(t2.id)).length === 1);
+  for (const w of [1024, 1440]) {
+    await p.setViewportSize({ width: w, height: 900 }); await p.waitForTimeout(300);
+    await p.screenshot({ path: `/tmp/cgapp/ss/yukleme-${w}-${b.browserType().name()}-dolu.png` });
+    const d = await denetle(p); bekle(`${w}: üç tema dolu, denetim temiz`, d.length === 0, d.join(' | '));
+  }
+  // Kur'un sınırı 40 karakter (temalar_ad_check); daha uzunu veritabanına girmiyor
+  const U = await acikEtkinlik('yukleme', ['ÇOK UZUN BİR TEMA ADI KIRK KARAKTER OLUR', 'Kalabalık', 'Gölge']);
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', E.id);
+  for (const w of [1024, 1440]) {
+    await p.setViewportSize({ width: w, height: 900 }); await ac(p, 'yukle');
+    const ad = await p.textContent(`${TEMA(U.temalar[0].id)}`);
+    await p.screenshot({ path: `/tmp/cgapp/ss/yukleme-${w}-${b.browserType().name()}-uzun-ad.png` });
+    const d = await denetle(p); bekle(`${w}: 40 karakterlik tema adıyla denetim temiz`, d.length === 0 && ad.includes('KIRK KARAKTER OLUR'), d.join(' | '));
+  }
+  await p.setViewportSize({ width: 1440, height: 900 }); await p.waitForTimeout(300);
+  const r = await p.evaluate(() => [...document.querySelectorAll('.m-alan')].map(a => Math.round(a.getBoundingClientRect().top)));
+  bekle('1440: uzun ad iki satır olsa da alanların üstü hizalı', new Set(r).size === 1, JSON.stringify(r));
 }
 
 // ---------------------------------------------------------------- çalıştır

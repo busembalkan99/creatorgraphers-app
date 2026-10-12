@@ -63,7 +63,7 @@ export function Baski({ k, maxW, maxH, aci, gecikme = 0, children }:
 }
 
 /** Lüp: karenin büyütülmüş hâli, daire içinde. Sap sağ altta, daireyle aynı kapta kayıyor. `gez`: kareler arasında gezip duruyor. */
-export function Lup({ k, boy = 280, sol, ust, gez }: { k: SK | null; boy?: number; sol: number; ust: number; gez?: boolean }) {
+export function Lup({ k, boy = 280, sol, ust, gez }: { k: SK | null; boy?: number | string; sol: number | string; ust: number | string; gez?: boolean }) {
   return (
     <div className={`lup-kap${gez ? ' gez' : ''}`} style={{ width: boy, height: boy, left: sol, top: ust }} aria-hidden="true">
       <div className="lup"><Foto k={k} /></div>

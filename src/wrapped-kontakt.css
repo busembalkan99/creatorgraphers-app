@@ -130,9 +130,13 @@
 @keyframes dus{from{opacity:0;transform:translateY(-70px) scale(1.08)}}
 @keyframes lup-kay{from{transform:translateX(-260px) rotate(-20deg)}}
 @keyframes lup-gez{0%{transform:translateX(-260px)}45%{transform:translateX(150px)}70%{transform:translateX(-90px)}100%{transform:none}}
-/* Lüp bloğu: kesilmiyor, sap şeridin dışına taşıyor */
-.wr .set-kontakt .lup-blok{position:relative;margin:0 calc(-1 * var(--kenar));height:330px}
-.wr .set-kontakt .lup-blok.numarali{height:366px}
-.wr .set-kontakt .lup-blok .serit-pencere{margin-top:32px;--kw:210px}
-.wr .set-kontakt .lup-blok.cift .serit-pencere{--kw:160px}
+/* Lüp bloğu: kesilmiyor, sap şeridin dışına taşıyor. Ölçüler telefon genişliğine (cqw) bağlı: lüp hedef karenin ortasında kalıyor */
+.wr .set-kontakt .lup-blok{position:relative;margin:0 calc(-1 * var(--kenar));height:310px;container-type:inline-size;--kb:210px;--lb:min(280px,80cqw)}
+.wr .set-kontakt .lup-blok.cift{--kb:min(160px,calc((50cqw - 76px) * 1.35));--lb:calc(var(--kb) * 1.06)}
+.wr .set-kontakt .lup-blok.numarali{height:350px}
+.wr .set-kontakt .lup-blok.cift{height:236px}
+.wr .set-kontakt .lup-blok.cift.numarali{height:300px}
+.wr .set-kontakt .lup-blok .serit-pencere{margin-top:32px;--kw:var(--kb)}
 .wr .set-kontakt .lup-blok.cift .lup-sap{left:74%;width:60px}
+.wr .set-kontakt .lup-blok .kalem-no{display:none}
+.wr .set-kontakt .lup-blok .kalem-buyuk{left:var(--kenar);top:calc(100px + var(--kb) * 2 / 3)}

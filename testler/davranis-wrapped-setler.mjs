@@ -84,7 +84,7 @@ const ac = async (p, yol) => { await p.goto(APP + '#/' + yol); await p.reload();
 const metin = p => p.locator('.wr').innerText().then(t => t.replace(/\s+/g, ' ')).catch(() => '');
 const var_ = async (p, t) => (await metin(p)).toLocaleLowerCase('tr-TR').includes(t.toLocaleLowerCase('tr-TR'));
 const kartAdi = p => p.locator('.wr .tel').getAttribute('data-kart');
-const sag = async p => { await p.locator('.wr').click({ position: { x: 330, y: 420 } }); await p.waitForTimeout(400); };
+const sag = async p => { await p.locator('.wr').click({ position: { x: Math.min(330, p.viewportSize().width - 30), y: 420 } }); await p.waitForTimeout(400); };
 const kartaGit = async (p, ad, sart = async () => true) => {
   for (let j = 0; j < 8 && !((await kartAdi(p)) === ad && await sart()); j++) await sag(p);
   return (await kartAdi(p)) === ad;
@@ -268,6 +268,36 @@ try {
     bekle(`${SET}/iki tema: "Ortak birinci oldun"`, await var_(B2, 'Ortak birinci oldun'), await metin(B2));
     if (SET === 'pano') bekle('pano/iki tema: iki vurgulu kayıt', (await B2.locator('.set-pano .vurgu-kayit').count()) === 2);
     else bekle('kontakt/iki tema: iki kare, ilki daireli, lüp ikincide', (await B2.locator('.set-kontakt .serit img').count()) === 2 && (await B2.locator('.set-kontakt .kalem-daire').count()) === 1 && (await B2.locator('.set-kontakt .lup').count()) === 1);
+    if (SET === 'kontakt') {
+      bekle('kontakt/iki tema: sıra yalnız bir kez (büyük kalem numarası), kâğıt etiket yok', (await B2.locator('.set-kontakt .kalem-buyuk').count()) === 1 && (await B2.locator('.set-kontakt .kalem-no').evaluateAll(l => l.every(e => getComputedStyle(e).display === 'none'))));
+      // Dar telefonda lüp hedef karesinin ortasında, sap telefonun içinde
+      for (const w of [320, 360]) {
+        const W = await kisi(foto[1].eposta); await W.setViewportSize({ width: w, height: 760 });
+        await ac(W, `wrapped/${E2}`); await kartaGit(W, 'kisisel'); await W.waitForTimeout(2800);
+        await W.screenshot({ path: `${SS}/150-kontakt-kisisel-iki-tema-${w}.png` });
+        const t = await W.evaluate(() => {
+          const c = e => { const b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+          const tel = document.querySelector('.wr .tel').getBoundingClientRect();
+          const hedef = c(document.querySelectorAll('.set-kontakt .serit .k-kare')[2]), lup = c(document.querySelector('.set-kontakt .lup'));
+          const sap = document.querySelector('.set-kontakt .lup-sap').getBoundingClientRect();
+          return { dx: Math.abs(hedef.x - lup.x), dy: Math.abs(hedef.y - lup.y), sapSag: sap.right - tel.right, sapSol: tel.left - sap.left };
+        });
+        bekle(`kontakt/iki tema/${w} px: lüp hedef karenin ortasında, sap telefonun içinde`, t.dx <= 6 && t.dy <= 6 && t.sapSag <= 0 && t.sapSol <= 0, JSON.stringify(t));
+        await W.context().close();
+        const V = await kisi(foto[0].eposta); await V.setViewportSize({ width: w, height: 760 });
+        await ac(V, `wrapped/${E1}`); await kartaGit(V, 'kisisel'); await V.waitForTimeout(2800);
+        await V.screenshot({ path: `${SS}/151-kontakt-kisisel-birinci-${w}.png` });
+        const u = await V.evaluate(() => {
+          const c = e => { const b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+          const tel = document.querySelector('.wr .tel').getBoundingClientRect();
+          const hedef = c(document.querySelectorAll('.set-kontakt .serit .k-kare')[1]), lup = c(document.querySelector('.set-kontakt .lup'));
+          const sap = document.querySelector('.set-kontakt .lup-sap').getBoundingClientRect();
+          return { dx: Math.abs(hedef.x - lup.x), dy: Math.abs(hedef.y - lup.y), sapSag: sap.right - tel.right };
+        });
+        bekle(`kontakt/birinci/${w} px: lüp karenin ortasında, sap telefonun içinde`, u.dx <= 6 && u.dy <= 6 && u.sapSag <= 0, JSON.stringify(u));
+        await V.context().close();
+      }
+    }
     await B2.context().close();
 
     // Kapanış düğmeleri: paylaş yalnız yarışan karesi olana; Tekrar izle başa, Sonuçlara geç sonuçlara

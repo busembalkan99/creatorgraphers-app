@@ -146,16 +146,16 @@ function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy:
     const kareler = l.filter(Boolean) as SK[]
     const cift = kareler.length === 2
     const dizi = cift ? [null, ...kareler, null] : ortala([], kareler.length ? kareler : [null as unknown as SK], []).kareler
-    const hedef = cift ? 2 : Math.floor(dizi.length / 2)
-    const boy = cift ? 170 : 280
-    const hedefOrta = cift ? 280 : 195
+    const sagda = cift && numara != null
+    const hedef = cift ? (sagda ? 2 : 1) : Math.floor(dizi.length / 2)
+    const kayma = cift ? `calc((var(--kb) + 10px) / ${sagda ? 2 : -2})` : '0px'
     return (
       <div className={`lup-blok${cift ? ' cift' : ''}${numara != null ? ' numarali' : ''}`}>
         <div className={opt.soluk ? 'gri' : undefined}>
           <Serit kareler={dizi} secili={cift && numara != null ? [1] : []} kucuk={cift} numarasiz kenar={`${kareler.map(k => k.tema_ad).join(' · ')} · ${c.kenarAy}`} />
         </div>
-        {!opt.soluk && <Lup k={dizi[hedef]} boy={boy} sol={hedefOrta - boy / 2} ust={32 + 24 + (cift ? 53.5 : 70) - boy / 2} gez={opt.gez} />}
-        {numara != null && <span className="kalem-buyuk" style={{ left: 20, top: cift ? 205 : 242 }}>{numara}</span>}
+        {!opt.soluk && <Lup k={dizi[hedef]} boy="var(--lb)" sol={`calc(50% + ${kayma} - var(--lb) / 2)`} ust="calc(56px + var(--kb) / 3 - var(--lb) / 2)" gez={opt.gez} />}
+        {numara != null && <span className="kalem-buyuk">{numara}</span>}
       </div>
     )
   }

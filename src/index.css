@@ -1072,7 +1072,7 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .kursu .m-pk{aspect-ratio:4/3}
   .app:has(> .m-ray) .odul .m-pk{aspect-ratio:3/2}
   .app:has(> .m-ray) .odul img,.app:has(> .m-ray) .kursu img{height:auto}
-  .app:has(> .m-ray) .satir-kartlari{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 24px}
+  .app:has(> .m-ray) .m-siralar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 24px}
   .app:has(> .m-ray) .satir-kare{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"img img img" "no ad ort";gap:12px;border:0;padding:0}
   .app:has(> .m-ray) .satir-kare .m-pk{grid-area:img;aspect-ratio:4/5}
   .app:has(> .m-ray) .satir-kare .no{grid-area:no}
@@ -1082,9 +1082,6 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .izgara{display:block;columns:3;column-gap:24px}
   .app:has(> .m-ray) .izgara figure{break-inside:avoid;margin-bottom:28px}
   .app:has(> .m-ray) .izgara img{height:auto}
-  /* Profil ve Sıralama: Sonuç'un kare ızgarası rayı olan kabuktaki her .satir-kartlari'na uygulanıyor;
-     bunlar tek sütun liste kalıyor */
-  .app:has(> .m-ray) .m-profil-ust .satir-kartlari,.app:has(> .m-ray) .m-profil-alt .satir-kartlari,.app:has(> .m-ray) .m-iki .satir-kartlari{display:flex;flex-direction:column;columns:auto;gap:4px}
   .app:has(> .m-ray) .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:32px 20px}
   .app:has(> .m-ray) .grid img{height:auto}
   .app:has(> .m-ray) .grid .m-pk{aspect-ratio:4/5}
@@ -1121,8 +1118,8 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-podyum .kursu{display:flex;flex-direction:column;gap:24px;margin-top:0;contain:size}
   .app:has(> .m-ray) .m-podyum .kursu figure{flex:1;min-height:0;display:flex;flex-direction:column}
   .app:has(> .m-ray) .m-podyum .kursu .m-pk{aspect-ratio:auto;flex:1;min-height:0}
-  .app:has(> .m-ray) .satir-kartlari,.app:has(> .m-ray) .izgara{columns:4}
-  .app:has(> .m-ray) .satir-kartlari{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .app:has(> .m-ray) .m-siralar,.app:has(> .m-ray) .izgara{columns:4}
+  .app:has(> .m-ray) .m-siralar{grid-template-columns:repeat(4,minmax(0,1fr))}
   .app:has(> .m-ray) .m-profil-ust,.app:has(> .m-ray) .m-profil-alt{display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(40px,4vw,64px);align-items:start}
   .app:has(> .m-ray) .m-profil-ust > div,.app:has(> .m-ray) .m-profil-alt > div{display:block;min-width:0}
   .app:has(> .m-ray) .m-profil-alt > div:empty{display:none}
@@ -1137,6 +1134,6 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */
   .app:has(> .m-ray){--pad:max(72px, calc((100vw - var(--m-ray) - 1360px) / 2))}
   .app:has(> .m-ray) .izgara{columns:5}
-  .app:has(> .m-ray) .satir-kartlari{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .app:has(> .m-ray) .m-siralar{grid-template-columns:repeat(5,minmax(0,1fr))}
   .app:has(> .m-ray) .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 }

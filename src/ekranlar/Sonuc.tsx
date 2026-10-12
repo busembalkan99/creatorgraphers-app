@@ -241,7 +241,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
           </div>
 
           {liste.length > 0 && (
-            <div className="satir-kartlari">
+            <div className="satir-kartlari m-siralar">
               {liste.map(k => (
                 <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => ac(k)}>
                   <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>

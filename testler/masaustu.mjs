@@ -286,6 +286,18 @@ bolum('profil', async b => {
     }
     const kucuk = await p.evaluate(() => { const i = document.querySelector('.row .m-pk'); return i ? Math.round(i.getBoundingClientRect().width) : 0 });
     bekle(`${boyut[0]}: sıralama satırında kare 72px`, kucuk === 72, kucuk);
+    if (boyut[0] === 1440) {
+      const goster = async yol => { await ac(p, yol); return p.evaluate(() => [...document.querySelectorAll('.satir-kartlari')].map(e => getComputedStyle(e).display)) };
+      for (const yol of ['etkinlikler', 'profil', 'siralama']) { const g = await goster(yol); bekle(`1440 ${yol}: .satir-kartlari ızgara değil`, g.length > 0 && g.every(x => x !== 'grid'), g.join(',')) }
+      await ac(p, `sonuc/${P.id}`);
+      // Altı üyeyle sıra 4+ çıkmıyor (kürsü dışı liste boş): kapsayıcı yoksa kuralı bir deneme öğesiyle sınıyoruz
+      const sr = await p.evaluate(() => {
+        let e = document.querySelector('.satir-kartlari.m-siralar'), deneme = false;
+        if (!e) { e = document.createElement('div'); e.className = 'satir-kartlari m-siralar'; document.querySelector('.sc').append(e); deneme = true }
+        const d = getComputedStyle(e).display; if (deneme) e.remove(); return d;
+      });
+      bekle('1440 sonuç: sıra kartları (.m-siralar) ızgara', sr === 'grid', sr);
+    }
     d = await denetle(p); bekle(`${boyut[0]} sıralama: denetim temiz`, d.length === 0, d.join(' | '));
     if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) for (const y of ['profil', 'siralama']) {
       await ac(p, y);

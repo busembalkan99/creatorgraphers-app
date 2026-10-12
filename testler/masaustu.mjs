@@ -137,6 +137,21 @@ bolum('kabuk', async b => {
   await u.context().close();
 });
 
+// ---------------------------------------------------------------- ölçek
+bolum('olcek', async b => {
+  try { execSync('node scripts/masaustu-olcek.mjs --denetle', { cwd: new URL('..', import.meta.url).pathname, stdio: 'pipe' }); bekle('masaustu-olcek.css güncel', true) }
+  catch (x) { bekle('masaustu-olcek.css güncel', false, String(x.stderr ?? x)) }
+  const olc = (p, sec) => p.evaluate(s => { const e = document.querySelector(s); return e ? parseFloat(getComputedStyle(e).fontSize) : null }, sec);
+  for (const [boyut, mast, kb] of [[[390, 844], 11, 11], [[1024, 768], 12, 12], [[1440, 900], 13, 13]]) {
+    const p = await sayfa(b, boyut); await ac(p, 'siralama');
+    const m = await olc(p, '.mast'), k = await olc(p, '.kart-bas');
+    bekle(`${boyut[0]}: künye ${mast}px, bölüm başlığı ${kb}px`, m === mast && k === kb, `${m} ${k}`);
+    const s = await p.evaluate(() => getComputedStyle(document.querySelector('.sc')).getPropertyValue('--s-bolum').trim());
+    bekle(`${boyut[0]}: bölüm boşluğu`, s === { 390: '36px', 1024: '54px', 1440: '72px' }[boyut[0]], s);
+    await p.context().close();
+  }
+});
+
 // ---------------------------------------------------------------- çalıştır
 for (const [, t] of [['chromium', chromium], ['webkit', webkit]]) {
   const b = await t.launch();

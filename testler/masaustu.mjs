@@ -74,6 +74,20 @@ async function kareKoy(etkinlik, tema, eposta, dosya = 'dogru') {
   const [genislik, yukseklik] = OLCU[dosya] ?? OLCU.dogru;
   return (await admin.from('kareler').insert({ tema, sahip, dosya: yol, genislik, yukseklik, cekim_gunu: bugun() }).select('id').single()).data.id;
 }
+// Sonuçlanmış etkinlik: üç tema, her temada bir birinci; kurucunun da karesi var ("Katıldığın son etkinlik")
+async function bitmisEtkinlik() {
+  const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun(), kuran: await kimlik('kurucu@test.local'), yukleme_baslar: saat(-100), yukleme_biter: saat(-60), oylama_biter: saat(-1) }).select('id').single()).data;
+  kurulan.push(e.id);
+  const temalar = (await admin.from('temalar').insert(['Yansıma', 'Kalabalık', 'Gölge'].map((ad, i) => ({ etkinlik: e.id, ad, sira: i + 1, bulusmada: true }))).select('id, ad, sira').order('sira')).data;
+  const uyeler = await Promise.all(['kurucu', 'baris', 'can', 'deniz', 'ece', 'zeynep'].map(async a => [a, await kimlik(`${a}@test.local`)]));
+  const kareler = [];
+  for (const [i, a] of [['baris', 0], ['can', 1], ['deniz', 2], ['kurucu', 0]].map(([a, i]) => [i, a])) {
+    const id = await kareKoy(e.id, temalar[i].id, `${a}@test.local`);
+    kareler.push({ id, sahip: uyeler.find(u => u[0] === a)[1], puan: 9 - kareler.length });
+  }
+  for (const k of kareler) for (const [, veren] of uyeler) if (veren !== k.sahip) await admin.from('oylar').insert({ kare: k.id, veren, puan: k.puan });
+  return { id: e.id, temalar };
+}
 async function temizle() {
   for (const id of kurulan) {
     const t = ((await admin.from('temalar').select('id').eq('etkinlik', id)).data ?? []).map(x => x.id);
@@ -187,6 +201,31 @@ bolum('etkinlikler', async b => {
   for (const w of [1024, 1440]) {
     const p = await sayfa(b, [w, 900]); await ac(p, 'etkinlikler');
     const d = await denetle(p); bekle(`${w}: 40 karakterlik tema adıyla canlı kart temiz`, d.length === 0, d.join(' | '));
+    await p.context().close();
+  }
+
+  // Sonuçlanmış etkinlik: vitrin (üç sütun), katıldığın kart, geçmiş satırları
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', kurulan[kurulan.length - 1]);
+  const B = await bitmisEtkinlik();
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut); await p.evaluate(id => window.__sb.rpc('wrapped_izle', { p_etkinlik: id }), B.id);
+    await ac(p, 'etkinlikler');
+    const r = await p.evaluate(() => {
+      const R = e => e.getBoundingClientRect();
+      const fig = [...document.querySelectorAll('.vitrin figure')];
+      const tasan = [...document.querySelectorAll('.vt figcaption, .vt figcaption *')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.className || e.tagName);
+      const kat = [...(document.querySelector('.kart.katildigin')?.children ?? [])].filter(e => R(e).width).map(R);
+      const ev = [...document.querySelectorAll('.ev')].map(e => { const mo = R(e.querySelector('.mo')), alt = R(e.querySelector('.alt')), git = R(e.querySelector('.git')); return [mo.right, alt.left, alt.right, git.left, mo.top, alt.top, git.top] });
+      return { n: fig.length, ayniUst: new Set(fig.map(f => Math.round(R(f).top))).size === 1, tasan, kat: kat.length, katTek: kat.length > 0 && Math.max(...kat.map(x => x.top)) < Math.min(...kat.map(x => x.bottom)), ev };
+    });
+    const w = boyut[0];
+    if (w >= 768) {
+      bekle(`${w}: vitrinde üç kare yan yana`, r.n === 3 && r.ayniUst, JSON.stringify([r.n, r.ayniUst]));
+      bekle(`${w}: vitrin alt yazısı taşmıyor`, r.tasan.length === 0, r.tasan.join(','));
+      bekle(`${w}: katıldığın kartın parçaları tek satırda`, r.kat >= 2 && r.katTek, JSON.stringify([r.kat, r.katTek]));
+    }
+    if (w >= 1200) bekle(`${w}: geçmiş satırı ay, özet, düğme soldan sağa`, r.ev.length > 0 && r.ev.every(([moR, altL, altR, gitL]) => altL > moR && gitL > altR), JSON.stringify(r.ev));
+    const d = await denetle(p); bekle(`${w} etkinlikler (sonuçlanmış): denetim temiz`, d.length === 0, d.join(' | '));
     await p.context().close();
   }
 });

@@ -1071,9 +1071,10 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .live{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .app:has(> .m-ray) .live > :not(.m-tema-durum){grid-column:1}
   .m-tema-durum{grid-column:2;grid-row:1 / span 20;margin-top:0;align-self:start}
-  .app:has(> .m-ray) .ev{display:grid;grid-template-columns:64px 200px 1fr auto;align-items:center}
+  .app:has(> .m-ray) .ev{display:grid;grid-template-columns:64px 200px 1fr auto;column-gap:24px;align-items:center}
   .app:has(> .m-ray) .ev .top{display:contents}
-  .app:has(> .m-ray) .ev .alt{margin:0}
+  .app:has(> .m-ray) .ev .alt{margin:0;grid-column:3;grid-row:1}
+  .app:has(> .m-ray) .ev .git{grid-column:4;grid-row:1;margin-left:0}
 }
 @media (min-width:1600px) and (min-height:520px){
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */

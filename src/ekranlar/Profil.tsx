@@ -88,6 +88,8 @@ export function Profil({ uye, uyeDegisti, hedef }:
   return (
     <div className="sc">
       {baslik}
+      <div className="m-profil-ust">
+      <div className="m-sol">
       <h2 className="pname">{k.ad}</h2>
       <div className="since">{aydanBeri(k.katildi_at)}{k.rol !== 'uye' && ` · ${rolAdi(k.rol)}`}</div>
 
@@ -100,7 +102,9 @@ export function Profil({ uye, uyeDegisti, hedef }:
             sayılar kartında, aynı boyda (Buse, 2026-09-26). */}
         {benim && <KisiselSayilar ortalama={k.ortalama} uyeId={uye.id} />}
       </div>
+      </div>
 
+      <div className="m-sag">
       {/* Karar 115: Katkı rozetleri seviyeli başarılara dönüştü */}
       <Basarilar sayilar={v.basarilar} benim={benim} />
 
@@ -137,6 +141,8 @@ export function Profil({ uye, uyeDegisti, hedef }:
           )}
         </div>
       )}
+      </div>
+      </div>
 
       <h2 className="kart-bas">{benim ? 'Karelerin' : 'Kareleri'}<span>{k.kare_sayisi} kare</span></h2>
       {bos ? (
@@ -150,9 +156,9 @@ export function Profil({ uye, uyeDegisti, hedef }:
             {v.kareler.map(kr => (
               <figure key={kr.id} className={kr.sirali ? 'sirali' : ''} onClick={() => git(`sonuc/${kr.etkinlik}/kare/${kr.id}`)}>
                 <span className="buyut"><Ikon ad="buyut" /></span>
-                {kr.url && <img src={kr.url} alt={`${kr.tema_ad} · ${k.ad}`} />}
+                {kr.url && <span className="m-pk"><img src={kr.url} alt={`${kr.tema_ad} · ${k.ad}`} /></span>}
                 <figcaption>
-                  <span>{kr.tema_ad}</span>
+                  <span className="m-tema">{kr.tema_ad}</span>
                   {kr.sirali && <i />}
                   {kr.ortalama != null && <b>{puanYaz(kr.ortalama)}</b>}
                 </figcaption>
@@ -165,8 +171,12 @@ export function Profil({ uye, uyeDegisti, hedef }:
         </>
       )}
 
-      {benim && <Onerilerim uyeId={uye.id} />}
-      {benim && <Ayarlar uye={uye} uyeDegisti={uyeDegisti} />}
+      {benim && (
+        <div className="m-profil-alt">
+          <div><Onerilerim uyeId={uye.id} /></div>
+          <div><Ayarlar uye={uye} uyeDegisti={uyeDegisti} /></div>
+        </div>
+      )}
     </div>
   )
 }

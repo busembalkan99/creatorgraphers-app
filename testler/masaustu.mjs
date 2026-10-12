@@ -23,7 +23,7 @@ async function ac(p, yol) { await p.goto(APP + '#/' + yol); await p.reload(); aw
 
 // Maketlerde kullanılan denetim; her kontrol kusur geri konarak sınandı (2026-10-12).
 // Tek satır kalması gereken etiketler: yeni görevler kendi sınıflarını buraya ekler.
-const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum'];
+const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.habit .l', '.row .nm'];
 async function denetle(p) {
   return p.evaluate(tekSatir => {
     const R = e => e.getBoundingClientRect(), out = [];
@@ -78,13 +78,14 @@ async function kareKoy(etkinlik, tema, eposta, dosya = 'dogru') {
 }
 // Sonuçlanmış etkinlik: üç tema, her temada bir birinci; kurucunun da karesi var ("Katıldığın son etkinlik")
 // zengin: ilk temada 8 kare (6 üyenin sekizi için eşit olmayan puan); kürsüde en az bir kare çıksın
-async function bitmisEtkinlik(zengin = false) {
+async function bitmisEtkinlik(zengin = false, kurucuEkstra = false) {
   const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun(), kuran: await kimlik('kurucu@test.local'), yukleme_baslar: saat(-100), yukleme_biter: saat(-60), oylama_biter: saat(-1) }).select('id').single()).data;
   kurulan.push(e.id);
   const temalar = (await admin.from('temalar').insert(['Yansıma', 'Kalabalık', 'Gölge'].map((ad, i) => ({ etkinlik: e.id, ad, sira: i + 1, bulusmada: true }))).select('id, ad, sira').order('sira')).data;
   const uyeler = await Promise.all(['kurucu', 'baris', 'can', 'deniz', 'ece', 'zeynep'].map(async a => [a, await kimlik(`${a}@test.local`)]));
   const kareler = [];
   const dagilim = [['baris', 0], ['can', 1], ['deniz', 2], ['kurucu', 0]];
+  if (kurucuEkstra) dagilim.push(['kurucu', 1], ['kurucu', 2]);
   if (zengin) dagilim.push(['ece', 0], ['zeynep', 0], ['can', 0], ['deniz', 0]);
   for (const [i, a] of dagilim.map(([a, i]) => [i, a])) {
     const id = await kareKoy(e.id, temalar[i].id, `${a}@test.local`);
@@ -261,6 +262,40 @@ bolum('sonuc', async b => {
     await p.context().close();
   }
   // Kurucunun karesi olan sonuçlanmış etkinlik kalırsa sonraki bölümlerde Wrapped açılışı araya giriyor
+  await temizle(); kurulan.length = 0;
+});
+
+// ---------------------------------------------------------------- profil ve sıralama
+bolum('profil', async b => {
+  // Kurucunun üç karesi (Profil ızgarası) ve küçük görselli sezon sıralaması için biten etkinlik
+  const P = await bitmisEtkinlik(true, true);
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut); await p.evaluate(id => window.__sb.rpc('wrapped_izle', { p_etkinlik: id }), P.id);
+    await ac(p, 'profil');
+    const sutun = await p.evaluate(() => { const g = document.querySelector('.grid'); return g ? getComputedStyle(g).gridTemplateColumns.split(' ').length : 0 });
+    bekle(`${boyut[0]}: Profil kareleri ${boyut[0] >= 1600 ? 5 : boyut[0] >= 1200 ? 4 : 3} sütun`, sutun === (boyut[0] >= 1600 ? 5 : boyut[0] >= 1200 ? 4 : 3), sutun);
+    if (boyut[0] >= 1200) {
+      const yan = await p.evaluate(() => { const s = document.querySelector('.m-profil-ust .m-sol'), g = document.querySelector('.m-profil-ust .m-sag'); return s && g && g.getBoundingClientRect().left > s.getBoundingClientRect().right });
+      bekle(`${boyut[0]}: Profil üstü iki sütun`, yan);
+    }
+    let d = await denetle(p); bekle(`${boyut[0]} profil: denetim temiz`, d.length === 0, d.join(' | '));
+    await ac(p, 'siralama');
+    if (boyut[0] >= 1440) {
+      const yan = await p.evaluate(() => { const s = document.querySelector('.m-iki .m-sol'), g = document.querySelector('.m-iki .m-sag'); return s && g && g.getBoundingClientRect().left > s.getBoundingClientRect().right });
+      bekle(`${boyut[0]}: Sıralama iki sütun`, yan);
+    }
+    const kucuk = await p.evaluate(() => { const i = document.querySelector('.row .m-pk'); return i ? Math.round(i.getBoundingClientRect().width) : 0 });
+    bekle(`${boyut[0]}: sıralama satırında kare 72px`, kucuk === 72, kucuk);
+    d = await denetle(p); bekle(`${boyut[0]} sıralama: denetim temiz`, d.length === 0, d.join(' | '));
+    if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) for (const y of ['profil', 'siralama']) {
+      await ac(p, y);
+      const h = await p.evaluate(() => Math.max(...[...document.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 50).map(e => e.scrollHeight)) || 0);
+      await p.setViewportSize({ width: boyut[0], height: Math.min(h + 40, 6000) }); await p.waitForTimeout(500);
+      await p.screenshot({ path: `/tmp/cgapp/ss/${y}-${boyut[0]}.png`, fullPage: true });
+      await p.setViewportSize({ width: boyut[0], height: boyut[1] });
+    }
+    await p.context().close();
+  }
   await temizle(); kurulan.length = 0;
 });
 

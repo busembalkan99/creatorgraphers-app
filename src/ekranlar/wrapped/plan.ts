@@ -135,3 +135,37 @@ export function acilisKareleri(e: { id: string }, kareler: SK[], n = 3): SK[] {
   const puanla = (id: string) => { let h = t; for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 2654435761) >>> 0; return h }
   return kareler.filter(k => !k.cikarildi).map(k => ({ k, p: puanla(k.id) })).sort((a, b) => a.p - b.p).slice(0, n).map(x => x.k)
 }
+
+/** Kontakt açılışı (karar 130): şerit sayısı kareye göre. 4 ve altı tek, 5-8 iki, 9+ üç; en çok 12, tekrar yok. */
+export function acilisSeritleri(e: { id: string }, kareler: SK[]): SK[][] {
+  const sec = acilisKareleri(e, kareler, 12)
+  if (!sec.length) return []
+  const serit = sec.length <= 4 ? 1 : sec.length <= 8 ? 2 : 3
+  const kac = Math.ceil(sec.length / serit)
+  return Array.from({ length: serit }, (_, j) => sec.slice(j * kac, (j + 1) * kac)).filter(s => s.length)
+}
+
+/** Tema kartlarının yerleşimi: eşitse iki baskı; değilse dönüşümlü, 1. şerit, 2. baskı (karar 130). */
+export function temaDuzeni(plan: Plan[]): ('serit' | 'baski' | 'esit')[] {
+  return plan.filter((p): p is Extract<Plan, { tur: 'tema' }> => p.tur === 'tema')
+    .map((p, j) => (p.kazananlar.length > 1 ? 'esit' : j % 2 ? 'baski' : 'serit'))
+}
+
+/** Kapanış yığını, alttan üste: kazananlar (tek temada kürsü, yoksa tema birincileri), en üstte kişinin karesi. */
+export function kapanisYigini(kareler: SK[]): SK[] {
+  const yarisan = kareler.filter(k => !k.cikarildi && k.sirali && k.sira != null)
+  const temalar = new Set(kareler.map(k => k.tema))
+  const kazanan = (temalar.size === 1 ? yarisan.filter(k => k.sira! <= 3) : yarisan.filter(k => k.sira === 1))
+    .sort((a, b) => (b.sira! - a.sira!) || (b.tema_sira - a.tema_sira))
+  const ben = kareler.filter(k => k.benim && !k.cikarildi)
+    .sort((a, b) => ((a.sira ?? 99) - (b.sira ?? 99)) || ((b.ortalama ?? -1) - (a.ortalama ?? -1)))[0]
+  if (!ben) return kazanan
+  return [...kazanan.filter(k => k.id !== ben.id), ben]
+}
+
+/** Temalar kartında temanın şeridi: en çok 6 kare (sayı etikette doğru kalıyor). */
+export const temaSeridiKareleri = (kareler: SK[], tema: string): SK[] =>
+  kareler.filter(k => k.tema === tema && !k.cikarildi).slice(0, 6)
+
+/** Paylaşım kontakt sayfası (C'): senin karen 2x2, yanına ızgarayı tam dolduran sayıda kare. */
+export const izgaraKareleri = (n: number): number => (n >= 5 ? 5 : n >= 2 ? 2 : n)

@@ -131,6 +131,7 @@ const OLC = (tam) => {
   const sayacUst = sayac.length ? Math.min(...sayac.map(e => kutu(e).top)) : tel.bottom;
   const sorun = [];
   if (!sayac.length) sorun.push('sayaç yazısı bulunamadı');
+  for (const e of document.querySelectorAll('.wr .ac-seritler > .ac-serit')) { const b = kutu(e); if (b.left > tel.left + 1 || b.right < tel.right - 1) sorun.push(`açılış şeridi kenara varmıyor: ${Math.round(b.left - tel.left)} / ${Math.round(b.right - tel.right)}`); }
   for (const e of yazilar) { const b = kutu(e); if (!e.closest('.serit-pencere, .ac-seritler') && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1)) sorun.push('taşıyor: ' + e.textContent.trim().slice(0, 24)); }
   for (let i = 0; i < yazilar.length; i++) for (let j = i + 1; j < yazilar.length; j++) {
     const a = yazilar[i], c = yazilar[j]; if (a.contains(c) || c.contains(a)) continue;

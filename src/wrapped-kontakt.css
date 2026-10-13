@@ -69,6 +69,7 @@
 /* Açılış: kontakt sayfası */
 .wr .set-kontakt .ac-seritler{margin:30px calc(-1 * var(--kenar)) 0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
 .wr .set-kontakt .ac-serit{display:flex;gap:9px;width:max-content;padding:24px 10px;background:#161412;position:relative;animation:serit-kay .9s cubic-bezier(.2,.7,.2,1) backwards}
+.wr .set-kontakt .ac-seritler > .ac-serit{min-width:calc(100% + 30px)}
 .wr .set-kontakt .ac-seritler > .ac-serit:nth-child(2n){margin-left:-30px;animation-name:serit-kay-ters}
 .wr .set-kontakt .ac-serit::before,.wr .set-kontakt .ac-serit::after{content:"";position:absolute;left:0;right:0;height:8px;
   background:repeating-linear-gradient(90deg,#161412 0 7px,var(--zemin) 7px 13px,#161412 13px 19px)}

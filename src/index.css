@@ -1145,7 +1145,7 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-alan .dolu .m-pk{height:var(--kutu)}
   .app:has(> .m-ray) .m-alan .dolu img{margin-top:0}
   .app:has(> .m-ray) .m-alan .dolu .yer{width:100%;height:100%;margin-top:0}
-  .app:has(> .m-ray) .m-birak{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  .app:has(> .m-ray) .m-birak{position:absolute;inset:0;z-index:2;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
     padding:16px;text-align:center;border:2px dashed rgba(237,237,234,.28);border-radius:var(--kart-r);background:rgba(10,10,11,.92);color:var(--dim);font-size:13px}
   .app:has(> .m-ray) .m-birak .ic{width:28px;height:28px;color:var(--ink)}
   .app:has(> .m-ray) .m-birak b{font-size:16px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}

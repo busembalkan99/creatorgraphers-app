@@ -536,6 +536,27 @@ bolum('yukleme', async b => {
   const acikKaldi = (await p.locator('.m-birak:visible').count()) === 3;
   await surukle(p, '.kal', 'dragleave'); await p.waitForTimeout(200);
   bekle('pencereden çıkınca alanlar kapanıyor (içeride gezerken değil)', acikKaldi && (await p.locator('.m-birak:visible').count()) === 0);
+  // Sayaç şaşarsa (çıkışı gelmeyen tek giriş) alanlar açık kalıyor: tıklayıp seçmek yine çalışmalı
+  await surukle(p, null, 'dragenter'); await p.waitForTimeout(200);
+  const takildi = (await p.locator('.m-birak:visible').count()) === 3;
+  const secildi = await Promise.all([p.waitForEvent('filechooser', { timeout: 4000 }).then(() => true, () => false),
+    p.locator(`${TEMA(t1.id)} .m-alan button.bos`).click({ timeout: 4000 }).then(() => true, () => false)]);
+  bekle('alanlar takılı açıkken "Kare seç" dosya seçicisini açıyor', takildi && secildi.every(Boolean), JSON.stringify({ takildi, secildi }));
+  // İptal edilen sürükleme ya da pencere değişimi alanları kapatıyor
+  await p.evaluate(() => window.dispatchEvent(new DragEvent('dragend', { bubbles: true }))); await p.waitForTimeout(200);
+  bekle('dragend alanları kapatıyor', (await p.locator('.m-birak:visible').count()) === 0);
+  await surukle(p, null, 'dragenter'); await p.evaluate(() => window.dispatchEvent(new Event('blur'))); await p.waitForTimeout(200);
+  bekle('pencere odağı gidince alanlar kapanıyor', (await p.locator('.m-birak:visible').count()) === 0);
+  // İmleç: alan dışında "kopyala" değil, alanın üstünde kopyala
+  // Sentetik DataTransfer'da dropEffect yazılamıyor (hep none): son atanan değer örnek üstünde tutuluyor
+  const etki = s => p.evaluate(s => {
+    const dt = new DataTransfer(); dt.items.add(new File(['x'], 'a.jpg', { type: 'image/jpeg' }));
+    let son = 'atanmadı'; Object.defineProperty(dt, 'dropEffect', { get: () => son, set: v => { son = v } });
+    document.querySelector(s).dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt })); return son;
+  }, s);
+  const disEtki = await etki('.kal'), icEtki = await etki(`${TEMA(t2.id)} .m-alan`);
+  bekle('alan dışında bırakma etkisi none, alanda copy', disEtki === 'none' && icEtki === 'copy', `${disEtki} ${icEtki}`);
+  await surukle(p, null, 'dragleave'); await p.waitForTimeout(150);
   // iki dosya: hata
   await birak(p, `${TEMA(t3.id)} .m-alan`, [['a.jpg', jpg('dogru'), 'image/jpeg'], ['b.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(800);
   bekle('iki dosya: "Birden çok kare bıraktın. Bu temaya tek kare bırak."', (await p.textContent('.sc')).includes('Birden çok kare bıraktın. Bu temaya tek kare bırak.') && (await karem(t3.id)).length === 0);

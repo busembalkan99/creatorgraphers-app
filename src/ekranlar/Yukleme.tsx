@@ -130,19 +130,30 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
       derinlik = Math.max(0, derinlik - 1)
       if (derinlik === 0) setSuruk(null)
     }
-    // Alan dışına bırakılan dosya tarayıcıyı sayfadan çıkarmasın
-    const engel = (ev: DragEvent) => { if (mq.matches && dosyaSurukleniyor(ev)) ev.preventDefault() }
+    // Alan dışına bırakılan dosya tarayıcıyı sayfadan çıkarmasın; imleç orada "kopyala" göstermesin.
+    // Alanın kendi dragover'ı önce çalışıp kabul ettiyse dokunma.
+    const engel = (ev: DragEvent) => {
+      if (!mq.matches || !dosyaSurukleniyor(ev) || ev.defaultPrevented) return
+      ev.preventDefault()
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'none'
+    }
+    const sifirla = () => { derinlik = 0; setSuruk(null) }
     const birak = (ev: DragEvent) => {
       if (!mq.matches) return
       if (dosyaSurukleniyor(ev)) ev.preventDefault()
-      derinlik = 0
-      setSuruk(null)
+      sifirla()
     }
+    // İptal edilen sürükleme ya da pencere değişimi dragleave'i yutabiliyor: alanlar açık kalmasın
+    const gizlendi = () => { if (document.hidden) sifirla() }
     addEventListener('dragenter', gir); addEventListener('dragleave', cik)
     addEventListener('dragover', engel); addEventListener('drop', birak)
+    addEventListener('dragend', sifirla); addEventListener('blur', sifirla)
+    document.addEventListener('visibilitychange', gizlendi)
     return () => {
       removeEventListener('dragenter', gir); removeEventListener('dragleave', cik)
       removeEventListener('dragover', engel); removeEventListener('drop', birak)
+      removeEventListener('dragend', sifirla); removeEventListener('blur', sifirla)
+      document.removeEventListener('visibilitychange', gizlendi)
     }
   }, [])
 

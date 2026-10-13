@@ -6,7 +6,7 @@ import { bekle, rapor } from './ortak.mjs';
 
 const APP = process.env.CG_APP ?? 'http://localhost:5180/';
 const kesisir = (a, c, pay = 0) => a.x < c.x + c.w + pay && c.x < a.x + a.w + pay && a.y < c.y + c.h + pay && c.y < a.y + a.h + pay;
-const SIRA = { birinci: '01', ortak: '01', ucuncu: '03', galeride: '—', tek: '02', fotosuz: '01' };
+const SIRA = { birinci: '01', ortak: '01', ucuncu: '03', galeride: '—', tek: '02', fotosuz: '01', puansiz: '—' };
 const motorlar = {};
 
 for (const motor of [chromium, webkit]) {
@@ -33,6 +33,8 @@ for (const motor of [chromium, webkit]) {
       tek: { baslik: 'İkinci', tema: 'Portre fotoğrafçılığı ve sokak', ad: MK, puan: '7,5', alt: '12 kişi puanladı', foto: dikey, serit: [] },
       // Senin karen yüklenemedi: boş çerçeve
       fotosuz: { baslik: 'Tema birincisi', tema: 'Sokak', ad: 'Deniz Akın', puan: '9,5', alt: '9 kişi puanladı', foto: null, serit: Array(3).fill(baska) },
+      // Kimse puan vermemiş: puan "—" (Paylas.tsx puanYaz). Yeni düzenler puanı hiç yazmıyor
+      puansiz: { baslik: 'Galeride', tema: 'Sokak', ad: 'Onur Tek', puan: '—', alt: 'Puanı yalnız sen görüyorsun', foto: yatay, serit: [baska, baska] },
     };
     // Renk doygunluğu (en büyük - en küçük kanal), kutunun içinde ızgara noktalarında
     const doygun = (g, k, oranlar, atla = []) => oranlar.flatMap(fx => oranlar.map(fy => [k.x + k.w * fx, k.y + k.h * fy]))
@@ -76,7 +78,10 @@ for (const motor of [chromium, webkit]) {
     // Künyedeki sıra: Baskı'nın alt payındaki satır, Kontakt sayfasının "▸ 01 ·" yazısı
     const parca = k.filter(x => x.tur === 'yazi').flatMap(x => (x.t ?? '').split(' / '));
     const siraParca = parca.filter(t => /^(\d{1,2}|—)$/.test(t) || /▸\s*(\d|—)/.test(t));
-    if (hal === 'galeride') {
+    if (hal === 'puansiz') {
+      bekle(`${a}: puan yerine "—" yazılmıyor, isim var`, !k.some(x => (x.t ?? '').includes('—')) && k.some(x => x.tur === 'kalem' && (x.t ?? '').includes('Onur Tek')), k.filter(x => x.t).map(x => x.t).join(' | '));
+    }
+    if (hal === 'galeride' || hal === 'puansiz') {
       bekle(`${a}: numara ve daire yok (karar 52)`, numara.length === 0 && daire.length === 0, JSON.stringify([...numara, ...daire]));
       bekle(`${a}: künyede sıra yok (karar 52)`, siraParca.length === 0, siraParca.join(' | '));
     } else {

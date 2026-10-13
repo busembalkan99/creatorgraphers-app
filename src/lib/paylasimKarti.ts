@@ -45,6 +45,9 @@ export type KartVeri = {
 
 const W = 1080, H = 1920
 const up = (s: string) => s.toLocaleUpperCase('tr-TR')
+// Yeni düzenlerde puansız karede ("—") puan hiç yazılmıyor, yalnız isim
+const puanli = (v: KartVeri) => v.puan !== '—'
+const adPuan = (v: KartVeri) => (puanli(v) ? `${v.ad} ${v.puan}` : v.ad)
 
 export async function fontlarHazir() {
   const f = ['400 100px Anton', '700 24px "Space Mono"', '400 24px "Space Mono"', 'italic 400 90px "Instrument Serif"', '400 90px "Instrument Serif"']
@@ -541,7 +544,7 @@ function lup(c: CanvasRenderingContext2D, v: KartVeri) {
     // Maketten 16px sağda ve yukarıda (sağ kenar payı 80): "2" ve "3" lüpün kenarına 16px'ten fazla yaklaşıyordu
     kalemBlok(c, [n], 210, 1, 1000 - w, 690 + kay, w, 8, KALEM_R)
   }
-  const isim = satirla(c, `${v.ad} ${v.puan}`, KALEM, 88, 900, 2)
+  const isim = satirla(c, adPuan(v), KALEM, 88, 900, 2)
   kalemBlok(c, isim.satirlar, isim.px, 1.05, 80, 1550 + kay, 900, -2, KALEM_R)
   kunyeAlt(c, v, SOLUK)
 }
@@ -577,15 +580,17 @@ function baski(c: CanvasRenderingContext2D, v: KartVeri) {
     }
   })
   // Sağda puan, sıraya girdiyse daire içinde (Galeride daire yok, karar 52)
-  c.font = KALEM(124)
-  const bw = c.measureText(v.puan).width + 148, bh = 124 * 1.15 + 64
-  const bx = X + 26 + w - 20 - bw, by = Y + 26 + h + 4
-  c.save(); c.translate(bx + bw / 2, by + bh / 2); c.rotate(-4 * Math.PI / 180)
-  c.fillStyle = KALEM_R; c.textAlign = 'left'
-  const ty = -bh / 2 + 34 + taban(c, 124 * 1.15).y
-  c.fillText(v.puan, -bw / 2 + 74, ty); murekkep(c, 'kalem', v.puan, -bw / 2 + 74, ty)
-  if (v.sira !== '—') daireCiz(c, -bw / 2, -bh / 2, bw, bh, 'yazi')
-  c.restore()
+  if (puanli(v)) {
+    c.font = KALEM(124)
+    const bw = c.measureText(v.puan).width + 148, bh = 124 * 1.15 + 64
+    const bx = X + 26 + w - 20 - bw, by = Y + 26 + h + 4
+    c.save(); c.translate(bx + bw / 2, by + bh / 2); c.rotate(-4 * Math.PI / 180)
+    c.fillStyle = KALEM_R; c.textAlign = 'left'
+    const ty = -bh / 2 + 34 + taban(c, 124 * 1.15).y
+    c.fillText(v.puan, -bw / 2 + 74, ty); murekkep(c, 'kalem', v.puan, -bw / 2 + 74, ty)
+    if (v.sira !== '—') daireCiz(c, -bw / 2, -bh / 2, bw, bh, 'yazi')
+    c.restore()
+  }
   c.restore()
   const baslikUst = ust0 + baskiH + 70
   const b = baslikYaz(c, v.baslik, 80, baslikUst, 150, 920, MUREKKEP, 1)
@@ -605,7 +610,7 @@ function sayfa(c: CanvasRenderingContext2D, v: KartVeri) {
   // Izgara hep tam dolsun diye senin karenin yanına 5 ya da 2 kare (az kare varsa olduğu kadar); satır yüksekliği sabit
   const o = digerleri(v).slice(0, izgaraKareleri(digerleri(v).length))
   const satir = Math.max(2, Math.ceil((4 + o.length) / 3)), izgaraH = satir * 204 + (satir - 1) * 22
-  const isim = satirla(c, `${v.ad} ${v.puan}`, KALEM, 96, 920, 2)
+  const isim = satirla(c, adPuan(v), KALEM, 96, 920, 2)
   const blokH = izgaraH + 70 + 50 + isim.satirlar.length * isim.px * 1.05
   const ust0 = baslikAlt + Math.max(50, Math.round((H - 170 - baslikAlt - blokH) / 2))
   const sw = (960 - 44) / 3, hx = (s: number) => 60 + s * (sw + 22), hy = (r: number) => ust0 + r * 226

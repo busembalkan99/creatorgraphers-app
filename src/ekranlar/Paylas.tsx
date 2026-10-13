@@ -81,6 +81,9 @@ export function Paylas({ etkinlikId }: { etkinlikId: string }) {
     })().catch(x => setHata(hataMetni(x)))
   }, [etkinlikId])
 
+  // Yedi 1080x1920 tuval: ekrandan çıkınca bellek bırakılsın (iOS Safari tuval belleğini sınırlıyor)
+  useEffect(() => () => kartlar?.forEach(k => { k.tuval.width = 0; k.tuval.height = 0 }), [kartlar])
+
   const sec = (j: number) => {
     if (!kartlar || j < 0 || j >= kartlar.length) return
     setI(j)

@@ -1036,7 +1036,9 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
     display:grid;grid-template-columns:var(--m-ray) minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
   .app:has(> .m-ray) > .gecis{grid-column:2;grid-row:1;min-width:0}
   .app:has(> .m-ray) > .tabs{display:none}
-  .m-ray{display:flex;flex-direction:column;grid-column:1;grid-row:1;min-height:0;overflow-y:auto;scrollbar-width:none;
+  /* Görünürlük :has()'e bağlı: desteklemeyen tarayıcıda ray 480px sütunda .tabs'ın yanında açılmasın */
+  .app:has(> .m-ray) > .m-ray{display:flex}
+  .m-ray{flex-direction:column;grid-column:1;grid-row:1;min-height:0;overflow-y:auto;scrollbar-width:none;
     border-right:1px solid var(--rule);padding:calc(40px + env(safe-area-inset-top)) 12px 32px;position:relative;z-index:32;background:var(--gorunen)}
   .m-ray .m-uzun{display:none}
   .m-ray-ad{font-size:13px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);text-align:center}

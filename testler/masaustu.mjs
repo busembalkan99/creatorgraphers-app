@@ -139,6 +139,14 @@ bolum('kabuk', async b => {
       const d = await denetle(p);
       bekle(`${boyut[0]} ${yol}: denetim temiz`, d.length === 0, d.join(' | '));
     }
+    if (boyut[0] === 1440) {
+      // Cmd/Ctrl tıklaması bağlantının kendi davranışı: yeni sekme, bu sayfa yerinde
+      const [yeni] = await Promise.all([p.context().waitForEvent('page', { timeout: 4000 }).catch(() => null),
+        p.locator('.m-ray a[aria-label="Sıralama"]').click({ modifiers: ['ControlOrMeta'] })]);
+      await p.waitForTimeout(400);
+      bekle('1440: Cmd/Ctrl tıklaması yeni sekmede açıyor, sayfa yerinde', !!yeni && p.url().endsWith('#/profil'), `${!!yeni} ${p.url()}`);
+      if (yeni) await yeni.close();
+    }
     await p.locator('.m-ray a[aria-label="Sıralama"]').click(); await p.waitForTimeout(600);
     bekle(`${boyut[0]}: raydan Sıralama'ya geçiş`, p.url().endsWith('#/siralama'), p.url());
     await p.context().close();
@@ -634,7 +642,7 @@ bolum('yonetim', async b => {
     for (const yol of ['asama', 'kur', 'uyeler', 'bildirim', 'havuz']) {
       await ac(p, yol);
       const d = await denetle(p); bekle(`${boyut[0]} ${yol}: denetim temiz`, d.length === 0, d.join(' | '));
-      bekle(`${boyut[0]} ${yol}: rayda Yönetim'de seçili`, (await p.getAttribute('.m-ray-grup a.on', 'aria-label').catch(() => null)) === { asama: 'Aşama', uyeler: 'Üyeler', bildirim: 'Bildirim', havuz: 'Tema havuzu', kur: null }[yol] || yol === 'kur');
+      bekle(`${boyut[0]} ${yol}: rayda Yönetim'de seçili`, (await p.getAttribute('.m-ray-grup a.on', 'aria-label').catch(() => null)) === { asama: 'Aşama', uyeler: 'Üyeler', bildirim: 'Bildirim', havuz: 'Tema havuzu', kur: 'Aşama' }[yol]);
       if (boyut[0] >= 1200 && ['asama', 'kur', 'bildirim'].includes(yol)) {
         const yan = await p.evaluate(() => { const c = document.querySelectorAll('.m-yonetim-iki > *'); return c.length === 2 && c[1].getBoundingClientRect().left > c[0].getBoundingClientRect().right });
         bekle(`${boyut[0]} ${yol}: iki sütun`, yan);
@@ -717,6 +725,7 @@ bolum('wrapped', async b => {
         if (resimBoy.length === 2) bekle('fotoğraf yüksekliği kart oranında aynı (1440x900 ve 1366x600)', resimBoy.every(x => x[1] != null) && Math.abs(resimBoy[0][1] - resimBoy[1][1]) <= 2, JSON.stringify(resimBoy));
       }
       if (w === 1440) {
+        bekle('Wrapped açıkken ray inert (Shift+Tab ile arkaya geçilmiyor)', await p.evaluate(() => document.querySelector('.m-ray')?.inert === true));
         const sayac = () => p.textContent('.sayac span');
         const s0 = await sayac();
         await p.mouse.click(60, 450); await p.waitForTimeout(400);

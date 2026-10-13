@@ -210,6 +210,38 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
     }
   }, [uye.id])
 
+  // Okla, düğmeyle başlatılan yumuşak kaydırmanın gittiği bölüm. Kaydırma yarıyı geçene kadar en yakın
+  // bölüm hâlâ bırakılan kare: rakam ve sonraki ok bu hedefe göre çalışıyor.
+  const hedef = useRef<number | null>(null)
+  const hedefSaati = useRef(0)
+  const hedefeKaydir = useCallback((i: number) => {
+    const ak = akis.current
+    const b = ak?.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')[i]
+    if (!ak || !b) return
+    hedef.current = i
+    // scrollend olmayan tarayıcıda hedef kendiliğinden düşsün
+    clearTimeout(hedefSaati.current)
+    hedefSaati.current = window.setTimeout(() => { hedef.current = null }, 1500)
+    ak.scrollTo({ top: b.offsetTop, behavior: 'smooth' })
+  }, [])
+  useEffect(() => {
+    const ak = akis.current; if (!ak) return
+    const bitti = () => {
+      const b = hedef.current == null ? null : ak.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')[hedef.current]
+      if (!b || Math.abs(b.offsetTop - ak.scrollTop) < 2) hedef.current = null
+    }
+    const elle = () => { hedef.current = null }
+    ak.addEventListener('scrollend', bitti)
+    ak.addEventListener('wheel', elle, { passive: true })
+    ak.addEventListener('touchstart', elle, { passive: true })
+    return () => {
+      ak.removeEventListener('scrollend', bitti)
+      ak.removeEventListener('wheel', elle)
+      ak.removeEventListener('touchstart', elle)
+      clearTimeout(hedefSaati.current)
+    }
+  }, [e, tema])
+
   // Masaüstü kısayolları: yazı alanında ve pencerede çalışmaz, yalnız 768+ (telefonda klavye yok sayılıyor)
   useEffect(() => {
     const tus = (ev: KeyboardEvent) => {
@@ -218,21 +250,28 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
       // Büyüteç ya da çıkarma penceresi açıkken odak gövdede kalabiliyor: açık pencere de yeter
       if (h.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]') || document.querySelector('[aria-modal="true"]')) return
       const ak = akis.current; if (!ak) return
+      const rakam = /^[0-9]$/.test(ev.key), ok = ev.key === 'ArrowRight' || ev.key === 'ArrowLeft'
+      // Sayfa aşağı, boşluk gibi tuşlar kendisi kaydırıyor: hedef artık geçersiz
+      if (!rakam && !ok) { hedef.current = null; return }
       const bolumler = [...ak.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')]
-      const i = bolumler.reduce((en, b, j) => Math.abs(b.offsetTop - ak.scrollTop) < Math.abs(bolumler[en].offsetTop - ak.scrollTop) ? j : en, 0)
+      const i = hedef.current != null && hedef.current < bolumler.length
+        ? hedef.current
+        : bolumler.reduce((en, b, j) => Math.abs(b.offsetTop - ak.scrollTop) < Math.abs(bolumler[en].offsetTop - ak.scrollTop) ? j : en, 0)
       const k = kareler[i]
-      if (/^[0-9]$/.test(ev.key) && k && !kilitli) {
+      if (rakam && k && !kilitli) {
         ev.preventDefault()
+        // Basılı tutulan tuş her yinelemede yeniden yazmasın
+        if (ev.repeat) return
         // Tıklanmış eski düğmede odak halkası kalmasın
         if ((document.activeElement as HTMLElement | null)?.closest('.m-puanlar')) (document.activeElement as HTMLElement).blur()
         oyVer(k.id, ev.key === '0' ? 10 : Number(ev.key))
       }
-      else if (ev.key === 'ArrowRight' && i + 1 < bolumler.length) { ev.preventDefault(); ak.scrollTo({ top: bolumler[i + 1].offsetTop, behavior: 'smooth' }) }
-      else if (ev.key === 'ArrowLeft' && i > 0) { ev.preventDefault(); ak.scrollTo({ top: bolumler[i - 1].offsetTop, behavior: 'smooth' }) }
+      else if (ev.key === 'ArrowRight' && i + 1 < bolumler.length) { ev.preventDefault(); hedefeKaydir(i + 1) }
+      else if (ev.key === 'ArrowLeft' && i > 0) { ev.preventDefault(); hedefeKaydir(i - 1) }
     }
     addEventListener('keydown', tus)
     return () => removeEventListener('keydown', tus)
-  }, [kareler, kilitli, oyVer])
+  }, [kareler, kilitli, oyVer, hedefeKaydir])
 
   if (hata) return <div className="sc"><Kunye sol="Oylama" geri="oyla" sag="Oylama" /><Hata metin={hata} /></div>
   if (e === undefined) return <Yukleniyor />
@@ -247,8 +286,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
 
   const eksik = kareler.filter(k => k.puan == null)
   const kaydir = (id: string) => {
-    const el = akis.current?.querySelector(`[data-kare="${id}"]`) as HTMLElement | null
-    if (el && akis.current) akis.current.scrollTo({ top: el.offsetTop, behavior: 'smooth' })
+    const i = kareler.findIndex(k => k.id === id)
+    if (i >= 0) hedefeKaydir(i)
   }
 
   return (
@@ -300,7 +339,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           {/* 768-1439 fotoğrafın iki yanında ok, 1440+ panelin altında yazılı */}
           <div className="m-gez">
             <button className="btn ik" aria-label="Önceki kare" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}><Ikon ad="geri" /><span className="m-gez-ad">Önceki kare</span></button>
-            <button className="btn" aria-label="Sonraki kare" onClick={() => i + 1 < kareler.length ? kaydir(kareler[i + 1].id) : akis.current?.scrollTo({ top: akis.current.querySelector<HTMLElement>('.bitti')?.offsetTop ?? 0, behavior: 'smooth' })}><span className="m-gez-ad">Sonraki kare</span><Ikon ad="ileri" /></button>
+            <button className="btn" aria-label="Sonraki kare" onClick={() => hedefeKaydir(i + 1)}><span className="m-gez-ad">Sonraki kare</span><Ikon ad="ileri" /></button>
           </div>
           <p className="m-ipucu">1-9 ve 0 (10) tuşlarıyla puan ver · ← → kareler arası</p>
         </section>

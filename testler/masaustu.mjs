@@ -422,6 +422,21 @@ async function kenarDurumlari(b, E, T, puanim, sifirla) {
     bekle(`pencere daralıp genişleyince aynı kare (${hedef + 1}. kare)`, once && orta && await oturdu(p, hedef), `${once} ${orta}`);
   }
 
+  // Kaydırma sürerken: rakam gidilen kareye yazılıyor, arka arkaya iki ok iki kare ilerletiyor
+  await sifirla();
+  await p.evaluate(() => document.querySelector('.akis').scrollTo({ top: 0 })); await p.waitForTimeout(600);
+  const sira = await p.evaluate(() => [...document.querySelectorAll('.kare')].map(k => k.dataset.kare));
+  await p.keyboard.press('ArrowRight'); await p.waitForTimeout(100); await p.keyboard.press('7'); await p.waitForTimeout(1200);
+  const v7 = await puanim();
+  bekle('ok kaydırırken 7 tuşu yeni kareye yazdı, bırakılan kare puansız', v7.length === 1 && v7[0].kare === sira[1] && v7[0].puan === 7 && await oturdu(p, 1), JSON.stringify(v7));
+  await p.keyboard.press('ArrowRight'); await p.waitForTimeout(80); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(1500);
+  bekle('hızlı iki sağ ok iki kare ilerletti', await oturdu(p, 3), String(await p.evaluate(() => document.querySelector('.akis').scrollTop)));
+  // Basılı tutulan rakam yinelenmiyor (oyVer seli)
+  await p.keyboard.press('5'); await p.waitForTimeout(600);
+  await p.evaluate(() => document.body.dispatchEvent(new KeyboardEvent('keydown', { key: '6', repeat: true, bubbles: true, cancelable: true }))); await p.waitForTimeout(600);
+  const v5 = (await puanim()).find(x => x.kare === sira[3]);
+  bekle('yinelenen tuş olayı puan vermiyor', v5?.puan === 5, JSON.stringify(v5));
+
   // Büyüteç açıkken rakam puan vermiyor
   await sifirla();
   await p.locator('.kare').nth(3).locator('.tutucu img').dblclick(); await p.waitForTimeout(400);

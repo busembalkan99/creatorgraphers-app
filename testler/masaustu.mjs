@@ -586,6 +586,13 @@ async function yuklemeKenar(b, p, birak, karem, E, surukle) {
 bolum('yonetim', async b => {
   const E = await acikEtkinlik('oylama');
   await kareKoy(E.id, E.temalar[0].id, 'baris@test.local');
+  // Karar 128 testi sayı dalına girebilsin: iki üyenin bildirimi açık (abone 0 iken hiçbir satırda sayı çıkmıyor)
+  const uyeIds = await Promise.all(['baris', 'can'].map(a => kimlik(`${a}@test.local`)));
+  const ep = uyeIds.map((_, i) => `https://push.example/yonetim-${i}-${b.browserType().name()}`);
+  await admin.from('bildirim_abonelikleri').delete().in('endpoint', ep);
+  const { error: abHata } = await admin.from('bildirim_abonelikleri').insert(uyeIds.map((u, i) => ({ kullanici: u, endpoint: ep[i], p256dh: 'x', auth: 'x' })));
+  bekle('yönetim: test abonelikleri eklendi', !abHata, abHata?.message);
+  try {
   for (const boyut of BOYUTLAR) {
     const p = await sayfa(b, boyut);
     for (const yol of ['asama', 'kur', 'uyeler', 'bildirim', 'havuz']) {
@@ -604,12 +611,21 @@ bolum('yonetim', async b => {
         await p.setViewportSize({ width: boyut[0], height: boyut[1] }); await p.waitForTimeout(200);
       }
     }
-    // Karar 128: fotoğrafa bağlı hatırlatmalarda sayı yok
+    // Karar 128: fotoğrafa bağlı hatırlatmalarda sayı yok; sayı dalı ulaşılabilir olduğu için sayılı satır da aranıyor
     await ac(p, 'bildirim');
-    const sayili = await p.evaluate(() => [...document.querySelectorAll('.satir')].filter(s => /Oy vermedin|Fotoğraf yüklemedin|Tahmin oyunu/.test(s.textContent) && /\d+ kişi/.test(s.textContent)).length);
-    bekle(`${boyut[0]}: fotoğrafa bağlı hatırlatmada sayı yok (karar 128)`, sayili === 0, sayili);
+    const r = await p.evaluate(() => {
+      const satirlar = [...document.querySelectorAll('.satir')];
+      const foto = satirlar.filter(s => /Oy vermedin|Fotoğraf yüklemedin|Tahmin oyunu/.test(s.textContent));
+      const diger = satirlar.filter(s => /Buluşma günü|Tema önerebilirsin/.test(s.textContent));
+      return { foto: foto.length, fotoSayili: foto.filter(s => /\d+ kişi/.test(s.textContent)).length, digerSayili: diger.filter(s => /\d+ kişi/.test(s.textContent)).length,
+        baslik: /Bildirimi açık 2 kişiye/.test(document.body.textContent) };
+    });
+    bekle(`${boyut[0]}: fotoğrafa bağlı satırlar görünüyor`, r.foto >= 2, JSON.stringify(r));
+    bekle(`${boyut[0]}: fotoğrafa bağlı hatırlatmada sayı yok (karar 128)`, r.fotoSayili === 0, JSON.stringify(r));
+    bekle(`${boyut[0]}: fotoğrafsız satırda sayı var, başlıkta 2 kişi`, r.digerSayili > 0 && r.baslik, JSON.stringify(r));
     await p.context().close();
   }
+  } finally { await admin.from('bildirim_abonelikleri').delete().in('endpoint', ep) }
   await temizle(); kurulan.length = 0;
 });
 

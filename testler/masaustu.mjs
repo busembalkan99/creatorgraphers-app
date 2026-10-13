@@ -865,6 +865,87 @@ bolum('diger', async b => {
   } finally { await temizle(); kurulan.length = 0 }
 });
 
+// ---------------------------------------------------------------- ray üye sayısı
+// uye_sayisi yalnız masaüstünde soruluyor; telefonda ray altı hiç kurulmuyor
+bolum('ray-uye', async b => {
+  const { count } = await admin.from('uyeler').select('id', { count: 'exact', head: true }).is('cikarildi_at', null);
+  const p = await sayfa(b, [1440, 900]); await ac(p, 'etkinlikler');
+  const alt = await p.textContent('.m-ray-alt').catch(() => null);
+  bekle(`1440: ray altında "${count} üye"`, count > 0 && alt === `${count} üye`, String(alt));
+  await p.context().close();
+  const t = await sayfa(b, [390, 844]); await ac(t, 'etkinlikler');
+  bekle('390: ray altı üye sayısı yok', (await t.locator('.m-ray-alt').count()) === 0);
+  await t.context().close();
+});
+
+// ---------------------------------------------------------------- etkinlikler, oylama açıkken
+bolum('etkinlikler-oylama', async b => {
+  try {
+    const E = await acikEtkinlik('oylama');
+    const [t1, t2, t3] = E.temalar;
+    const ben = await kimlik('kurucu@test.local');
+    const oyladigim = await kareKoy(E.id, t1.id, 'baris@test.local');
+    await kareKoy(E.id, t1.id, 'can@test.local');
+    const bitti = await kareKoy(E.id, t2.id, 'deniz@test.local');
+    await kareKoy(E.id, t3.id, 'kurucu@test.local');
+    for (const kare of [oyladigim, bitti]) await admin.from('oylar').insert({ kare, veren: ben, puan: 6 });
+    const p = await sayfa(b, [1440, 900]); await ac(p, 'etkinlikler');
+    const r = await p.evaluate(() => [...document.querySelectorAll('.m-tema-durum li')].map(li => li.querySelector('.m-tema-d')?.textContent ?? null));
+    bekle('1440 oylama: ilk temada "1 / 2 puanladın"', r[0] === '1 / 2 puanladın', JSON.stringify(r));
+    bekle('1440 oylama: hepsi puanlanan temada "Bitti"', r[1] === 'Bitti', JSON.stringify(r));
+    bekle('1440 oylama: yalnız kendi karesi olan temada "Oylanacak kare yok"', r[2] === 'Oylanacak kare yok', JSON.stringify(r));
+    await p.context().close();
+  } finally { await temizle(); kurulan.length = 0 }
+});
+
+// ---------------------------------------------------------------- oylama tuşları ve Önceki kare
+bolum('oylama-tuslar', async b => {
+  try {
+    const E = await acikEtkinlik('oylama');
+    const T = E.temalar[0];
+    const ids = [];
+    for (const e of ['baris@test.local', 'can@test.local', 'deniz@test.local']) ids.push(await kareKoy(E.id, T.id, e));
+    const ben = await kimlik('kurucu@test.local');
+    const puanim = async () => ((await admin.from('oylar').select('puan, kare').eq('veren', ben).in('kare', ids)).data ?? []);
+    const p = await sayfa(b, [1440, 900]); await ac(p, `oyla/${T.id}`);
+    const sira = await p.evaluate(() => [...document.querySelectorAll('.kare')].map(k => k.dataset.kare));
+    await p.keyboard.press('0'); await p.waitForTimeout(800);
+    const v = await puanim();
+    bekle('1440: 0 tuşu ilk kareye 10 puan yazdı', v.length === 1 && v[0].kare === sira[0] && v[0].puan === 10, JSON.stringify(v));
+    await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900);
+    const ikinci = await oturdu(p, 1);
+    await p.keyboard.press('ArrowLeft'); await p.waitForTimeout(900);
+    bekle('1440: sol ok önceki kareye döndü', ikinci && await oturdu(p, 0), String(ikinci));
+    bekle('1440: ilk karede Önceki kare kapalı', await p.locator('.kare').first().locator('button[aria-label="Önceki kare"]').isDisabled());
+    await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900);
+    const ikinciYine = await oturdu(p, 1);
+    await p.locator('.kare').nth(1).locator('button[aria-label="Önceki kare"]').click(); await p.waitForTimeout(900);
+    bekle('1440: Önceki kare düğmesi tam önceki kareye oturdu', ikinciYine && await oturdu(p, 0), String(ikinciYine));
+    await p.context().close();
+  } finally { await temizle(); kurulan.length = 0 }
+});
+
+// ---------------------------------------------------------------- yükleme, seçili olmayan temada Kaldır
+bolum('yukleme-kaldir', async b => {
+  try {
+    const E = await acikEtkinlik('yukleme');
+    const [, t2, t3] = E.temalar;
+    const ben = await kimlik('kurucu@test.local');
+    const karem = async tema => (await admin.from('kareler').select('id').eq('tema', tema).eq('sahip', ben)).data ?? [];
+    // İlk tema boş: seçili tema (sec) ilk tema, Kaldır ikinci temanın sütununda
+    const ikinci = await kareKoy(E.id, t2.id, 'kurucu@test.local');
+    const ucuncu = await kareKoy(E.id, t3.id, 'kurucu@test.local');
+    const p = await sayfa(b, [1440, 900]); await ac(p, 'yukle');
+    await p.locator(`${TEMA(t2.id)} button.btn.ik`, { hasText: 'Kaldır' }).click(); await p.waitForTimeout(300);
+    await p.locator(`${TEMA(t2.id)} button.btn:not(.ik)`, { hasText: 'Kaldır' }).click(); await p.waitForTimeout(2000);
+    const k2 = await karem(t2.id), k3 = await karem(t3.id);
+    bekle('1440: ikinci temanın Kaldır\'ı o temanın karesini sildi', k2.length === 0, JSON.stringify({ ikinci, k2 }));
+    bekle('1440: üçüncü temanın karesi yerinde', k3.length === 1 && k3[0].id === ucuncu, JSON.stringify(k3));
+    bekle('1440: ikinci tema sütunu "Boş"', (await p.textContent(`${TEMA(t2.id)} .m-durum`)) === 'Boş');
+    await p.context().close();
+  } finally { await temizle(); kurulan.length = 0 }
+});
+
 // ---------------------------------------------------------------- çalıştır
 try {
 for (const [, t] of [['chromium', chromium], ['webkit', webkit]]) {

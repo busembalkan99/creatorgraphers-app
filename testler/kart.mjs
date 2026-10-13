@@ -3,7 +3,7 @@
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, bekle, rapor } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 // Sonraki geçişler buraya kendi ekranlarını ekliyor
 const son = (await admin.from('etkinlikler').select('id').eq('iptal', false).lt('oylama_biter', new Date().toISOString()).order('bulusma_gunu', { ascending: false }).limit(1)).data?.[0];
 // Karesi olmayan üyenin profili boş durum kartlarını gösteriyor

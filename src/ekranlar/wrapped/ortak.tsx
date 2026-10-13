@@ -8,8 +8,10 @@ export function Ad({ ad, className }: { ad: string; className?: string }) {
   const [on, ...son] = ad.split(' ')
   return <span className={`w-ad ${className ?? ''}`}>{on}{son.length > 0 && <><br />{son.join(' ')}</>}</span>
 }
-export function Foto({ k, stil }: { k?: SK | null; stil?: CSSProperties }) {
-  return k?.url ? <img src={k.url} alt="" draggable={false} style={stil} /> : <span className="bos-foto" />
+/** `kucuk`: küçük şerit karesi, önizleme kopyasıyla (karar 123); yoksa tam boy */
+export function Foto({ k, stil, kucuk }: { k?: SK | null; stil?: CSSProperties; kucuk?: boolean }) {
+  const src = kucuk ? (k?.onizleme ?? k?.url) : k?.url
+  return src ? <img src={src} alt="" draggable={false} style={stil} /> : <span className="bos-foto" />
 }
 
 /** Kilometre sayacı: sayıdan sıfıra on adım, CSS alttan yukarı çeviriyor (eski set) */

@@ -3,8 +3,8 @@ import '../wrapped.css'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik } from '../lib/tipler'
 import { git } from '../lib/yol'
-import { imzala } from '../lib/imza'
-import { acilisKareleri, type Ozet, type SK, type Tema, type WrappedVeri } from './wrapped/plan'
+import { kareAdresleri } from '../lib/imza'
+import { acilisKareleri, acilisSeritleri, temaSeridiKareleri, type Ozet, type SK, type Tema, type WrappedVeri } from './wrapped/plan'
 import { iki } from './wrapped/bicim'
 import { setSec } from './wrapped/kutuphane'
 import { Ikon } from '../bilesenler/Ikon'
@@ -82,7 +82,7 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
       // Fotoğraflar önce: kazananlar, kürsü ve kişinin kendi kareleri
       // Kontakt baskının açılış şeridi rastgele kareler gösteriyor (karar 126): onlar da
       const kontakt = setSec(e).ad === 'kontakt'
-      const acilis = new Set(kontakt ? acilisKareleri(e, kareler).map(k => k.id) : [])
+      const acilis = new Set(kontakt ? acilisSeritleri(e, kareler).flat().map(k => k.id) : [])
       // Kontakt'ta kare vermeyip oy verenin kartı puan verdiği karelerden şerit gösteriyor (Buse, 2026-10-05).
       // Satır güvenliği yalnız kendi oylarını döndürüyor; okunamazsa şerit çıkmıyor, kart yine açılıyor.
       let oylanan: string[] = []
@@ -92,14 +92,20 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
         const benimOy = new Set(((data ?? []) as { kare: string }[]).map(x => x.kare))
         oylanan = acilisKareleri({ id: `${e.id}:oy` }, kareler.filter(k => benimOy.has(k.id))).map(k => k.id)
       }
-      const gerek = kareler.filter(k => k.benim || acilis.has(k.id) || oylanan.includes(k.id) || (k.sira != null && k.sira <= 3 && !k.cikarildi))
-      const imza = gerek.length ? await imzala(gerek.map(k => k.dosya)) : []
-      const url = new Map(gerek.map((k, j) => [k.id, imza[j]?.signedUrl ?? null]))
+      // Kontakt'ta temalar kartının şeritleri de kare gösteriyor (karar 130): tema başına en çok 6
+      const temaSerit = new Set(kontakt ? [...new Set(kareler.map(k => k.tema))].flatMap(t => temaSeridiKareleri(kareler, t)).map(k => k.id) : [])
+      // Şerit kareleri küçük: önizleme kopyası yetiyor (karar 123). Lüp, baskılar ve dev şerit tam boy.
+      const serit = (k: SK) => acilis.has(k.id) || temaSerit.has(k.id)
+      const tamGerek = (k: SK) => k.benim || oylanan.includes(k.id) || (k.sira != null && k.sira <= 3 && !k.cikarildi)
+      const gerek = kareler.filter(k => serit(k) || tamGerek(k))
+      const imza = gerek.length ? await kareAdresleri(gerek.map(k => k.dosya)) : []
+      const adres = new Map(gerek.map((k, j) => [k.id, imza[j] ?? { url: null, tam: null }]))
+      const onYukle = gerek.flatMap(k => [serit(k) && adres.get(k.id)!.url, tamGerek(k) && adres.get(k.id)!.tam]).filter((u): u is string => !!u)
       await Promise.race([
-        Promise.all([...url.values()].filter(Boolean).map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u! }))),
+        Promise.all([...new Set(onYukle)].map(u => new Promise(r => { const im = new Image(); im.onload = im.onerror = r; im.src = u }))),
         new Promise(r => setTimeout(r, 4000)),
       ])
-      setV({ e, temalar: (tm.data ?? []) as Tema[], kareler: kareler.map(k => ({ ...k, url: url.get(k.id) ?? null })), oylanan,
+      setV({ e, temalar: (tm.data ?? []) as Tema[], kareler: kareler.map(k => ({ ...k, url: adres.get(k.id)?.tam ?? null, onizleme: adres.get(k.id)?.url ?? null })), oylanan,
         ozet: { ...ozet, kisi: Number(ozet.kisi), kare: Number(ozet.kare), puan: Number(ozet.puan), benim_oyum: Number(ozet.benim_oyum) } })
     })().catch(x => setHata(hataMetni(x)))
   }, [etkinlikId])

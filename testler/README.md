@@ -5,6 +5,7 @@ Yerel Supabase'e karşı çalışır, gerçek hesaplara dokunmaz.
 ```
 npx supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,realtime,mailpit,postgres-meta
 npm run dev                                   # ayrı pencerede, localhost:5180
+# CG_APP=http://localhost:5182/ node testler/... ile başka portta çalışan sunucuya bağlanılabilir (verilmezse 5180).
 node testler/exifjpeg.mjs "$(date +%Y:%m:%d)"  # /tmp/cgapp altına test kareleri
 node testler/rls.mjs                          # sunucu kuralları
 node testler/siralama.mjs                     # sezon sıralaması, profil, çekim tarifi
@@ -19,8 +20,10 @@ node testler/davranis-yoklama.mjs             # aynı özelliğin davranış tes
 node testler/oy-ilerleme.mjs                  # yöneticinin gördüğü oylama ilerlemesi, sunucu kuralları
 node testler/wrapped.mjs                      # sonuç açılışının sayıları ve izlendi kaydı, sunucu kuralları
 node testler/davranis-wrapped.mjs             # Wrapped ekranda: kart kümesi, gezinme, kişisel kartın altı durumu
+node testler/wrapped-denetim.mjs              # Kontakt v2: uç verilerle taşma, çakışma, kalem payı, boşluk, 16px, hareketi azalt (karar 130)
 node testler/paylasim.mjs                     # paylaşım kartının kontakt şeridi: afiş izni, sunucu kuralları
-node testler/davranis-paylas.mjs              # paylaşım ekranı: dört düzen, indirilen PNG, kimde düğme var
+node testler/davranis-paylas.mjs              # paylaşım ekranı: yedi düzen, indirilen PNG, kimde düğme var
+node testler/paylasim-kart.mjs                # paylaşım kartı: Lüp, Baskı, Kontakt sayfası; taşma, çakışma, kalem payı, Galeride (Chromium + WebKit)
 node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon ağırlığı, Serbest tablosu, ekranlar
 node testler/bayes.mjs                        # sıralama puanı: temadaki yer, Bayes çekimi 50'ye, iki tablo, ağırlık, eşik, en iyi kare (0021, 0023)
 node testler/sure.mjs                         # bitiş saatlerini değiştirme, oylamayı bitirme, bekleyen bildirimler (0022)

@@ -5,7 +5,7 @@ import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/
 import { admin, bekle, rapor } from './ortak.mjs';
 import { sayiEki } from '../src/lib/zaman.ts';
 
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const { data: liste } = await admin.auth.admin.listUsers({ perPage: 1000 });
 const kim = e => liste.users.find(u => u.email === e);
 const [ayse, baris, can, deniz, zeynep] = ['kurucu', 'baris', 'can', 'deniz', 'zeynep'].map(k => kim(`${k}@test.local`));

@@ -5,7 +5,7 @@ import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/
 import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 
 // Karar 126: etkinlikler eski sete sabit (yeni setler davranis-wrapped-setler.mjs'te)
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const SS = '/tmp/cgapp/ss';
 fs.mkdirSync(SS, { recursive: true });
 await sifirla();

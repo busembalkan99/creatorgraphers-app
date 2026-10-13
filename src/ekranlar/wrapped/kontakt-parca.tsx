@@ -1,16 +1,17 @@
 import type { ReactNode } from 'react'
 import type { SK } from './plan'
 import { Foto } from './ortak'
-import { iki } from './bicim'
+import { iki, baskiOlcu } from './bicim'
 
 /** Kontakt baskının parçaları (karar 126). Set kontakt.tsx'te. Film karesinin sınıfı k-kare: uygulamanın genel
  *  .kare kuralı (index.css) çentik payı ekliyor, ana ekrandaki iPhone'da fotoğrafı yok ediyordu. */
 
+// Fotoğraf etrafında: ucu içe kıvrılıyor, elle çizilmiş gibi
+const YOL = 'M26 104 C 18 30, 274 14, 286 92 C 296 166, 72 198, 30 132 C 16 108, 58 60, 124 52'
 /** Yağlı kalemle elle çizilmiş daire. Dinlenme hâli çizili; hareket çizgiyi baştan çiziyor (stroke-dashoffset). */
 export const Daire = ({ gecikme = 0 }: { gecikme?: number }) => (
   <svg className="kalem-daire" viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true">
-    <path pathLength={1} style={{ animationDelay: `${gecikme}s` }}
-      d="M26 104 C 18 30, 274 14, 286 92 C 296 166, 72 198, 30 132 C 16 108, 58 60, 124 52" />
+    <path pathLength={1} style={{ animationDelay: `${gecikme}s` }} d={YOL} />
   </svg>
 )
 
@@ -44,3 +45,27 @@ export function Serit({ kareler, kenar, secili = [], kucuk, gecikme = 1.1, numar
 export const Not = ({ children, gecikme = 1.9 }: { children: ReactNode; gecikme?: number }) => (
   <div className="kalem-not" style={{ animationDelay: `${gecikme}s` }}>{children}</div>
 )
+
+/** Masaya düşmüş baskı: fotoğraf kendi oranında (bicim.baskiOlcu), alt payda numara ya da kenar yazısı. */
+export function Baski({ k, maxW, maxH, aci, gecikme = 0, children }:
+  { k: SK | null; maxW: number; maxH: number; aci: number; gecikme?: number; children?: ReactNode }) {
+  const { w, h } = baskiOlcu(k ?? { genislik: 0, yukseklik: 0 }, maxW, maxH)
+  // Dar ya da kısa ekranda kap --bmax (genişlik) ve --hmax (yükseklik) verir: boyut küçülür, oran kalır
+  const boy = { width: `min(${w}px, var(--bmax, ${w}px), calc(var(--hmax, ${h}px) * ${w / h}))`, height: 'auto', aspectRatio: `${w} / ${h}` }
+  return (
+    <div className="baski" style={{ ['--aci' as string]: `${aci}deg`, animationDelay: `${gecikme}s` }}>
+      {k?.url ? <Foto k={k} stil={boy} /> : <span className="bos-foto" style={{ display: 'block', ...boy }} />}
+      {children}
+    </div>
+  )
+}
+
+/** Lüp: karenin büyütülmüş hâli, daire içinde. Sap sağ altta, daireyle aynı kapta kayıyor. `gez`: kareler arasında gezip duruyor. */
+export function Lup({ k, boy = 280, sol, ust, gez }: { k: SK | null; boy?: number | string; sol: number | string; ust: number | string; gez?: boolean }) {
+  return (
+    <div className={`lup-kap${gez ? ' gez' : ''}`} style={{ width: boy, height: boy, left: sol, top: ust }} aria-hidden="true">
+      <div className="lup"><Foto k={k} /></div>
+      <span className="lup-sap" />
+    </div>
+  )
+}

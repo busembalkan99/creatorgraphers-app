@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { webkit, devices } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 import { kartDenetle } from './kartDenetim.mjs';
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 await sifirla();
 
 const A = await kullanici('kurucu@test.local', 'Ayşe Kaya');

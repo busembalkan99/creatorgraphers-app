@@ -1,5 +1,6 @@
 // Wrapped kart planı (karar 126): hangi kart var, kişisel kart hangi durumda. Eski setin kuralları aynen.
-import { kartPlani, adlarYaz, acilisKareleri } from '../src/ekranlar/wrapped/plan.ts';
+import { kartPlani, adlarYaz, acilisKareleri, acilisSeritleri, temaDuzeni, kapanisYigini, temaSeridiKareleri, izgaraKareleri, esitKalanNotu } from '../src/ekranlar/wrapped/plan.ts';
+import { baskiOlcu } from '../src/ekranlar/wrapped/bicim.ts';
 import { panoKisalt, panoHarfleri, panoBol } from '../src/ekranlar/wrapped/pano-metin.ts';
 import { bekle, rapor } from './ortak.mjs';
 const e = { id: 'e', bulusma_gunu: '2026-10-03', yukleme_baslar: '', yukleme_biter: '', oylama_biter: '', iptal: false };
@@ -76,5 +77,64 @@ bekle('pano: 24 harfi aşan ad iki satırda, kesildiği belli (…)', (l => l.le
   bekle('açılış kareleri: çıkarılan kare yok', !a1.some(x => x.cikarildi) && !b1.some(x => x.cikarildi));
   bekle('açılış kareleri: başka etkinlikte başka seçim', a1.map(x => x.id).join() !== b1.map(x => x.id).join(), JSON.stringify([a1.map(x => x.id), b1.map(x => x.id)]));
   bekle('açılış kareleri: az karede olanlar kadar', acilisKareleri({ id: 'x' }, l.slice(0, 3)).length === 2 && acilisKareleri({ id: 'x' }, []).length === 0);
+}
+// --- Kontakt v2 (karar 130)
+{
+  const kar = m => Array.from({ length: m }, (_, i) => k({ id: `a${i}` }));
+  const say = m => acilisSeritleri(e, kar(m)).map(s => s.length);
+  bekle('açılış: 3 kare tek şerit', JSON.stringify(say(3)) === '[3]', JSON.stringify(say(3)));
+  bekle('açılış: 4 kare tek şerit', JSON.stringify(say(4)) === '[4]');
+  bekle('açılış: 7 kare iki şerit (4+3)', JSON.stringify(say(7)) === '[4,3]', JSON.stringify(say(7)));
+  bekle('açılış: 16 kare üç şerit, en çok 12', JSON.stringify(say(16)) === '[4,4,4]', JSON.stringify(say(16)));
+  bekle('açılış: 10 kare 4+3+3 (son şerit küçülmüyor)', JSON.stringify(say(10)) === '[4,3,3]', JSON.stringify(say(10)));
+  const s16 = acilisSeritleri(e, kar(16)).flat().map(x => x.id);
+  bekle('açılış: kare tekrar etmiyor', new Set(s16).size === s16.length);
+  bekle('açılış: aynı etkinlikte aynı kareler', JSON.stringify(acilisSeritleri(e, kar(16)).flat().map(x => x.id)) === JSON.stringify(s16));
+  bekle('açılış: çıkarılan kare yok', acilisSeritleri(e, [...kar(3), k({ id: 'cik', cikarildi: true })]).flat().every(x => x.id !== 'cik'));
+  bekle('açılış: kare yoksa şerit yok', acilisSeritleri(e, []).length === 0);
+
+  // İki tema: 1. şerit, 2. baskı; eşit tema iki baskı
+  let kr2 = [k({ sira: 1, sirali: true }), k({ tema: 't2', tema_ad: 'Portre', sira: 1, sirali: true })];
+  bekle('düzen: iki tema şerit, baskı', temaDuzeni(kartPlani({ e, temalar: [T1, T2], kareler: kr2, ozet: oz }).plan).join() === 'serit,baski');
+  kr2 = [k({ sira: 1, sirali: true }), k({ tema: 't2', tema_ad: 'Portre', sira: 1, sirali: true }), k({ tema: 't2', tema_ad: 'Portre', sira: 1, sirali: true })];
+  bekle('düzen: eşit tema iki baskı', temaDuzeni(kartPlani({ e, temalar: [T1, T2], kareler: kr2, ozet: oz }).plan).join() === 'serit,esit');
+  bekle('düzen: tek tema şerit', temaDuzeni(kartPlani({ e, temalar: [T1], kareler: [k({ sira: 1, sirali: true })], ozet: oz }).plan).join() === 'serit');
+
+  // Kapanış yığını
+  const b1 = k({ id: 'b1', sira: 1, sirali: true }), b2 = k({ id: 'b2', sira: 2, sirali: true }), b3 = k({ id: 'b3', sira: 3, sirali: true }), ben = k({ id: 'ben', benim: true, ortalama: 3 });
+  bekle('yığın: kürsü altta, kendi karesi üstte', kapanisYigini([b1, b2, b3, ben]).map(x => x.id).join() === 'b3,b2,b1,ben');
+  bekle('yığın: kendi karesi kazananlardaysa iki kez yok', kapanisYigini([{ ...b1, benim: true }, b2]).map(x => x.id).join() === 'b2,b1');
+  bekle('yığın: karesi yoksa yalnız kazananlar', kapanisYigini([b1, b2]).map(x => x.id).join() === 'b2,b1');
+  const p1 = k({ id: 'p1', tema: 't2', tema_sira: 2, sira: 1, sirali: true });
+  bekle('yığın: iki temada tema birincileri', kapanisYigini([b1, b2, p1]).map(x => x.id).join() === 'p1,b1');
+  bekle('yığın: çıkarılan kendi karesi üste konmuyor', kapanisYigini([b1, { ...ben, cikarildi: true }]).map(x => x.id).join() === 'b1');
+  // Altı temalı etkinlik: en çok dört baskı (son üç kazanan ve kendi karesi)
+  const alti = Array.from({ length: 6 }, (_, i) => k({ id: `t${i + 1}`, tema: `t${i + 1}`, tema_sira: i + 1, sira: 1, sirali: true }));
+  bekle('yığın: altı temada en çok dört baskı, en üstte kendi karesi', kapanisYigini([...alti, ben]).map(x => x.id).join() === 't3,t2,t1,ben', kapanisYigini([...alti, ben]).map(x => x.id).join());
+  bekle('yığın: karesi yoksa en çok üç kazanan', kapanisYigini(alti).map(x => x.id).join() === 't3,t2,t1', kapanisYigini(alti).map(x => x.id).join());
+  bekle('yığın: kendi karesi kazananlardaysa yine en çok dört', kapanisYigini(alti.map((x, i) => i === 4 ? { ...x, benim: true } : x)).map(x => x.id).join() === 't3,t2,t1,t5', kapanisYigini(alti.map((x, i) => i === 4 ? { ...x, benim: true } : x)).map(x => x.id).join());
+
+  // Eşit birincilik: iki baskıdan sonrakilerin adı ve puanı notta
+  const es = ['Ayşe Kaya', 'Barış Ak', 'Can Öz', 'Deniz Akın'].map(ad => k({ sahip_ad: ad, sira: 1, sirali: true, ortalama: 9 }));
+  bekle('eşit: iki birincide not yok', esitKalanNotu(es.slice(0, 2)) === null);
+  bekle('eşit: üç birincide üçüncünün adı ve puanı', esitKalanNotu(es.slice(0, 3)) === 'Can Öz 9,0', esitKalanNotu(es.slice(0, 3)));
+  bekle('eşit: dört birincide kalan iki ad "ve" ile', esitKalanNotu(es) === 'Can Öz ve Deniz Akın 9,0', esitKalanNotu(es));
+
+  // Temalar şeridi en çok 6
+  bekle('temalar şeridi: en çok 6 kare', temaSeridiKareleri(kar(9).map(x => ({ ...x, tema: 't1' })), 't1').length === 6);
+  {
+    const karisik = [k({ id: 's1' }), k({ id: 'p1', tema: 't2' }), k({ id: 's2' }), k({ id: 'p2', tema: 't2' })];
+    const ids = l => l.map(x => x.id).join();
+    bekle('temalar şeridi: başka temanın karesi yok', ids(temaSeridiKareleri(karisik, 't1')) === 's1,s2' && ids(temaSeridiKareleri(karisik, 't2')) === 'p1,p2', JSON.stringify([ids(temaSeridiKareleri(karisik, 't1')), ids(temaSeridiKareleri(karisik, 't2'))]));
+    const cikanli = [k({ id: 'c1', cikarildi: true }), ...Array.from({ length: 6 }, (_, i) => k({ id: `v${i}` }))];
+    bekle('temalar şeridi: çıkarılan kare yok, yerine sıradaki geliyor', ids(temaSeridiKareleri(cikanli, 't1')) === 'v0,v1,v2,v3,v4,v5', ids(temaSeridiKareleri(cikanli, 't1')));
+  }
+  bekle('paylaşım ızgarası: 0,1,3,4,6 → 0,1,2,2,5', [0, 1, 3, 4, 6].map(izgaraKareleri).join() === '0,1,2,2,5');
+
+  // Baskı kendi oranında
+  const y = baskiOlcu({ genislik: 3000, yukseklik: 2000 }, 310, 290), d = baskiOlcu({ genislik: 2000, yukseklik: 3000 }, 310, 290);
+  bekle('baskı: yatay 310x207', y.w === 310 && y.h === 207, JSON.stringify(y));
+  bekle('baskı: dikey 193x290', d.w === 193 && d.h === 290, JSON.stringify(d));
+  bekle('baskı: ölçüsü bozuk kare 3:2', JSON.stringify(baskiOlcu({ genislik: 0, yukseklik: 0 }, 310, 290)) === '{"w":310,"h":207}');
 }
 rapor();

@@ -5,7 +5,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { bekle, rapor } from './ortak.mjs';
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const jpg = fs.readFileSync('/tmp/cgapp/dogru.jpg');
 const sunucu = http.createServer((q, s) => {
   const h = { 'content-type': 'image/jpeg', 'cache-control': 'max-age=31536000' };

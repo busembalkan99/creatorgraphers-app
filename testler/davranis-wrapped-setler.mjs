@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const SS = '/tmp/cgapp/ss';
 fs.mkdirSync(SS, { recursive: true });
 await sifirla();
@@ -29,9 +29,11 @@ await admin.from('uyeler').insert(U.slice(1).map(u => ({ id: u.id, ad: u.ad, epo
 
 const bugun = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 const saat = h => new Date(Date.now() + h * 3600000).toISOString();
-const yukle = async (K, E, tema) => {
+// onizleme: yanına önizleme kopyası da (karar 123, <ad>.k.jpg); kopyası olmayan kare eski yükleme gibi
+const yukle = async (K, E, tema, onizleme = false) => {
   const yol = `${E}/${tema}/${crypto.randomUUID()}.jpg`;
   await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
+  if (onizleme) await depo.koy(yol.replace(/\.jpg$/, '.k.jpg'), fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   return (await K.c.from('kareler').insert({ tema, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data?.id;
 };
 const etkinlik = async (temalar) => {
@@ -45,7 +47,8 @@ const foto = U.slice(1, -2);
 
 // E1: tek tema, sekiz kare, puan sırası 10 - j (birinci uzun isimli). Kürsü kartı çıkıyor.
 const { E: E1, T: [T1] } = await etkinlik(['Sokak']);
-const k1 = []; for (const u of foto) k1.push(await yukle(u, E1, T1));
+// İkinci fotoğrafçının karesi dışında hepsinin önizleme kopyası var: Kontakt şeritleri önizlemeyi, kopyası yoksa tam boyu alıyor
+const k1 = []; for (const [j, u] of foto.entries()) k1.push(await yukle(u, E1, T1, j !== 1));
 // E2: iki tema; Portre'de ilk iki kare eşit puanla birinci
 // Uzun tema adları: panoda iki satıra bölünüyor; eşitlik de uzun adlı temada (en kalabalık kart taşmasın)
 const { E: E2, T: [T2a, T2b] } = await etkinlik(['Işık ve gölge oyunu', 'Portre fotoğrafçılığı']);
@@ -84,7 +87,7 @@ const ac = async (p, yol) => { await p.goto(APP + '#/' + yol); await p.reload();
 const metin = p => p.locator('.wr').innerText().then(t => t.replace(/\s+/g, ' ')).catch(() => '');
 const var_ = async (p, t) => (await metin(p)).toLocaleLowerCase('tr-TR').includes(t.toLocaleLowerCase('tr-TR'));
 const kartAdi = p => p.locator('.wr .tel').getAttribute('data-kart');
-const sag = async p => { await p.locator('.wr').click({ position: { x: 330, y: 420 } }); await p.waitForTimeout(400); };
+const sag = async p => { await p.locator('.wr').click({ position: { x: Math.min(330, p.viewportSize().width - 30), y: 420 } }); await p.waitForTimeout(400); };
 const kartaGit = async (p, ad, sart = async () => true) => {
   for (let j = 0; j < 8 && !((await kartAdi(p)) === ad && await sart()); j++) await sag(p);
   return (await kartAdi(p)) === ad;
@@ -97,9 +100,10 @@ async function olc(p, ad) {
   const r = await p.evaluate(() => {
     const tel = document.querySelector('.wr .tel').getBoundingClientRect();
     const tasma = [...document.querySelectorAll('.wr .w-ic *')].filter(e => {
-      if (e.closest('.serit-pencere')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor
+      if (e.closest('.serit-pencere') || e.closest('.lup')) return false;   // şerit telefonun kenarına bilerek taşıyor, pencere kesiyor; lüpteki büyük kare dairede kesiliyor
+      const yatay = !!e.closest('.ac-seritler');       // açılış şeritleri yalnız sağdan soldan taşıyor, alttan değil
       if (e.closest('.h')) return false;               // pano kutusundaki dönüş harfleri kutunun içinde gizli (overflow)
-      const b = e.getBoundingClientRect(); return b.width && (b.right > tel.right + 1 || b.left < tel.left - 1 || b.bottom > tel.bottom + 1);
+      const b = e.getBoundingClientRect(); return b.width && ((!yatay && (b.right > tel.right + 1 || b.left < tel.left - 1)) || b.bottom > tel.bottom + 1);
     }).map(e => e.className).slice(0, 3);
     const kucuk = [...document.querySelectorAll('.wr button')].filter(e => { const b = e.getBoundingClientRect(); return b.width && b.height < 44; }).map(e => e.textContent.trim()).slice(0, 3);
     // Pano: fotoğraf alanı ile pano üst üste binmesin (taşma ölçümü telefonun kenarına bakıyor, bunu görmüyor)
@@ -128,9 +132,12 @@ try {
       bekle('pano/açılış: harfler son hâlinde (kişi, kare, puan)', /^\d+\|\d+\|\d+$/.test(await panoMetni(P)), await panoMetni(P));
       bekle('pano/açılış: ekran okuyucu satırı düz okuyor', /^\d+$/.test((await P.locator('.set-pano .pano-satir').first().getAttribute('aria-label')) ?? ''));
     } else {
-      bekle('kontakt/açılış: rastgele üç kare görünüyor', (await P.locator('.set-kontakt img').count()) === 3, String(await P.locator('.set-kontakt img').count()));
+      bekle('kontakt/açılış: 7 kareli etkinlikte 7 kare, iki şerit', (await P.locator('.set-kontakt .ac-serit img').count()) === 7 && (await P.locator('.set-kontakt .ac-serit').count()) === 2, String(await P.locator('.set-kontakt .ac-serit img').count()));
       bekle('kontakt/açılış: kazanan söylenmiyor (sıra numarası, daire yok)', (await P.locator('.set-kontakt .kare-no').count()) === 0 && (await P.locator('.set-kontakt .kalem-daire').count()) === 0);
-      bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /\d+ kişi · \d+ kare · \d+ puan/.test((await metin(P)).toLocaleLowerCase('tr-TR')), await metin(P));
+      const onizlemesiz = (await admin.from('kareler').select('dosya').eq('id', k1[1]).single()).data.dosya.split('/').pop();
+      const acSrc = await P.locator('.set-kontakt .ac-serit img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
+      bekle('kontakt/açılış: şerit kareleri önizleme kopyasından (.k.jpg), kopyası olmayan tam boydan', acSrc.filter(u => u.includes(onizlemesiz)).every(u => !u.includes('.k.jpg')) && acSrc.filter(u => !u.includes(onizlemesiz)).every(u => u.includes('.k.jpg')) && acSrc.some(u => u.includes(onizlemesiz)), JSON.stringify(acSrc.map(u => u.split('?')[0].split('/').pop())));
+      bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /^\d+ KİŞİ \d+ KARE \d+ PUAN$/.test((await P.locator('.set-kontakt .ac-sayilar').innerText()).replace(/\s+/g, ' ').trim()), await metin(P));
     }
 
     await sag(P);
@@ -144,6 +151,9 @@ try {
       bekle('pano/tema: başlık', await var_(P, 'Sokak temasının birincisi'));
     } else {
       bekle('kontakt/tema: başlık', await var_(P, 'Sokak temasının birincisi'));
+      bekle('kontakt/tema: dev şerit', (await P.locator('.set-kontakt .dev-serit').count()) === 1);
+      const devSrc = await P.locator('.set-kontakt .dev-serit img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
+      bekle('kontakt/tema: dev şerit tam boy (önizleme değil)', devSrc.length > 0 && devSrc.every(u => !u.includes('.k.jpg')), JSON.stringify(devSrc.map(u => u.split('?')[0].split('/').pop())));
       const not = (await P.locator('.set-kontakt .kalem-not').first().innerText()).replace(/\s+/g, ' ');
       bekle('kontakt/tema: kalem notu isim ve puan, ünlemsiz', /^Muhammed Mustafa Karaosmanoğlu \d+,\d$/.test(not) && !(await metin(P)).includes('!'), not);
       const pay = await P.locator('.set-kontakt .serit > div').first().evaluate(e => getComputedStyle(e).paddingTop + ' ' + getComputedStyle(e).paddingBottom);
@@ -164,11 +174,14 @@ try {
     await olc(P, `${no + 2}-${SET}-kursu`);
     bekle(`${SET}/kürsü: başlık`, await var_(P, 'Kürsünün kalanı') || await var_(P, 'Az farkla'));
     if (SET === 'pano') bekle('pano/kürsü: durum 2. ve 3., fark eksi', /\|2\.\|−\d,\d\|/.test(await panoMetni(P)) && /\|3\.\|−\d,\d/.test(await panoMetni(P)), await panoMetni(P));
-    else bekle('kontakt/kürsü: iki daire, "2" ve "3"', (await P.locator('.set-kontakt .kalem-daire').count()) === 2 && (await P.locator('.set-kontakt .kalem-no').allInnerTexts()).join() === '2,3');
+    else bekle('kontakt/kürsü: iki baskı, "2" ve "3"', (await P.locator('.set-kontakt .baski').count()) === 2 && (await P.locator('.set-kontakt .baski .kalem-no').allInnerTexts()).join() === '2,3');
+    if (SET === 'kontakt') bekle('kontakt/kürsü: baskılar tam boy', (await P.locator('.set-kontakt .baski img').evaluateAll(l => l.length === 2 && l.every(i => !decodeURIComponent(i.src).includes('.k.jpg')))));
 
     // Kişisel: birinci
     bekle(`${SET}/kişisel: kart var`, await kartaGit(P, 'kisisel'));
     await olc(P, `${no + 3}-${SET}-kisisel-birinci`);
+    if (SET === 'kontakt') bekle('kontakt/kişisel birinci: lüp tam boy', (await P.locator('.set-kontakt .lup img').evaluateAll(l => l.length === 1 && l.every(i => !decodeURIComponent(i.src).includes('.k.jpg')))));
+    if (SET === 'kontakt') bekle('kontakt/kişisel birinci: lüp karende, kalemle "1" şeridin altında', (await P.locator('.set-kontakt .lup').count()) === 1 && (await P.locator('.set-kontakt .kalem-buyuk').innerText()) === '1');
     bekle(`${SET}/kişisel: "Senin karen birinci"`, await var_(P, 'Senin karen birinci'), await metin(P));
     if (SET === 'pano') bekle('pano/kişisel: senin satırın vurgulu', (await P.locator('.set-pano .vurgu-kayit .h').first().evaluate(e => getComputedStyle(e).boxShadow)) !== 'none');
     bekle(`${SET}/kişisel: eski setin pembe kişisel kart rengi sızmıyor`, (await P.locator('.wr .tel').evaluate(e => getComputedStyle(e).backgroundColor)) === (SET === 'pano' ? 'rgb(14, 16, 19)' : 'rgb(239, 234, 224)'), await P.locator('.wr .tel').evaluate(e => getComputedStyle(e).backgroundColor));
@@ -176,19 +189,25 @@ try {
     await olc(P, `${no + 4}-${SET}-kapanis`);
     if (SET === 'pano') bekle('pano/kapanış: üç satır', (await panoMetni(P)) === 'SIRADAKİ|ETKİNLİKTE|GÖRÜŞÜRÜZ', await panoMetni(P));
     else bekle('kontakt/kapanış: cümle', await var_(P, 'Sıradaki etkinlikte görüşürüz'));
+    if (SET === 'kontakt') bekle('kontakt/kapanış: baskı yığını, en üstte kendi karesi', (await P.locator('.set-kontakt .yigin .yigin-yer').last().getAttribute('data-kare')) === (await admin.from('kareler').select('id').eq('sahip', foto[0].id).eq('tema', T1).single()).data.id);
     bekle(`${SET}: yasak kelime yok (kapanış)`, !YASAK.test(await metin(P)));
 
     // Eşit birincilik (E2 Portre)
     await ac(P, `wrapped/${E2}`);
+    if (SET === 'kontakt') {
+      await kartaGit(P, 'tema');
+      bekle('kontakt/iki tema: 1. tema dev şerit', (await P.locator('.set-kontakt .dev-serit').count()) === 1 && (await P.locator('.wr .tel').getAttribute('class')).includes('kt-serit'));
+    }
     bekle(`${SET}/eşit: Portre kartı`, await kartaGit(P, 'tema', () => var_(P, 'Portre fotoğrafçılığı temasında')));
     await olc(P, `${no + 5}-${SET}-esit`);
     bekle(`${SET}/eşit: başlık "iki birinci"`, await var_(P, 'Portre fotoğrafçılığı temasında iki birinci'), await metin(P));
     if (SET === 'pano') bekle('pano/eşit: uzun tema adı kesilmeden iki satırda', (await panoMetni(P)).startsWith('PORTRE FOTOĞ|RAFÇILIĞI|'), await panoMetni(P));
     if (SET === 'pano') bekle('pano/eşit: iki satır EŞİT', ((await panoMetni(P)).match(/\|EŞİT/g) ?? []).length === 2, await panoMetni(P));
-    else bekle('kontakt/eşit: iki daire, iki not, "Eşit puan aldılar"', (await P.locator('.set-kontakt .kalem-daire').count()) === 2 && (await P.locator('.set-kontakt .kalem-not').count()) === 2 && await var_(P, 'Eşit puan aldılar'));
+    else bekle('kontakt/eşit: iki baskı, iki "1", iki not', (await P.locator('.set-kontakt .baski').count()) === 2 && (await P.locator('.set-kontakt .baski .kalem-no').allInnerTexts()).join() === '1,1' && (await P.locator('.set-kontakt .kalem-not').count()) === 2 && await var_(P, 'Eşit puan aldılar'));
     bekle(`${SET}/temalar: iki temalı etkinlikte kart var`, await kartaGit(P, 'temalar'));
     if (SET === 'pano') bekle('pano/temalar: uzun tema adı iki satırda', (await panoMetni(P)).startsWith('IŞIK VE|GÖLGE OYUNU|'), await panoMetni(P));
     await olc(P, `${no + 6}-${SET}-temalar`);
+    if (SET === 'kontakt') bekle('kontakt/temalar: iki şerit, şerit başına en çok 6 kare', (await P.locator('.set-kontakt .tema-serit').count()) === 2 && (await P.locator('.set-kontakt .tema-serit').evaluateAll(l => l.every(x => x.querySelectorAll('.k-kare').length <= 6))));
 
     // Sıraya girmeyen (sondan ikinci fotoğrafçı; sonuncunun karesi çıkarıldı): sırası yazmıyor, puanı yalnız ona
     const S = await kisi(foto[foto.length - 2].eposta);
@@ -198,7 +217,7 @@ try {
     bekle(`${SET}/girmedi: gizlilik cümlesi`, await var_(S, 'Puanını yalnız sen görüyorsun'), await metin(S));
     if (SET === 'pano') bekle('pano/girmedi: boş satır ekran okuyucuya isimsiz resim olarak gitmiyor', (await S.locator('.set-pano .pano-satir[role=img][aria-label=""]').count()) === 0);
     if (SET === 'pano') bekle('pano/girmedi: durum boş', /\|$/.test(await panoMetni(S)) || (await panoMetni(S)).split('|').pop() === '', await panoMetni(S));
-    else bekle('kontakt/girmedi: daire yok, numara yok', (await S.locator('.set-kontakt .kalem-daire').count()) === 0 && (await S.locator('.set-kontakt .kare-no').count()) === 0);
+    else bekle('kontakt/girmedi: lüp var, numara yok', (await S.locator('.set-kontakt .lup').count()) === 1 && (await S.locator('.set-kontakt .kalem-buyuk').count()) === 0 && (await S.locator('.set-kontakt .kare-no').count()) === 0);
 
     // Dar telefon (360 px): 12 harflik satır kenar boşluğunu aşmıyor
     if (SET === 'pano') {
@@ -214,7 +233,8 @@ try {
     const O = await kisiselMetin(A.eposta);   // oy verdi, kare vermedi
     await olc(O, `${no + 8}-${SET}-kisisel-oyverdi`);
     if (SET === 'kontakt') bekle('kontakt/oy verdin: hepsini puanlayana "Bütün kareleri puanladın"', (await O.locator('.set-kontakt .kalem-not').first().innerText()).trim() === 'Bütün kareleri puanladın');
-    if (SET === 'kontakt') bekle('kontakt/oy verdin: puan verdiği karelerden şerit, numarasız ve çizgisiz', (await O.locator('.set-kontakt img').count()) === 3 && (await O.locator('.set-kontakt .kare-no').count()) === 0 && (await O.locator('.set-kontakt .kalem-daire').count()) === 0, String(await O.locator('.set-kontakt img').count()));
+    if (SET === 'kontakt') bekle('kontakt/oy verdin: puan verdiği karelerden şerit, numarasız ve çizgisiz', (await O.locator('.set-kontakt .serit img').count()) === 3 && (await O.locator('.set-kontakt .kare-no').count()) === 0 && (await O.locator('.set-kontakt .kalem-daire').count()) === 0, String(await O.locator('.set-kontakt .serit img').count()));
+    if (SET === 'kontakt') bekle('kontakt/oy verdin: lüp geziyor', (await O.locator('.set-kontakt .lup-kap.gez').count()) === 1);
     if (SET === 'kontakt') bekle('kontakt/oy verdin: başlık, kalem notu, alt', await var_(O, 'Bu sefer oylayan sendin') && /\d+ kareye puan verdin|Bütün kareleri puanladın/.test(await O.locator('.set-kontakt .kalem-not').first().innerText()) && await var_(O, 'Sıradaki etkinlikte senin karen de şeritte olsun'), await metin(O));
     else bekle('pano/oy verdin: başlık, pano, alt', await var_(O, 'Oy verdin') && /^\d+\|\d+$/.test(await panoMetni(O)) && await var_(O, 'Sıradaki etkinlikte panoda senin satırın da olsun'), `${await metin(O)} | ${await panoMetni(O)}`);
     const Yp = await kisiselMetin(Y.eposta);   // hiç katılmadı
@@ -225,7 +245,7 @@ try {
     const C = await kisiselMetin(foto[foto.length - 1].eposta);   // karesi çıkarıldı
     await olc(C, `${no + 10}-${SET}-kisisel-cikarildi`);
     bekle(`${SET}/çıkarıldı: "Karen sayılmadı", neden ve yönetici`, await var_(C, 'Karen sayılmadı') && await var_(C, 'Buluşmaya katılmadın') && await var_(C, 'Yöneticiyle konuşabilirsin'), await metin(C));
-    if (SET === 'kontakt') bekle('kontakt/çıkarıldı: daire yok, kare soluk', (await C.locator('.set-kontakt .kalem-daire').count()) === 0 && (await C.locator('.set-kontakt .gri').count()) === 1);
+    if (SET === 'kontakt') bekle('kontakt/çıkarıldı: lüp yok, kare soluk', (await C.locator('.set-kontakt .lup').count()) === 0 && (await C.locator('.set-kontakt .gri').count()) === 1);
     else bekle('pano/çıkarıldı: durum ÇIKARILDI', (await panoMetni(C)).endsWith('|ÇIKARILDI'), await panoMetni(C));
     await O.context().close(); await Yp.context().close(); await C.context().close();
 
@@ -233,7 +253,7 @@ try {
     if (SET === 'kontakt') {
       const Kp = await kisiselMetin(KISMI.eposta);
       const dosyalar = (await admin.from('kareler').select('dosya').in('id', k1.slice(0, 2))).data.map(x => x.dosya.split('/').pop());
-      const srcler = await Kp.locator('.set-kontakt img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
+      const srcler = await Kp.locator('.set-kontakt .serit img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
       bekle('kontakt/kısmi oy: şeritte yalnız puan verdiği iki kare', srcler.length === 2 && srcler.every(u => dosyalar.some(d => u.includes(d))), JSON.stringify({ srcler: srcler.length, dosyalar }));
       bekle('kontakt/kısmi oy: kalem notu "2 kareye puan verdin"', (await Kp.locator('.set-kontakt .kalem-not').first().innerText()).trim() === '2 kareye puan verdin');
       await Kp.context().close();
@@ -249,7 +269,7 @@ try {
     const I2 = await kisiselMetin(foto[1].eposta);
     bekle(`${SET}/sırada: "Senin karen 2."`, await var_(I2, 'Senin karen 2.'), await metin(I2));
     if (SET === 'pano') bekle('pano/sırada: durum 2.', (await panoMetni(I2)).endsWith('|2.'), await panoMetni(I2));
-    else bekle('kontakt/sırada: tek daire, kalemle "2"', (await I2.locator('.set-kontakt .kalem-daire').count()) === 1 && (await I2.locator('.set-kontakt .kalem-no').first().innerText()) === '2');
+    else bekle('kontakt/sırada: kalemle "2"', (await I2.locator('.set-kontakt .kalem-buyuk').innerText()) === '2');
     await I2.context().close();
 
     // İki temada karesi olan (E2): iki kare yan yana; ortak birinci
@@ -257,7 +277,37 @@ try {
     await olc(B2, `${no + 11}-${SET}-kisisel-iki-tema`);
     bekle(`${SET}/iki tema: "Ortak birinci oldun"`, await var_(B2, 'Ortak birinci oldun'), await metin(B2));
     if (SET === 'pano') bekle('pano/iki tema: iki vurgulu kayıt', (await B2.locator('.set-pano .vurgu-kayit').count()) === 2);
-    else bekle('kontakt/iki tema: iki kare, ikisi de daireli', (await B2.locator('.set-kontakt img').count()) === 2 && (await B2.locator('.set-kontakt .kalem-daire').count()) === 2);
+    else bekle('kontakt/iki tema: iki kare, ilki daireli, lüp ikincide', (await B2.locator('.set-kontakt .serit img').count()) === 2 && (await B2.locator('.set-kontakt .kalem-daire').count()) === 1 && (await B2.locator('.set-kontakt .lup').count()) === 1);
+    if (SET === 'kontakt') {
+      bekle('kontakt/iki tema: sıra yalnız bir kez (büyük kalem numarası), kâğıt etiket yok', (await B2.locator('.set-kontakt .kalem-buyuk').count()) === 1 && (await B2.locator('.set-kontakt .kalem-no').evaluateAll(l => l.every(e => getComputedStyle(e).display === 'none'))));
+      // Dar telefonda lüp hedef karesinin ortasında, sap telefonun içinde
+      for (const w of [320, 360]) {
+        const W = await kisi(foto[1].eposta); await W.setViewportSize({ width: w, height: 760 });
+        await ac(W, `wrapped/${E2}`); await kartaGit(W, 'kisisel'); await W.waitForTimeout(2800);
+        await W.screenshot({ path: `${SS}/150-kontakt-kisisel-iki-tema-${w}.png` });
+        const t = await W.evaluate(() => {
+          const c = e => { const b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+          const tel = document.querySelector('.wr .tel').getBoundingClientRect();
+          const hedef = c(document.querySelectorAll('.set-kontakt .serit .k-kare')[2]), lup = c(document.querySelector('.set-kontakt .lup'));
+          const sap = document.querySelector('.set-kontakt .lup-sap').getBoundingClientRect();
+          return { dx: Math.abs(hedef.x - lup.x), dy: Math.abs(hedef.y - lup.y), sapSag: sap.right - tel.right, sapSol: tel.left - sap.left };
+        });
+        bekle(`kontakt/iki tema/${w} px: lüp hedef karenin ortasında, sap telefonun içinde`, t.dx <= 6 && t.dy <= 6 && t.sapSag <= 0 && t.sapSol <= 0, JSON.stringify(t));
+        await W.context().close();
+        const V = await kisi(foto[0].eposta); await V.setViewportSize({ width: w, height: 760 });
+        await ac(V, `wrapped/${E1}`); await kartaGit(V, 'kisisel'); await V.waitForTimeout(2800);
+        await V.screenshot({ path: `${SS}/151-kontakt-kisisel-birinci-${w}.png` });
+        const u = await V.evaluate(() => {
+          const c = e => { const b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; };
+          const tel = document.querySelector('.wr .tel').getBoundingClientRect();
+          const hedef = c(document.querySelectorAll('.set-kontakt .serit .k-kare')[1]), lup = c(document.querySelector('.set-kontakt .lup'));
+          const sap = document.querySelector('.set-kontakt .lup-sap').getBoundingClientRect();
+          return { dx: Math.abs(hedef.x - lup.x), dy: Math.abs(hedef.y - lup.y), sapSag: sap.right - tel.right };
+        });
+        bekle(`kontakt/birinci/${w} px: lüp karenin ortasında, sap telefonun içinde`, u.dx <= 6 && u.dy <= 6 && u.sapSag <= 0, JSON.stringify(u));
+        await V.context().close();
+      }
+    }
     await B2.context().close();
 
     // Kapanış düğmeleri: paylaş yalnız yarışan karesi olana; Tekrar izle başa, Sonuçlara geç sonuçlara

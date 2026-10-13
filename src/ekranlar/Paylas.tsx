@@ -9,7 +9,7 @@ import { imzala } from '../lib/imza'
 import { resimYukle } from '../lib/resim'
 
 /**
- * Paylaşım kartı seçim ekranı (karar 104, B): dört düzen, tek kart ortada, yanlara kaydırmalı.
+ * Paylaşım kartı seçim ekranı (karar 104, B; karar 130): yedi düzen, tek kart ortada, yanlara kaydırmalı.
  * Önizleme ile paylaşılan PNG aynı tuvalden çıkıyor. Seçilen düzen cihazda hatırlanıyor.
  * Yalnız yarışan bir karesi olan görür: kare vermeyene ve karesi çıkarılana kart yok (spec 10.3).
  */
@@ -80,6 +80,9 @@ export function Paylas({ etkinlikId }: { etkinlikId: string }) {
       } catch { setPaylasilir(false) }
     })().catch(x => setHata(hataMetni(x)))
   }, [etkinlikId])
+
+  // Yedi 1080x1920 tuval: ekrandan çıkınca bellek bırakılsın (iOS Safari tuval belleğini sınırlıyor)
+  useEffect(() => () => kartlar?.forEach(k => { k.tuval.width = 0; k.tuval.height = 0 }), [kartlar])
 
   const sec = (j: number) => {
     if (!kartlar || j < 0 || j >= kartlar.length) return

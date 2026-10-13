@@ -117,7 +117,7 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
 // ---------------------------------------------- ekran
 {
   const { chromium } = await import('/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs');
-  const APP = 'http://localhost:5180/';
+  const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
   const b = await chromium.launch();
   const p = await (await b.newContext({ viewport: { width: 390, height: 1400 }, isMobile: true })).newPage();
   const hatalar = []; p.on('pageerror', e => hatalar.push(String(e)));
@@ -214,10 +214,10 @@ bekle('serbest işareti değişmedi', (await admin.from('etkinlikler').select('s
   // Arşiv numarası yalnız buluşmaları sayıyor: 7 buluşma 01..07, iki eski serbest EK
   const { chromium } = await import('/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs');
   const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 390, height: 2400 } })).newPage();
-  await p.goto('http://localhost:5180/'); await p.waitForFunction(() => window.__sb);
+  await p.goto((process.env.CG_APP ?? 'http://localhost:5180/')); await p.waitForFunction(() => window.__sb);
   await p.evaluate(async () => { await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); });
   await admin.from('wrapped_izlendi').upsert([E7.id, S2.id, S0.id].map(e => ({ etkinlik: e, uye: A.id })), { ignoreDuplicates: true });
-  await p.goto('http://localhost:5180/#/etkinlikler'); await p.reload(); await p.waitForTimeout(2500);
+  await p.goto((process.env.CG_APP ?? 'http://localhost:5180/') + '#/etkinlikler'); await p.reload(); await p.waitForTimeout(2500);
   const no = (await p.locator('.ev .no').allTextContents()).map(x => x.trim());
   const sayi = no.filter(x => x !== 'EK');
   bekle('arşiv: buluşmalar 07..01 kesintisiz, serbest etkinlikler EK', JSON.stringify(sayi) === JSON.stringify(['07', '06', '05', '04', '03', '02', '01']) && no.filter(x => x === 'EK').length === 3, JSON.stringify(no));

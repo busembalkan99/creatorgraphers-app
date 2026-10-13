@@ -5,7 +5,7 @@ import { chromium } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/
 import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
 
 // Karar 126: etkinlikler eski sete sabit (yeni setler davranis-wrapped-setler.mjs'te)
-const APP = 'http://localhost:5180/';
+const APP = (process.env.CG_APP ?? 'http://localhost:5180/');
 const SS = '/tmp/cgapp/ss';
 fs.mkdirSync(SS, { recursive: true });
 await sifirla();
@@ -78,11 +78,11 @@ const cesitlilik = (p, x0, y0, x1, y1) => p.locator('.pk-kart').evaluate((img, [
 }, [x0, y0, x1, y1]);
 
 try {
-  // ------------------------------------------------ 1. kazanan: dört düzen, gezinme, hafıza
+  // ------------------------------------------------ 1. kazanan: yedi düzen, gezinme, hafıza
   const P = await kisi(SELIN.eposta);
   await ac(P, `paylas/${E}`);
   bekle('1: seçim ekranı açılıyor', await var_(P, 'Kartını paylaş') && (await P.locator('.pk-kart').count()) === 1, (await metin(P)).slice(0, 120));
-  bekle('1: ilk düzen dev puan, 1 / 4', (await duzen(P)) === 'dev' && await var_(P, '1 / 4'));
+  bekle('1: ilk düzen dev puan, 1 / 7', (await duzen(P)) === 'dev' && await var_(P, '1 / 7'));
   const v1 = await veri(P);
   bekle('1: kazanan için "Tema birincisi", sıra 01', v1.baslik === 'Tema birincisi' && v1.sira === '01', JSON.stringify(v1 && { b: v1.baslik, s: v1.sira }));
   bekle('1: kaç kişi puanladı yazıyor', /^\d+ kişi puanladı$/.test(v1.alt), v1.alt);
@@ -96,14 +96,15 @@ try {
   bekle('1: sola kaydırınca sonraki düzen', (await duzen(P)) === 'kontakt', await duzen(P));
   await P.locator('.pk-komsu.sag').click(); await P.waitForTimeout(400);
   bekle('1: sağdaki kesiğe dokununca sonraki', (await duzen(P)) === 'egik');
-  bekle('1: çubuk ve sayaç', (await P.locator('.pk-nokta i.on').count()) === 1 && await var_(P, '3 / 4'));
+  bekle('1: çubuk ve sayaç', (await P.locator('.pk-nokta i.on').count()) === 1 && await var_(P, '3 / 7'));
   await ac(P, `paylas/${E}`);
   bekle('1: seçilen düzen hatırlanıyor', (await duzen(P)) === 'egik', await duzen(P));
-  // Dört düzenin de PNG'si 1080x1920
-  for (const [j, ad] of ['dev', 'kontakt', 'egik', 'bilet'].entries()) {
+  // Yedi düzenin de PNG'si 1080x1920
+  const YEDI = ['dev', 'kontakt', 'egik', 'bilet', 'lup', 'baski', 'sayfa'];
+  for (const [j, ad] of YEDI.entries()) {
     while ((await duzen(P)) !== ad) {
       const once = await duzen(P);
-      await P.locator(j > ['dev', 'kontakt', 'egik', 'bilet'].indexOf(once) ? '.pk-komsu.sag' : '.pk-komsu.sol').click(); await P.waitForTimeout(250);
+      await P.locator(j > YEDI.indexOf(once) ? '.pk-komsu.sag' : '.pk-komsu.sol').click(); await P.waitForTimeout(250);
     }
     const [d] = await Promise.all([P.waitForEvent('download'), P.getByRole('button', { name: 'Görseli kaydet' }).click()]);
     const yol = `${SS}/91-paylas-${ad}.png`;

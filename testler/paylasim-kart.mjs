@@ -139,6 +139,28 @@ for (const motor of [chromium, webkit]) {
   await b.close();
 }
 
+// Google Fonts hata kodu dönerse (ör. 403) gövdesi yüklenmiyor: gövdede gerçek @font-face olsa da dar yüz eklenmiyor, fontStretch yolu
+{
+  const b = await chromium.launch(); const p = await b.newPage();
+  const hatalar = []; p.on('pageerror', e => hatalar.push(String(e)));
+  const DAR_CSS = /fonts\.googleapis\.com\/css2\?family=Archivo:wdth,wght@(62\.5|75),/;
+  let istek = 0;
+  await p.route(DAR_CSS, async r => { istek++; const g = await r.fetch(); await r.fulfill({ status: 403, contentType: 'text/css', body: await g.text() }); });
+  await p.goto(APP); await p.waitForFunction(() => window.__sb);
+  const yasak = await p.evaluate(async () => {
+    const D = await import('/src/lib/paylasimKarti.ts');
+    await D.fontlarHazir();
+    const k = [];
+    D.kartCiz('lup', { ay: 'Ekim', yil: '2026', tema: 'Sokak', ad: 'Can Öz', baslik: 'Tema birincisi', puan: '9,0', alt: '9 kişi puanladı', sira: '01', temaKare: 3, foto: null, serit: [], tohum: 'x' }, k);
+    const c = document.createElement('canvas').getContext('2d'); c.font = '900 200px Archivo'; c.fontStretch = 'extra-condensed';
+    return { dar: [...document.fonts].filter(f => f.family.startsWith('ArchivoDar')).length, tema: k.find(x => x.t === 'TEMA')?.g, dar62: c.measureText('TEMA').width };
+  });
+  bekle('403 font isteği: istek gerçekten gitti', istek > 0, String(istek));
+  bekle('403 font isteği: gövdedeki yüzler eklenmiyor, başlık fontStretch ile dar', yasak.dar === 0 && Math.abs(yasak.tema - yasak.dar62) < 1, JSON.stringify(yasak));
+  bekle('403 font isteği: sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
+  await b.close();
+}
+
 // Dar Archivo iki motorda aynı genişlikte: başlık ve künye satırlarının ilerleme genişliği %3 içinde
 // (mürekkep kutusu değil: WebKit actualBoundingBoxLeft/Right'ı ilerlemeden veriyor)
 const fark = [];

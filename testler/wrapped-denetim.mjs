@@ -264,6 +264,8 @@ try {
   bekle('E5/açılış: en çok 12 kare, tam 3 şerit', ac12 > 0 && ac12 <= 12 && seritler === 3, `${ac12} kare, ${seritler} şerit`);
   bekle('E5/temalar: kart var', await kartaGit(F, 'temalar'));
   bekle('E5/temalar: iki şerit, şerit başına en çok 6 kare', (await F.locator('.set-kontakt .tema-serit').count()) === 2 && (await F.locator('.set-kontakt .tema-serit').evaluateAll(l => l.every(x => x.querySelectorAll('.k-kare').length <= 6 && x.querySelectorAll('.k-kare').length >= 1))));
+  const seritFoto = await F.locator('.set-kontakt .tema-serit .k-kare').evaluateAll(l => ({ kare: l.length, img: l.filter(x => x.querySelector('img')).length, bos: l.filter(x => x.querySelector('.bos-foto')).length }));
+  bekle('E5/temalar: şerit karelerinin hepsi fotoğraflı (imzalanmış), boş çerçeve yok', seritFoto.kare > 0 && seritFoto.img === seritFoto.kare && seritFoto.bos === 0, JSON.stringify(seritFoto));
   await denetle(F, 'E5/temalar/390', false);
   await F.context().close();
 

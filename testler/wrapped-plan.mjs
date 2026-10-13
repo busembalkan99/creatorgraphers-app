@@ -122,6 +122,13 @@ bekle('pano: 24 harfi aşan ad iki satırda, kesildiği belli (…)', (l => l.le
 
   // Temalar şeridi en çok 6
   bekle('temalar şeridi: en çok 6 kare', temaSeridiKareleri(kar(9).map(x => ({ ...x, tema: 't1' })), 't1').length === 6);
+  {
+    const karisik = [k({ id: 's1' }), k({ id: 'p1', tema: 't2' }), k({ id: 's2' }), k({ id: 'p2', tema: 't2' })];
+    const ids = l => l.map(x => x.id).join();
+    bekle('temalar şeridi: başka temanın karesi yok', ids(temaSeridiKareleri(karisik, 't1')) === 's1,s2' && ids(temaSeridiKareleri(karisik, 't2')) === 'p1,p2', JSON.stringify([ids(temaSeridiKareleri(karisik, 't1')), ids(temaSeridiKareleri(karisik, 't2'))]));
+    const cikanli = [k({ id: 'c1', cikarildi: true }), ...Array.from({ length: 6 }, (_, i) => k({ id: `v${i}` }))];
+    bekle('temalar şeridi: çıkarılan kare yok, yerine sıradaki geliyor', ids(temaSeridiKareleri(cikanli, 't1')) === 'v0,v1,v2,v3,v4,v5', ids(temaSeridiKareleri(cikanli, 't1')));
+  }
   bekle('paylaşım ızgarası: 0,1,3,4,6 → 0,1,2,2,5', [0, 1, 3, 4, 6].map(izgaraKareleri).join() === '0,1,2,2,5');
 
   // Baskı kendi oranında

@@ -318,7 +318,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
                   ev.preventDefault()
                   if (!alanVar) return
                   const f = [...ev.dataTransfer.files]
-                  if (f.length !== 1) return guncelle(x.id, { hata: 'Her temaya bir kare bırak.' })
+                  if (f.length !== 1) return guncelle(x.id, { hata: 'Birden çok kare bıraktın. Bu temaya tek kare bırak.' })
                   // Seçici yalnız resim gösteriyor (accept); bırakılan dosyada bu süzgeç yok
                   if (f[0].type && !f[0].type.startsWith('image/')) return guncelle(x.id, { hata: ACILAMADI })
                   yukle(f[0], x)
@@ -333,7 +333,7 @@ export function Yukleme({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) =>
             </section>
           )
         })}
-        {acik && !gelmedi && <p className="m-ipucu-yukle">Kareyi bir temanın üstüne sürükle ya da alana tıklayıp seç.</p>}
+        {acik && !gelmedi && <p className="m-ipucu-yukle">Kareyi temanın alanına sürükle.</p>}
       </div>}
 
       <div className="satir-kartlari afis">

@@ -523,7 +523,7 @@ bolum('yukleme', async b => {
   bekle('pencereden çıkınca alanlar kapanıyor (içeride gezerken değil)', acikKaldi && (await p.locator('.m-birak:visible').count()) === 0);
   // iki dosya: hata
   await birak(p, `${TEMA(t3.id)} .m-alan`, [['a.jpg', jpg('dogru'), 'image/jpeg'], ['b.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(800);
-  bekle('iki dosya: "Her temaya bir kare bırak."', (await p.textContent('.sc')).includes('Her temaya bir kare bırak.') && (await karem(t3.id)).length === 0);
+  bekle('iki dosya: "Birden çok kare bıraktın. Bu temaya tek kare bırak."', (await p.textContent('.sc')).includes('Birden çok kare bıraktın. Bu temaya tek kare bırak.') && (await karem(t3.id)).length === 0);
   // serbest temaya doğru kare
   await birak(p, `${TEMA(t3.id)} .m-alan`, [['dogru.jpg', jpg('dogru'), 'image/jpeg']]); await p.waitForTimeout(4000);
   bekle('bırakılan kare serbest temaya yüklendi', (await karem(t3.id)).length === 1);

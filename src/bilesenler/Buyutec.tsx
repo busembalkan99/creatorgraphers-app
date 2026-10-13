@@ -120,7 +120,7 @@ export function Buyutec({ acik, kapat }: { acik: Acik; kapat: () => void }) {
         <span>{acik.baslik}</span>
         {acik.sag && <span className="r">{acik.sag}</span>}
       </div>
-      {masaustu && <button className="m-kapat" aria-label="Kapat" onPointerDown={e => e.stopPropagation()} onClick={kapat}><Ikon ad="kapat" /></button>}
+      {masaustu && <button className="m-kapat" aria-label="Büyüteci kapat" onPointerDown={e => e.stopPropagation()} onClick={kapat}><Ikon ad="kapat" /></button>}
       <img ref={res} src={acik.url} alt="" draggable={false} />
       <div className="alt">{masaustu ? 'Tekerlekle büyüt, Esc ile kapat.' : 'İki parmakla büyüt, dokunarak kapat.'}</div>
     </div>,

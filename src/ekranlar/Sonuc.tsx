@@ -330,7 +330,7 @@ function KareDetay({ kare, temaOylanmadi, yonetici, kapat, degisti }:
             {kare.url && <img src={kare.tam ?? kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`}
               onClick={() => setBuyuk(true)} />}
           </span>
-          {kare.url && <button className="m-buyut btn" onClick={() => setBuyuk(true)}>Büyüt</button>}
+          {kare.url && <button className="m-buyut btn" onClick={() => setBuyuk(true)}>Kareyi büyüt</button>}
         </div>
         <div className="m-bilgi">
           <div className="kim">

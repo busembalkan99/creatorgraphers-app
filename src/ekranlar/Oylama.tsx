@@ -299,10 +299,10 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           </div>
           {/* 768-1439 fotoğrafın iki yanında ok, 1440+ panelin altında yazılı */}
           <div className="m-gez">
-            <button className="btn ik" aria-label="Önceki kare" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}><Ikon ad="geri" /><span className="m-gez-ad">Önceki</span></button>
-            <button className="btn" aria-label="Sonraki kare" onClick={() => i + 1 < kareler.length ? kaydir(kareler[i + 1].id) : akis.current?.scrollTo({ top: akis.current.querySelector<HTMLElement>('.bitti')?.offsetTop ?? 0, behavior: 'smooth' })}><span className="m-gez-ad">Sonraki</span><Ikon ad="ileri" /></button>
+            <button className="btn ik" aria-label="Önceki kare" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}><Ikon ad="geri" /><span className="m-gez-ad">Önceki kare</span></button>
+            <button className="btn" aria-label="Sonraki kare" onClick={() => i + 1 < kareler.length ? kaydir(kareler[i + 1].id) : akis.current?.scrollTo({ top: akis.current.querySelector<HTMLElement>('.bitti')?.offsetTop ?? 0, behavior: 'smooth' })}><span className="m-gez-ad">Sonraki kare</span><Ikon ad="ileri" /></button>
           </div>
-          <p className="m-ipucu">1-0 puan · ← → kareler arası</p>
+          <p className="m-ipucu">1-9 ve 0 (10) tuşlarıyla puan ver · ← → kareler arası</p>
         </section>
       ))}
 

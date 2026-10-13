@@ -75,7 +75,7 @@ export function Siralama({ uye }: { uye: Uye }) {
           söylüyor. Kareninki görselin altında, çünkü kareye ait (karar 110). */}
       {s.url && (
         <span className="kr">
-          <img src={s.url} alt="" />
+          <span className="m-pk"><img src={s.url} alt="" /></span>
         </span>
       )}
       <span className="nm"><span>{s.ad}</span></span>
@@ -97,6 +97,8 @@ export function Siralama({ uye }: { uye: Uye }) {
     <div className="sc">
       <Kunye sol="Creatorgraphers" sag="Sıralama" />
 
+      <div className="m-iki">
+      <div className="m-sol">
       <div className="seas">
         <h2>Sezon {String(ozet?.sezon ?? 1).padStart(2, '0')}</h2>
         <span className="of">{ozet?.tamamlanan ?? 0} / {ozet?.toplam ?? 6} etkinlik</span>
@@ -148,7 +150,12 @@ export function Siralama({ uye }: { uye: Uye }) {
               </div>
             </>
           )}
+        </>
+      )}
+      </div>
 
+      {acik && (
+        <div className="m-sag">
           <h2 className="kart-bas">Sıralama<span>İlk {sirali.length}</span></h2>
           {/* Karar 110: kare kişinin en iyisi, puan bütün karelerinin ortalaması. Satırlarda değil, bir kez (Buse, 2026-09-26).
               Karar 124: puan düzeltilmiş (Bayes) ortalama, iki tabloda da; ikinci cümle onu söylüyor. Satırda yalnız kare sayısı ("5 kare"). Karar 125: puan karelerin temadaki yerinden, 100'lük (Buse, 2026-10-03). */}
@@ -192,8 +199,9 @@ export function Siralama({ uye }: { uye: Uye }) {
             </>
           )}
 
-        </>
+        </div>
       )}
+      </div>
     </div>
   )
 }

@@ -86,11 +86,11 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     setSecim(null)
   }
 
-  if (hata && e === undefined) return <div className="sc"><Kunye sol="Oylama" geri="oyla" sag="Tahmin" /><Hata metin={hata} /></div>
+  if (hata && e === undefined) return <div className="sc m-tek"><Kunye sol="Oylama" geri="oyla" sag="Tahmin" /><Hata metin={hata} /></div>
   if (e === undefined) return <Yukleniyor />
   if (!e || !d) {
     return (
-      <div className="sc">
+      <div className="sc m-tek">
         <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Tahmin" />
         <h2 className="t orta">Oyun<br />bulunamadı</h2>
       </div>
@@ -103,7 +103,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
   if (a === 'sonuc') {
     if (!sonuc || !d.basladi) {
       return (
-        <div className="sc">
+        <div className="sc m-tek">
           <Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" />
           <h2 className="t orta">Bu etkinlikte<br />oynamadın</h2>
           <p className="lede">Tahmin oyunu oylama sürerken oynanıyor. Bir sonraki etkinlikte oylamanı bitirince açılır.</p>
@@ -114,7 +114,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const sayilan = sonuc.filter(x => x.sayildi)
     const dogru = sayilan.filter(x => x.dogru).length
     return (
-      <div className="sc">
+      <div className="sc m-tek">
         <Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" />
         <div className="tahmin-skor">
           <b>{dogru}/{sayilan.length}</b>
@@ -147,7 +147,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
           : d.durum === 'oylama_kapali' ? 'Oyun oylama sürerken oynanıyor.'
             : 'Bu etkinlikte tahmin oyunu yok.'
       return (
-        <div className="sc" data-asama="oylama">
+        <div className="sc m-tek" data-asama="oylama">
           <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
           <h2 className="t orta">Tahmin<br />oyunu</h2>
           <p className="lede">{neden}</p>
@@ -156,7 +156,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
       )
     }
     return (
-      <div className="sc" data-asama="oylama">
+      <div className="sc m-tek" data-asama="oylama">
         <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
         <h2 className="t orta">Oyların<br />tamam</h2>
         <p className="lede">Sonuçlar {kalanYaz(e.oylama_biter)} sonra açılıyor. O zamana kadar isteğe bağlı bir oyun var.</p>
@@ -182,7 +182,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const isim = sorular.filter(x => x.cevap != null).length
     const gecilen = sorular.filter(x => x.gecti).length
     return (
-      <div className="sc" data-asama="oylama">
+      <div className="sc m-tek" data-asama="oylama">
         <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
         <h2 className="t orta">Tahminlerin<br />gönderildi</h2>
         <p className="lede">
@@ -201,7 +201,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
   const son = siradaki === sorular.length - 1
   const secimAd = s.adaylar.find(x => x.uye === secim)?.ad ?? null
   return (
-    <div className="sc tahmin" data-asama="oylama">
+    <div className="sc tahmin m-tek" data-asama="oylama">
       <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
       <div className="tahmin-ilerleme" aria-hidden="true">
         {sorular.map((x, i) => <i key={x.sira} className={i < siradaki ? 'dolu' : i === siradaki ? 'su' : ''} />)}

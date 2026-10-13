@@ -73,6 +73,8 @@ export function Kur() {
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
       <h2 className="t orta">Yeni<br />etkinlik</h2>
 
+      <div className="m-yonetim-iki">
+      <div>
       <div className="alan">
         <span className="lab">Etkinlik türü</span>
         <div className="secim" role="group" aria-label="Etkinlik türü">
@@ -111,6 +113,8 @@ export function Kur() {
         <div className="ipucu">Oylama yüklemeden kısa. Bilerek seçtiysen sorun yok.</div>
       )}
 
+      </div>
+      <div>
       <Havuz secim={{
         secili: temalar.flatMap(t => t.oneri ? [t.oneri] : []),
         // Dokununca sıradaki boş temaya yazılıyor; tekrar dokununca geri alınıyor. 3 tema sınırı (karar 72).
@@ -151,6 +155,8 @@ export function Kur() {
           <button className="btn" onClick={() => git('asama')}>Aşama'ya geç</button>
         </div>
       ) : <button className="btn" disabled={!hazir} onClick={kur}>{gidiyor ? 'Kuruluyor' : 'Etkinliği kur'}</button>}
+      </div>
+      </div>
     </div>
   )
 }

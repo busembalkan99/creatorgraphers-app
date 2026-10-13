@@ -111,10 +111,10 @@ export function Paylas({ etkinlikId }: { etkinlikId: string }) {
   }
 
   const kunye = <Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Paylaş" />
-  if (hata && !kartlar) return <div className="sc">{kunye}<Hata metin={hata} /></div>
+  if (hata && !kartlar) return <div className="sc m-tek">{kunye}<Hata metin={hata} /></div>
   if (yok) {
     return (
-      <div className="sc">
+      <div className="sc m-tek">
         {kunye}
         <h2 className="t orta">Paylaşacak<br />karen yok</h2>
         <p className="lede">Kart, bu etkinlikte yarışan karen için hazırlanıyor.</p>
@@ -122,10 +122,10 @@ export function Paylas({ etkinlikId }: { etkinlikId: string }) {
       </div>
     )
   }
-  if (!kartlar) return <div className="sc">{kunye}<Yukleniyor /></div>
+  if (!kartlar) return <div className="sc m-tek">{kunye}<Yukleniyor /></div>
 
   return (
-    <div className="sc">
+    <div className="sc m-tek">
       {kunye}
       <h2 className="t">Kartını paylaş</h2>
       <div className="pk-sahne"

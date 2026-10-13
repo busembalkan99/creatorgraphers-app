@@ -114,6 +114,7 @@ export function tarihKontrol(bulusmada: boolean, bulusmaGunu: string, cekimGunu:
 }
 
 export class DosyaHatasi extends Error {}
+export const ACILAMADI = 'Bu dosya açılamadı. Makineden gelen JPEG dosyayı seç.'
 
 /** JPEG'in EXIF çevirme değeri (1–8); etiket yoksa ya da okunamazsa 1 */
 export function yonOku(buf: ArrayBuffer): number {
@@ -203,7 +204,7 @@ async function coz(dosya: File): Promise<{ g: number; y: number; ciz: (ctx: Canv
       await img.decode()
     } catch {
       URL.revokeObjectURL(adres)
-      throw new DosyaHatasi('Bu dosya açılamadı. Makineden gelen JPEG dosyayı seç.')
+      throw new DosyaHatasi(ACILAMADI)
     }
     const yon = yonOku(await dosya.slice(0, 256 * 1024).arrayBuffer())
     const { dogalYonlu, cizimYonlu } = await cizimOlc()

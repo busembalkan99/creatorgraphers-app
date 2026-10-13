@@ -40,7 +40,7 @@ export async function kartDenetle(p, ad, bekle) {
     ];
     // Açıklama satırının hemen altından kart/liste yapışmasın (Buse, 2026-09-30: tema havuzu).
     // kart-not hariç: bölüm başlığının notu, kartla arası 10px bilerek.
-    const yapisik = [...document.querySelectorAll('.sc > .lede, .sc > p:not(.kart-not), .sc > .veri')].map(m => {
+    const yapisik = [...document.querySelectorAll('.sc > .lede, .sc > p:not(.kart-not), .sc .veri')].map(m => {
       let n = m.nextElementSibling; while (n && !n.getBoundingClientRect().height) n = n.nextElementSibling;
       return n && n.matches('.kart, .satir-kartlari, .bos-kart') ? { m: m.className || m.tagName, n: n.className, g: Math.round(n.getBoundingClientRect().top - m.getBoundingClientRect().bottom) } : null;
     }).filter(x => x && x.g < 16);

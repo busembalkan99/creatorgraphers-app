@@ -10,6 +10,7 @@ const P = {
   yenile: '<polyline points="22 12 19 15 16 12"/><path d="M11,20 C6.581722,20 3,16.418278 3,12 C3,7.581722 6.581722,4 11,4 C15.418278,4 19,7.581722 19,12 L19,14"/>',
   kilit: '<rect width="14" height="10" x="5" y="11"/><path d="M12,3 L12,3 C14.7614237,3 17,5.23857625 17,8 L17,11 L7,11 L7,8 C7,5.23857625 9.23857625,3 12,3 Z"/>',
   geri: '<path d="M9 6l-6 6 6 6"/><path d="M21 12H4"/><path d="M3 12h1"/>',
+  ileri: '<path d="M15 6l6 6-6 6"/><path d="M3 12h17"/><path d="M21 12h-1"/>',
   asagi: '<polyline points="6 9 12 15 18 9"/>',
   yukari: '<polyline points="6 15 12 9 18 15"/>',
   sag: '<polyline points="9 6 15 12 9 18"/>',
@@ -19,6 +20,9 @@ const P = {
   film: '<path d="M3 5H21V21H3V5Z"/><path d="M21 9.5H3"/><path d="M7 5V2.5M17 5V2.5"/><path d="M7 13.5H9M11 13.5H13M15 13.5H17M7 17H9M11 17H13"/>',
   sira: '<polygon points="2 12 2 21 6 21 6 12"/><polygon points="18 7 18 21 22 21 22 7"/><polygon points="10 3 10 21 14 21 14 3"/>',
   kisi: '<path d="M4,20 C4,17 8,17 10,15 C11,14 8,14 8,9 C8,5.667 9.333,4 12,4 C14.667,4 16,5.667 16,9 C16,14 13,14 14,15 C16,17 20,17 20,20"/>',
+  uyeler: '<circle cx="9" cy="8" r="3.5"/><path d="M2 20C2.8 16.6 5.4 15 9 15C12.6 15 15.2 16.6 16 20"/><path d="M16 4.5A3.5 3.5 0 0 1 16 11.5"/><path d="M18 15C20 15.6 21.4 17.2 22 20"/>',
+  zil: '<path d="M6 16V11C6 7.7 8.7 5 12 5C15.3 5 18 7.7 18 11V16L20 18H4L6 16Z"/><path d="M10 20H14"/>',
+  liste: '<path d="M4 6H20"/><path d="M4 12H20"/><path d="M4 18H14"/>',
 } as const
 
 export type IkonAdi = keyof typeof P

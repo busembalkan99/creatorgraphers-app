@@ -112,7 +112,7 @@ export function Vitrin({ uyeId, etkinlikler, temalar, benimTemalarim }: {
             {b.kareler.map(x => (
               <figure key={x.id} className={`vt ${yeni ? 'belir' : ''}`} onClick={() => git(`sonuc/${b.e.id}/kare/${x.id}`)}>
                 <span className="buyut"><Ikon ad="buyut" /></span>
-                {x.url ? <img src={x.url} alt={`${x.tema_ad} temasının birincisi`} /> : <div className="yer" />}
+                {x.url ? <span className="m-pk"><img src={x.url} alt={`${x.tema_ad} temasının birincisi`} /></span> : <div className="yer" />}
                 <figcaption><b>{x.tema_ad}</b><span>{x.sahip_ad}</span><i>{puanYaz(x.ortalama)}</i></figcaption>
               </figure>
             ))}
@@ -123,7 +123,7 @@ export function Vitrin({ uyeId, etkinlikler, temalar, benimTemalarim }: {
         <>
           <h2 className="kart-bas">Katıldığın son etkinlik<span>{k.ay}</span></h2>
           <button className={`kart katildigin ${yeni ? 'belir' : ''}`} onClick={() => git(`sonuc/${k.e.id}`)}>
-            {k.kare.url ? <img src={k.kare.url} alt="" /> : <span className="yer" />}
+            {k.kare.url ? <span className="m-pk"><img src={k.kare.url} alt="" /></span> : <span className="yer" />}
             <div className="vt-sayi">
               {k.kare.sirali && <div><b>{k.kare.sira}</b><span>Sıran</span></div>}
               <div><b>{puanYaz(k.kare.ortalama)}</b><span>Puanın</span></div>

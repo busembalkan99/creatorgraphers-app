@@ -10,6 +10,7 @@ import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { acikEtkinlik } from './Etkinlikler'
 import type { TahminDurumu } from './Tahmin'
 import { kareAdresleri } from '../lib/imza'
+import { MASAUSTU } from '../lib/masaustu'
 
 /**
  * Oylama (kararlar 5, 6, 7, 9, 20, 24, 37, 42, 48, 94).
@@ -209,6 +210,69 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
     }
   }, [uye.id])
 
+  // Okla, düğmeyle başlatılan yumuşak kaydırmanın gittiği bölüm. Kaydırma yarıyı geçene kadar en yakın
+  // bölüm hâlâ bırakılan kare: rakam ve sonraki ok bu hedefe göre çalışıyor.
+  const hedef = useRef<number | null>(null)
+  const hedefSaati = useRef(0)
+  const hedefeKaydir = useCallback((i: number) => {
+    const ak = akis.current
+    const b = ak?.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')[i]
+    if (!ak || !b) return
+    hedef.current = i
+    // scrollend olmayan tarayıcıda hedef kendiliğinden düşsün
+    clearTimeout(hedefSaati.current)
+    hedefSaati.current = window.setTimeout(() => { hedef.current = null }, 1500)
+    ak.scrollTo({ top: b.offsetTop, behavior: 'smooth' })
+  }, [])
+  useEffect(() => {
+    const ak = akis.current; if (!ak) return
+    const bitti = () => {
+      const b = hedef.current == null ? null : ak.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')[hedef.current]
+      if (!b || Math.abs(b.offsetTop - ak.scrollTop) < 2) hedef.current = null
+    }
+    const elle = () => { hedef.current = null }
+    ak.addEventListener('scrollend', bitti)
+    ak.addEventListener('wheel', elle, { passive: true })
+    ak.addEventListener('touchstart', elle, { passive: true })
+    return () => {
+      ak.removeEventListener('scrollend', bitti)
+      ak.removeEventListener('wheel', elle)
+      ak.removeEventListener('touchstart', elle)
+      clearTimeout(hedefSaati.current)
+    }
+  }, [e, tema])
+
+  // Masaüstü kısayolları: yazı alanında ve pencerede çalışmaz, yalnız 768+ (telefonda klavye yok sayılıyor)
+  useEffect(() => {
+    const tus = (ev: KeyboardEvent) => {
+      if (!matchMedia(MASAUSTU).matches || ev.metaKey || ev.ctrlKey || ev.altKey) return
+      const h = ev.target as HTMLElement
+      // Büyüteç ya da çıkarma penceresi açıkken odak gövdede kalabiliyor: açık pencere de yeter
+      if (h.closest?.('input, textarea, select, [contenteditable="true"], [role="dialog"]') || document.querySelector('[aria-modal="true"]')) return
+      const ak = akis.current; if (!ak) return
+      const rakam = /^[0-9]$/.test(ev.key), ok = ev.key === 'ArrowRight' || ev.key === 'ArrowLeft'
+      // Sayfa aşağı, boşluk gibi tuşlar kendisi kaydırıyor: hedef artık geçersiz
+      if (!rakam && !ok) { hedef.current = null; return }
+      const bolumler = [...ak.querySelectorAll<HTMLElement>(':scope > .kare, :scope > .bitti')]
+      const i = hedef.current != null && hedef.current < bolumler.length
+        ? hedef.current
+        : bolumler.reduce((en, b, j) => Math.abs(b.offsetTop - ak.scrollTop) < Math.abs(bolumler[en].offsetTop - ak.scrollTop) ? j : en, 0)
+      const k = kareler[i]
+      if (rakam && k && !kilitli) {
+        ev.preventDefault()
+        // Basılı tutulan tuş her yinelemede yeniden yazmasın
+        if (ev.repeat) return
+        // Tıklanmış eski düğmede odak halkası kalmasın
+        if ((document.activeElement as HTMLElement | null)?.closest('.m-puanlar')) (document.activeElement as HTMLElement).blur()
+        oyVer(k.id, ev.key === '0' ? 10 : Number(ev.key))
+      }
+      else if (ev.key === 'ArrowRight' && i + 1 < bolumler.length) { ev.preventDefault(); hedefeKaydir(i + 1) }
+      else if (ev.key === 'ArrowLeft' && i > 0) { ev.preventDefault(); hedefeKaydir(i - 1) }
+    }
+    addEventListener('keydown', tus)
+    return () => removeEventListener('keydown', tus)
+  }, [kareler, kilitli, oyVer, hedefeKaydir])
+
   if (hata) return <div className="sc"><Kunye sol="Oylama" geri="oyla" sag="Oylama" /><Hata metin={hata} /></div>
   if (e === undefined) return <Yukleniyor />
   if (e === null || !tema) {
@@ -222,8 +286,8 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
 
   const eksik = kareler.filter(k => k.puan == null)
   const kaydir = (id: string) => {
-    const el = akis.current?.querySelector(`[data-kare="${id}"]`) as HTMLElement | null
-    if (el && akis.current) akis.current.scrollTo({ top: el.offsetTop, behavior: 'smooth' })
+    const i = kareler.findIndex(k => k.id === id)
+    if (i >= 0) hedefeKaydir(i)
   }
 
   return (
@@ -246,7 +310,7 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
           </div>
           <div className="ince" />
           <div className="sahne">
-            <div className="tutucu">
+            <div className="tutucu" style={{ ['--en' as string]: k.genislik, ['--boy' as string]: k.yukseklik }}>
               {k.url ? (
                 <img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik} alt={`${tema.ad} ${i + 1}. kare`} draggable={false}
                   {...tetik(olcek => setBuyuk({ url: (k.tam ?? k.url)!, baslik: tema.ad, sag: `${iki(i + 1)} / ${iki(kareler.length)}`, olcek }))} />
@@ -257,17 +321,27 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
             </div>
           </div>
           <div className="ince" />
-          {kilitli ? (
-            <p className="kilit-not"><Ikon ad="kilit" />Puanın {k.puan != null ? iki(k.puan) : 'yok'}. Tahmin oyununu başlattığın için kilitli.</p>
-          ) : (
-            <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
-          )}
-          {ipucu && k.puan != null && (
-            <p className="kaydir-ipucu" role="status">
-              <Ikon ad="yukari" />
-              {i + 1 < kareler.length ? 'Sonraki kare için yukarı kaydır' : 'Bitirmek için yukarı kaydır'}
-            </p>
-          )}
+          <div className="m-panel">
+            {kilitli ? (
+              <p className="kilit-not"><Ikon ad="kilit" />Puanın {k.puan != null ? iki(k.puan) : 'yok'}. Tahmin oyununu başlattığın için kilitli.</p>
+            ) : (
+              <Kaydirici puan={k.puan} degisti={p => oyVer(k.id, p)} />
+            )}
+            {ipucu && k.puan != null && (
+              <p className="kaydir-ipucu" role="status">
+                <Ikon ad="yukari" />
+                {i + 1 < kareler.length ? 'Sonraki kare için yukarı kaydır' : 'Bitirmek için yukarı kaydır'}
+              </p>
+            )}
+            {!kilitli && <div className="m-puan-bas"><span className="lab">Puanın</span><b>{k.puan == null ? '' : iki(k.puan)}</b></div>}
+            {!kilitli && <PuanDugmeleri puan={k.puan} degisti={p => oyVer(k.id, p)} kilitli={kilitli} />}
+          </div>
+          {/* 768-1439 fotoğrafın iki yanında ok, 1440+ panelin altında yazılı */}
+          <div className="m-gez">
+            <button className="btn ik" aria-label="Önceki kare" disabled={i === 0} onClick={() => kaydir(kareler[i - 1].id)}><Ikon ad="geri" /><span className="m-gez-ad">Önceki kare</span></button>
+            <button className="btn" aria-label="Sonraki kare" onClick={() => hedefeKaydir(i + 1)}><span className="m-gez-ad">Sonraki kare</span><Ikon ad="ileri" /></button>
+          </div>
+          <p className="m-ipucu">1-9 ve 0 (10) tuşlarıyla puan ver · ← → kareler arası</p>
         </section>
       ))}
 
@@ -301,6 +375,17 @@ export function OylamaTema({ uye, temaId }: { uye: Uye; temaId: string }) {
         <CikarPenceresi kare={cikar} kapat={() => setCikar(null)}
           bitti={() => { setKareler(ks => ks.filter(x => x.id !== cikar)); setCikar(null); setCikti(true) }} />
       )}
+    </div>
+  )
+}
+
+// Masaüstü puanı (karar 129): kaydırıcı 768+'da gizli, puan tıklanarak. Telefonda görünmüyor.
+function PuanDugmeleri({ puan, degisti, kilitli }: { puan: number | null; degisti: (p: number) => void; kilitli: boolean }) {
+  return (
+    <div className="m-puanlar" role="group" aria-label="Puan">
+      {Array.from({ length: 10 }, (_, j) => j + 1).map(v => (
+        <button key={v} className={puan === v ? 'on' : ''} aria-pressed={puan === v} disabled={kilitli} onClick={() => degisti(v)}>{v}</button>
+      ))}
     </div>
   )
 }

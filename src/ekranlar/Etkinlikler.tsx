@@ -10,6 +10,7 @@ import { Hata, Kunye, Yukleniyor } from '../bilesenler/Kunye'
 import { izlenmemisWrapped, wrappedGerekirseAc } from './Wrapped'
 import { BildirimKarti } from '../bilesenler/BildirimKarti'
 import { OneriKarti } from './Oneri'
+import { temaDurumu, type OyTema } from '../lib/temaDurumu'
 
 /**
  * Ana ekran: etkinlikler arşivi (karar 44). Prototip: v16.
@@ -22,6 +23,7 @@ interface Veri {
   benimTemalarim: Set<string>
   uyeSayisi: number
   oyKalan: { kalan: number; toplam: number } | null   // oylama açıkken kaç kare kaldı
+  oyTemalar: OyTema[] | null   // oylama açıkken tema başına durum (masaüstü canlı kart listesi)
   gelmedim: boolean   // karar 103: açık etkinlikte yoklama alındı ve adım yok
 }
 
@@ -59,13 +61,15 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
   const etkinlikler = (e.data ?? []) as Etkinlik[]
   const acik = etkinlikler.find(x => asama(x) === 'oylama')
   let oyKalan: { kalan: number; toplam: number } | null = null
+  let oyTemalar: OyTema[] | null = null
   if (acik) {
     const d = await sor(sb.rpc('oylama_durumu', { p_etkinlik: acik.id })).catch(() => ({ error: true, data: null } as const))
     if (!d.error) {
-      const satir = (d.data ?? []) as { toplam: number; puanladigim: number }[]
+      const satir = (d.data ?? []) as { tema: string; toplam: number; puanladigim: number }[]
+      oyTemalar = satir.map(x => ({ tema: x.tema, toplam: Number(x.toplam), puanladigim: Number(x.puanladigim) }))
       oyKalan = {
-        kalan: satir.reduce((a, x) => a + (Number(x.toplam) - Number(x.puanladigim)), 0),
-        toplam: satir.reduce((a, x) => a + Number(x.toplam), 0),
+        kalan: oyTemalar.reduce((a, x) => a + (x.toplam - x.puanladigim), 0),
+        toplam: oyTemalar.reduce((a, x) => a + x.toplam, 0),
       }
     }
   }
@@ -84,6 +88,7 @@ export async function etkinlikVerisi(uyeId: string): Promise<Veri> {
     benimTemalarim: new Set((k.data ?? []).map(r => r.tema as string)),
     uyeSayisi: Number(u.data ?? 0),
     oyKalan,
+    oyTemalar,
   }
 }
 
@@ -133,7 +138,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
     <div className="sc">
       <Kunye sol="Creatorgraphers" sag={`${v.uyeSayisi} üye`} />
       {acik ? (
-        <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} oyKalan={v.oyKalan} gelmedim={!!v.gelmedim} />
+        <CanliKart e={acik} temalar={v.temalar.filter(t => t.etkinlik === acik.id)} benim={v.benimTemalarim} oyKalan={v.oyKalan} oyTemalar={v.oyTemalar} gelmedim={!!v.gelmedim} />
       ) : (
         // Boş hâl ve eylemi tek kartta; "kurulmadı" yönetici diliydi (Buse, 2026-09-26)
         <div className="kart next">
@@ -179,7 +184,7 @@ export function Etkinlikler({ uye }: { uye: Uye }) {
   )
 }
 
-function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: { kalan: number; toplam: number } | null; gelmedim: boolean }) {
+function CanliKart({ e, temalar, benim, oyKalan, oyTemalar, gelmedim }: { e: Etkinlik; temalar: Tema[]; benim: Set<string>; oyKalan: { kalan: number; toplam: number } | null; oyTemalar: OyTema[] | null; gelmedim: boolean }) {
   const a = asama(e)
   const ay = ayAdi(e.bulusma_gunu)
   // Karar 116: ekstra etkinlik her hâlde kendini söylüyor (başlamadı, yükleme, oylama)
@@ -203,6 +208,18 @@ function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; tema
         {/* Ekstra etkinlikte bütün temalar serbest: ek her temada tekrar ediyordu (Buse, 2026-09-26) */}
         <div className="temalar">{temalar.map(t => `${t.ad}${t.bulusmada || e.serbest ? '' : ' (serbest)'}`).join(' · ')}</div>
         <button className="act" onClick={() => git('yukle')}>Temalara bak</button>
+      <ul className="m-tema-durum" aria-label="Temalar">
+        {temalar.map((t, j) => {
+          const d = temaDurumu(a, t.id, t.bulusmada && !e.serbest, benim, oyTemalar)
+          return (
+            <li key={t.id}>
+              <span className="m-no">{String(j + 1).padStart(2, '0')}</span>
+              <b>{t.ad}</b>
+              {d.metin && <span className={`m-tema-d ${d.tamam ? 'tamam' : ''}`}>{d.metin}</span>}
+            </li>
+          )
+        })}
+      </ul>
       </div>
     )
   }
@@ -243,6 +260,18 @@ function CanliKart({ e, temalar, benim, oyKalan, gelmedim }: { e: Etkinlik; tema
           {oyKalan != null && oyKalan.kalan > 0 && <i>{oyKalan.kalan} kare kaldı</i>}
         </button>
       )}
+      <ul className="m-tema-durum" aria-label="Temalar">
+        {temalar.map((t, j) => {
+          const d = temaDurumu(a, t.id, t.bulusmada && !e.serbest, benim, oyTemalar)
+          return (
+            <li key={t.id}>
+              <span className="m-no">{String(j + 1).padStart(2, '0')}</span>
+              <b>{t.ad}</b>
+              {d.metin && <span className={`m-tema-d ${d.tamam ? 'tamam' : ''}`}>{d.metin}</span>}
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

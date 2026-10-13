@@ -5,6 +5,8 @@ import type { Uye } from './lib/tipler'
 import { git, sekmeGit, sonYon, useYol } from './lib/yol'
 import { geriAlinacak } from './lib/kaydirma'
 import { Ikon } from './bilesenler/Ikon'
+import { Ray } from './bilesenler/Ray'
+import { SEKMELER } from './lib/sekmeler'
 import { Hata, Kunye, Yukleniyor } from './bilesenler/Kunye'
 import { bellegeYaz, bellektenAl } from './lib/onbellek'
 import { Cikarildin, Hosgeldin, Kapak, UyeDegil } from './ekranlar/Giris'
@@ -94,12 +96,6 @@ function Icerik({ oturum }: { oturum: Session }) {
   return <Uygulama uye={uye} uyeDegisti={setUye} />
 }
 
-const SEKMELER = [
-  { yol: 'etkinlikler', ad: 'Etkinlikler', ikon: 'film' },
-  { yol: 'siralama', ad: 'Sıralama', ikon: 'sira' },
-  { yol: 'profil', ad: 'Profil', ikon: 'kisi' },
-] as const
-
 function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void }) {
   const yol = useYol()
   const yonetici = uye.rol !== 'uye'
@@ -108,6 +104,23 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
   // geri dönüşte önceki sayfa soldan belirir, sekmeler arası hareket yok).
   const yon = sonYon()
   const sarmal = useRef<HTMLDivElement>(null)
+
+  // Rayın seçili rengi ekranın aşamasını izliyor; --acc ekran kökünde, ray onun dışında.
+  // .app'e değil .m-ray'e yazılır: telefonda alt sekme çubuğunun rengi değişmesin.
+  // Ekran aşamayı veri geldikten sonra koyabiliyor: yalnız çizimde bakmak eski rengi bırakır.
+  useEffect(() => {
+    const kap = sarmal.current
+    if (!kap) return
+    const yaz = () => {
+      const a = kap.querySelector('[data-asama]')?.getAttribute('data-asama')
+      const ray = document.querySelector('.m-ray')
+      if (a) ray?.setAttribute('data-asama', a); else ray?.removeAttribute('data-asama')
+    }
+    yaz()
+    const g = new MutationObserver(yaz)
+    g.observe(kap, { attributes: true, attributeFilter: ['data-asama'], childList: true, subtree: true })
+    return () => g.disconnect()
+  }, [yol])
 
   // Sekmeler önceden: açılış ekranı oturduktan sonra Sıralama ve Profil sessizce yükleniyor,
   // ilk açılışta yükleniyor çizgisi ve boş ekran görünmüyor (Buse, 2026-09-27)
@@ -225,6 +238,7 @@ function Uygulama({ uye, uyeDegisti }: { uye: Uye; uyeDegisti: (u: Uye) => void 
 
   return (
     <>
+      <Ray sekme={sekme} yol={yol} yonetici={yonetici} />
       {/* key: aynı ekrana geri dönünce veri tazelensin. Sınıf sayfa hareketini seçiyor. */}
       <div key={yol} ref={sarmal} className={`gecis yon-${yon}`}>{ekran}</div>
       {!altEkran && (

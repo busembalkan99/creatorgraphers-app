@@ -50,7 +50,7 @@ export function OneriFormu() {
     git('profil')
   }
   return (
-    <div className="sc">
+    <div className="sc m-tek">
       <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Tema öner" />
       <h2 className="t orta">Tema<br />öner</h2>
       <p className="lede">Yönetici etkinlik kurarken havuzdan seçiyor. Havuzu yalnız yönetici görüyor.</p>
@@ -131,6 +131,7 @@ export function Havuz({ secim }: { secim?: { secili: string[]; sec(o: { id: stri
   return (
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
+      <div className="m-dar">
       <h2 className="t orta">Tema<br />havuzu</h2>
       <p className="lede">Etkinlik kurarken buradan seçersin. Önerenlerin adını yalnız yöneticiler görüyor.</p>
       <Hata metin={hata} />
@@ -146,6 +147,7 @@ export function Havuz({ secim }: { secim?: { secili: string[]; sec(o: { id: stri
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

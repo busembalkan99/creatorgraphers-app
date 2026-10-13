@@ -1,0 +1,361 @@
+/* ÜRETİLDİ: node scripts/masaustu-olcek.mjs (karar 129). Elle düzenleme. */
+@media (min-width:768px) and (min-height:520px){
+.app:has(> .m-ray) .mast{font-size:12px}
+.app:has(> .m-ray) h2.t{font-size:56px}
+.app:has(> .m-ray) h2.t.orta{font-size:56px}
+.app:has(> .m-ray) .lede{font-size:15px}
+.app:has(> .m-ray) .lab{font-size:12px}
+.app:has(> .m-ray) .veri{font-size:12px}
+.app:has(> .m-ray) .sart{font-size:12px}
+.app:has(> .m-ray) .btn{font-size:12px}
+.app:has(> .m-ray) .link{font-size:12px}
+.app:has(> .m-ray) .hata{font-size:12px}
+.app:has(> .m-ray) .marka{font-size:56px}
+.app:has(> .m-ray) .alt-bilgi{font-size:12px}
+.app:has(> .m-ray) .hesap b{font-size:14px}
+.app:has(> .m-ray) .alan input,.app:has(> .m-ray) .alan select{font-size:16px}
+.app:has(> .m-ray) .alan input.not{font-size:16px}
+.app:has(> .m-ray) .ipucu{font-size:12px}
+.app:has(> .m-ray) .kutu .bas{font-size:14px}
+.app:has(> .m-ray) .kutu p{font-size:12px}
+.app:has(> .m-ray) .ozet .k{font-size:12px}
+.app:has(> .m-ray) .ozet .v{font-size:14px}
+.app:has(> .m-ray) .adim .no{font-size:23px}
+.app:has(> .m-ray) .adim b{font-size:14px}
+.app:has(> .m-ray) .adim span span{font-size:12px}
+.app:has(> .m-ray) .live .kick{font-size:12px}
+.app:has(> .m-ray) .live h2{font-size:56px}
+.app:has(> .m-ray) .live .meta{font-size:12px}
+.app:has(> .m-ray) .live .meta b{font-size:20px}
+.app:has(> .m-ray) .live .not{font-size:12px}
+.app:has(> .m-ray) .live .temalar{font-size:14px}
+.app:has(> .m-ray) .live .act{font-size:12px}
+.app:has(> .m-ray) .next .k{font-size:12px}
+.app:has(> .m-ray) .next .v{font-size:20px}
+.app:has(> .m-ray) .next .u{font-size:12px}
+.app:has(> .m-ray) .ev .no{font-size:20px}
+.app:has(> .m-ray) .ev .mo{font-size:14px}
+.app:has(> .m-ray) .ev .mt{font-size:12px}
+.app:has(> .m-ray) .ev .alt{font-size:12px}
+.app:has(> .m-ray) .tabs button{font-size:12px}
+.app:has(> .m-ray) .kal{font-size:12px}
+.app:has(> .m-ray) .k .ad{font-size:12px}
+.app:has(> .m-ray) .k .d{font-size:11px}
+.app:has(> .m-ray) .bos b{font-size:13px}
+.app:has(> .m-ray) .bos span{font-size:12px}
+.app:has(> .m-ray) .yuk b{font-size:13px}
+.app:has(> .m-ray) .yuk span{font-size:12px}
+.app:has(> .m-ray) .dolu .tar{font-size:12px}
+.app:has(> .m-ray) .ret .bt{font-size:14px}
+.app:has(> .m-ray) .ret .tar{font-size:12px}
+.app:has(> .m-ray) .ret p{font-size:12px}
+.app:has(> .m-ray) .kilit{font-size:12px}
+.app:has(> .m-ray) .izin b{font-size:14px}
+.app:has(> .m-ray) .izin b + span{font-size:12px}
+.app:has(> .m-ray) .satir b{font-size:14px}
+.app:has(> .m-ray) .satir .tx span{font-size:12px}
+.app:has(> .m-ray) .satir .deg{font-size:12px}
+.app:has(> .m-ray) .rozet{font-size:12px}
+.app:has(> .m-ray) .onaykutu b{font-size:14px}
+.app:has(> .m-ray) .onaykutu p{font-size:12px}
+.app:has(> .m-ray) .rolakt button{font-size:12px}
+.app:has(> .m-ray) .istek .ust b{font-size:14px}
+.app:has(> .m-ray) .istek .mail{font-size:12px}
+.app:has(> .m-ray) .istek .not{font-size:13px}
+.app:has(> .m-ray) .tekrar{font-size:12px}
+.app:has(> .m-ray) .karar{font-size:12px}
+.app:has(> .m-ray) .secim button{font-size:12px}
+.app:has(> .m-ray) .sil{font-size:12px}
+.app:has(> .m-ray) .mesaj p{font-size:14px}
+.app:has(> .m-ray) .kaydir-ipucu{font-size:12px}
+.app:has(> .m-ray) .plaka .no{font-size:72px}
+.app:has(> .m-ray) .plaka .of{font-size:11px}
+.app:has(> .m-ray) .plaka .tema{font-size:17px}
+.app:has(> .m-ray) .plaka .tema small{font-size:12px}
+.app:has(> .m-ray) .puan .deger{font-size:56px}
+.app:has(> .m-ray) .puan .deger.yok{font-size:12px}
+.app:has(> .m-ray) .olcek{font-size:12px}
+.app:has(> .m-ray) .bitti h2{font-size:68px}
+.app:has(> .m-ray) .bitti p{font-size:15px}
+.app:has(> .m-ray) .bitti .eksikbas{font-size:15px}
+.app:has(> .m-ray) .bitti .eksikbas span{font-size:12px}
+.app:has(> .m-ray) .bitti .eksik .etiket{font-size:9px}
+.app:has(> .m-ray) .tema-satir b{font-size:17px}
+.app:has(> .m-ray) .tema-satir .sag{font-size:12px}
+.app:has(> .m-ray) .tema-satir .alt{font-size:12px}
+.app:has(> .m-ray) .bas h1{font-size:56px}
+.app:has(> .m-ray) .bas .meta{font-size:12px}
+.app:has(> .m-ray) .sekmeler button{font-size:15px}
+.app:has(> .m-ray) .sekmeler button i{font-size:12px}
+.app:has(> .m-ray) .odul .serit b{font-size:12px}
+.app:has(> .m-ray) .odul .serit .ad{font-size:17px}
+.app:has(> .m-ray) .odul .serit .ort{font-size:20px}
+.app:has(> .m-ray) .kursu .no{font-size:12px}
+.app:has(> .m-ray) .kursu .ad{font-size:14px}
+.app:has(> .m-ray) .kursu .ort{font-size:20px}
+.app:has(> .m-ray) .satir-kare .no{font-size:12px}
+.app:has(> .m-ray) .satir-kare .ad{font-size:14px}
+.app:has(> .m-ray) .satir-kare .ort{font-size:20px}
+.app:has(> .m-ray) .izgara figcaption{font-size:12px}
+.app:has(> .m-ray) .detay .kim .ad{font-size:20px}
+.app:has(> .m-ray) .detay .kim .ort{font-size:20px}
+.app:has(> .m-ray) .kunye b{font-size:12px}
+.app:has(> .m-ray) .kunye span{font-size:12px}
+.app:has(> .m-ray) .bos-tema b{font-size:12px}
+.app:has(> .m-ray) .bos-tema h3{font-size:26px}
+.app:has(> .m-ray) .bos-tema p{font-size:12px}
+.app:has(> .m-ray) .seas h2{font-size:36px}
+.app:has(> .m-ray) .seas .of{font-size:12px}
+.app:has(> .m-ray) .row .no{font-size:12px}
+.app:has(> .m-ray) .row .nm{font-size:14px}
+.app:has(> .m-ray) .row .av{font-size:20px}
+.app:has(> .m-ray) .row .kr small,.app:has(> .m-ray) .row .av small{font-size:11px}
+.app:has(> .m-ray) .pname{font-size:44px}
+.app:has(> .m-ray) .since{font-size:12px}
+.app:has(> .m-ray) .stats b{font-size:20px}
+.app:has(> .m-ray) .stats span{font-size:12px}
+.app:has(> .m-ray) .badge b{font-size:14px}
+.app:has(> .m-ray) .badge span{font-size:12px}
+.app:has(> .m-ray) .habit .k{font-size:12px}
+.app:has(> .m-ray) .habit .v{font-size:14px}
+.app:has(> .m-ray) .habit .n{font-size:12px}
+.app:has(> .m-ray) .grid figcaption{font-size:12px}
+.app:has(> .m-ray) .grid figcaption b{font-size:12px}
+.app:has(> .m-ray) .gridnot{font-size:12px}
+.app:has(> .m-ray) .buyutec .bar,.app:has(> .m-ray) .buyutec .alt{font-size:12px}
+.app:has(> .m-ray) .cikan b{font-size:14px}
+.app:has(> .m-ray) .cikan .tx span{font-size:12px}
+.app:has(> .m-ray) .cikarildi-not b{font-size:14px}
+.app:has(> .m-ray) .cikarildi-not span{font-size:12px}
+.app:has(> .m-ray) .pk-okno b{font-size:20px}
+.app:has(> .m-ray) .pk-okno .pk-sayac{font-size:12px}
+.app:has(> .m-ray) .tahmin-kart b{font-size:17px}
+.app:has(> .m-ray) .tahmin-kart .git{font-size:12px}
+.app:has(> .m-ray) .tahmin-teklif p{font-size:15px}
+.app:has(> .m-ray) .tahmin-bas b{font-size:15px}
+.app:has(> .m-ray) .tahmin-bas span{font-size:12px}
+.app:has(> .m-ray) .aday{font-size:14px}
+.app:has(> .m-ray) .tahmin-alt .secim b{font-size:14px}
+.app:has(> .m-ray) .tahmin-skor b{font-size:80px}
+.app:has(> .m-ray) .tahmin-skor span{font-size:12px}
+.app:has(> .m-ray) .tahmin-satir b{font-size:14px}
+.app:has(> .m-ray) .tahmin-satir .tx span{font-size:12px}
+.app:has(> .m-ray) .kilit-not{font-size:12px}
+.app:has(> .m-ray) .kart-bas{font-size:12px}
+.app:has(> .m-ray) .kart-not{font-size:12px}
+.app:has(> .m-ray) .bos-kart b{font-size:14px}
+.app:has(> .m-ray) .bos-kart span{font-size:12px}
+.app:has(> .m-ray) .kart.isimler,.app:has(> .m-ray) .mud-kart .isimler{font-size:14px}
+.app:has(> .m-ray) .mud-kart b{font-size:36px}
+.app:has(> .m-ray) .mud-kart > span{font-size:12px}
+.app:has(> .m-ray) .kart.stats b{font-size:36px}
+.app:has(> .m-ray) .kisisel p{font-size:12px}
+.app:has(> .m-ray) .sen-yeri b,.app:has(> .m-ray) .kart.senin b{font-size:36px}
+.app:has(> .m-ray) .sen-yeri span,.app:has(> .m-ray) .kart.senin span{font-size:12px}
+.app:has(> .m-ray) .sen-yeri p,.app:has(> .m-ray) .kart.senin p{font-size:12px}
+.app:has(> .m-ray) .satir-kartlari .row.lider .av{font-size:26px}
+.app:has(> .m-ray) .durum{font-size:12px}
+.app:has(> .m-ray) .durum b{font-size:20px}
+.app:has(> .m-ray) .kart.ozet .degistir{font-size:12px}
+.app:has(> .m-ray) .kur-ozet > span:first-child{font-size:12px}
+.app:has(> .m-ray) .kur-ozet b{font-size:20px}
+.app:has(> .m-ray) .kur-ozet > span:last-child{font-size:12px}
+.app:has(> .m-ray) .kart.tahmin-teklif .kilit-ic .bas{font-size:14px}
+.app:has(> .m-ray) .kart.tahmin-teklif .kilit-ic p{font-size:12px}
+.app:has(> .m-ray) .ev .git{font-size:12px}
+.app:has(> .m-ray) .vt figcaption b{font-size:12px}
+.app:has(> .m-ray) .vt figcaption span{font-size:14px}
+.app:has(> .m-ray) .vt figcaption i{font-size:20px}
+.app:has(> .m-ray) .vt-sayi b{font-size:36px}
+.app:has(> .m-ray) .vt-sayi span{font-size:12px}
+.app:has(> .m-ray) .vt-sayi p{font-size:12px}
+.app:has(> .m-ray) .bildirim-karti b,.app:has(> .m-ray) .oneri-karti b{font-size:14px}
+.app:has(> .m-ray) .bildirim-karti span,.app:has(> .m-ray) .oneri-karti span{font-size:12px}
+.app:has(> .m-ray) .satir .tx .gerekce,.app:has(> .m-ray) .izin .gerekce{font-size:12px}
+.app:has(> .m-ray) .basari b{font-size:12px}
+.app:has(> .m-ray) .basari span{font-size:11.5px}
+.app:has(> .m-ray) .bildirim-onizleme span{font-size:11px}
+.app:has(> .m-ray) .bildirim-onizleme b{font-size:15px}
+.app:has(> .m-ray) .bildirim-onizleme p{font-size:13px}
+.app:has(> .m-ray) .alan textarea{font-size:16px}
+}
+@media (min-width:1200px) and (min-height:520px){
+.app:has(> .m-ray) .mast{font-size:13px}
+.app:has(> .m-ray) h2.t{font-size:72px}
+.app:has(> .m-ray) h2.t.orta{font-size:72px}
+.app:has(> .m-ray) .lede{font-size:16px}
+.app:has(> .m-ray) .lab{font-size:13px}
+.app:has(> .m-ray) .veri{font-size:13px}
+.app:has(> .m-ray) .sart{font-size:13px}
+.app:has(> .m-ray) .btn{font-size:13px}
+.app:has(> .m-ray) .link{font-size:13px}
+.app:has(> .m-ray) .hata{font-size:13px}
+.app:has(> .m-ray) .marka{font-size:64px}
+.app:has(> .m-ray) .alt-bilgi{font-size:13px}
+.app:has(> .m-ray) .hesap b{font-size:15px}
+.app:has(> .m-ray) .alan input,.app:has(> .m-ray) .alan select{font-size:17px}
+.app:has(> .m-ray) .alan input.not{font-size:17px}
+.app:has(> .m-ray) .ipucu{font-size:13px}
+.app:has(> .m-ray) .kutu .bas{font-size:15px}
+.app:has(> .m-ray) .kutu p{font-size:13px}
+.app:has(> .m-ray) .ozet .k{font-size:13px}
+.app:has(> .m-ray) .ozet .v{font-size:15px}
+.app:has(> .m-ray) .adim .no{font-size:26px}
+.app:has(> .m-ray) .adim b{font-size:15px}
+.app:has(> .m-ray) .adim span span{font-size:13px}
+.app:has(> .m-ray) .live .kick{font-size:13px}
+.app:has(> .m-ray) .live h2{font-size:72px}
+.app:has(> .m-ray) .live .meta{font-size:13px}
+.app:has(> .m-ray) .live .meta b{font-size:22px}
+.app:has(> .m-ray) .live .not{font-size:13px}
+.app:has(> .m-ray) .live .temalar{font-size:15px}
+.app:has(> .m-ray) .live .act{font-size:13px}
+.app:has(> .m-ray) .next .k{font-size:13px}
+.app:has(> .m-ray) .next .v{font-size:22px}
+.app:has(> .m-ray) .next .u{font-size:13px}
+.app:has(> .m-ray) .ev .no{font-size:22px}
+.app:has(> .m-ray) .ev .mo{font-size:15px}
+.app:has(> .m-ray) .ev .mt{font-size:13px}
+.app:has(> .m-ray) .ev .alt{font-size:13px}
+.app:has(> .m-ray) .tabs button{font-size:13px}
+.app:has(> .m-ray) .kal{font-size:13px}
+.app:has(> .m-ray) .k .ad{font-size:13px}
+.app:has(> .m-ray) .k .d{font-size:12px}
+.app:has(> .m-ray) .bos b{font-size:14px}
+.app:has(> .m-ray) .bos span{font-size:13px}
+.app:has(> .m-ray) .yuk b{font-size:14px}
+.app:has(> .m-ray) .yuk span{font-size:13px}
+.app:has(> .m-ray) .dolu .tar{font-size:13px}
+.app:has(> .m-ray) .ret .bt{font-size:15px}
+.app:has(> .m-ray) .ret .tar{font-size:13px}
+.app:has(> .m-ray) .ret p{font-size:13px}
+.app:has(> .m-ray) .kilit{font-size:13px}
+.app:has(> .m-ray) .izin b{font-size:15px}
+.app:has(> .m-ray) .izin b + span{font-size:13px}
+.app:has(> .m-ray) .satir b{font-size:15px}
+.app:has(> .m-ray) .satir .tx span{font-size:13px}
+.app:has(> .m-ray) .satir .deg{font-size:13px}
+.app:has(> .m-ray) .rozet{font-size:13px}
+.app:has(> .m-ray) .onaykutu b{font-size:15px}
+.app:has(> .m-ray) .onaykutu p{font-size:13px}
+.app:has(> .m-ray) .rolakt button{font-size:13px}
+.app:has(> .m-ray) .istek .ust b{font-size:15px}
+.app:has(> .m-ray) .istek .mail{font-size:13px}
+.app:has(> .m-ray) .istek .not{font-size:14px}
+.app:has(> .m-ray) .tekrar{font-size:13px}
+.app:has(> .m-ray) .karar{font-size:13px}
+.app:has(> .m-ray) .secim button{font-size:13px}
+.app:has(> .m-ray) .sil{font-size:13px}
+.app:has(> .m-ray) .mesaj p{font-size:15px}
+.app:has(> .m-ray) .kaydir-ipucu{font-size:13px}
+.app:has(> .m-ray) .plaka .no{font-size:88px}
+.app:has(> .m-ray) .plaka .of{font-size:12px}
+.app:has(> .m-ray) .plaka .tema{font-size:18px}
+.app:has(> .m-ray) .plaka .tema small{font-size:13px}
+.app:has(> .m-ray) .puan .deger{font-size:64px}
+.app:has(> .m-ray) .puan .deger.yok{font-size:13px}
+.app:has(> .m-ray) .olcek{font-size:13px}
+.app:has(> .m-ray) .bitti h2{font-size:80px}
+.app:has(> .m-ray) .bitti p{font-size:16px}
+.app:has(> .m-ray) .bitti .eksikbas{font-size:16px}
+.app:has(> .m-ray) .bitti .eksikbas span{font-size:13px}
+.app:has(> .m-ray) .bitti .eksik .etiket{font-size:10px}
+.app:has(> .m-ray) .tema-satir b{font-size:18px}
+.app:has(> .m-ray) .tema-satir .sag{font-size:13px}
+.app:has(> .m-ray) .tema-satir .alt{font-size:13px}
+.app:has(> .m-ray) .bas h1{font-size:72px}
+.app:has(> .m-ray) .bas .meta{font-size:13px}
+.app:has(> .m-ray) .sekmeler button{font-size:16px}
+.app:has(> .m-ray) .sekmeler button i{font-size:13px}
+.app:has(> .m-ray) .odul .serit b{font-size:13px}
+.app:has(> .m-ray) .odul .serit .ad{font-size:18px}
+.app:has(> .m-ray) .odul .serit .ort{font-size:22px}
+.app:has(> .m-ray) .kursu .no{font-size:13px}
+.app:has(> .m-ray) .kursu .ad{font-size:15px}
+.app:has(> .m-ray) .kursu .ort{font-size:22px}
+.app:has(> .m-ray) .satir-kare .no{font-size:13px}
+.app:has(> .m-ray) .satir-kare .ad{font-size:15px}
+.app:has(> .m-ray) .satir-kare .ort{font-size:22px}
+.app:has(> .m-ray) .izgara figcaption{font-size:13px}
+.app:has(> .m-ray) .detay .kim .ad{font-size:22px}
+.app:has(> .m-ray) .detay .kim .ort{font-size:22px}
+.app:has(> .m-ray) .kunye b{font-size:13px}
+.app:has(> .m-ray) .kunye span{font-size:13px}
+.app:has(> .m-ray) .bos-tema b{font-size:13px}
+.app:has(> .m-ray) .bos-tema h3{font-size:30px}
+.app:has(> .m-ray) .bos-tema p{font-size:13px}
+.app:has(> .m-ray) .seas h2{font-size:44px}
+.app:has(> .m-ray) .seas .of{font-size:13px}
+.app:has(> .m-ray) .row .no{font-size:13px}
+.app:has(> .m-ray) .row .nm{font-size:15px}
+.app:has(> .m-ray) .row .av{font-size:22px}
+.app:has(> .m-ray) .row .kr small,.app:has(> .m-ray) .row .av small{font-size:12px}
+.app:has(> .m-ray) .pname{font-size:56px}
+.app:has(> .m-ray) .since{font-size:13px}
+.app:has(> .m-ray) .stats b{font-size:22px}
+.app:has(> .m-ray) .stats span{font-size:13px}
+.app:has(> .m-ray) .badge b{font-size:15px}
+.app:has(> .m-ray) .badge span{font-size:13px}
+.app:has(> .m-ray) .habit .k{font-size:13px}
+.app:has(> .m-ray) .habit .v{font-size:15px}
+.app:has(> .m-ray) .habit .n{font-size:13px}
+.app:has(> .m-ray) .grid figcaption{font-size:13px}
+.app:has(> .m-ray) .grid figcaption b{font-size:13px}
+.app:has(> .m-ray) .gridnot{font-size:13px}
+.app:has(> .m-ray) .buyutec .bar,.app:has(> .m-ray) .buyutec .alt{font-size:13px}
+.app:has(> .m-ray) .cikan b{font-size:15px}
+.app:has(> .m-ray) .cikan .tx span{font-size:13px}
+.app:has(> .m-ray) .cikarildi-not b{font-size:15px}
+.app:has(> .m-ray) .cikarildi-not span{font-size:13px}
+.app:has(> .m-ray) .pk-okno b{font-size:22px}
+.app:has(> .m-ray) .pk-okno .pk-sayac{font-size:13px}
+.app:has(> .m-ray) .tahmin-kart b{font-size:18px}
+.app:has(> .m-ray) .tahmin-kart .git{font-size:13px}
+.app:has(> .m-ray) .tahmin-teklif p{font-size:16px}
+.app:has(> .m-ray) .tahmin-bas b{font-size:16px}
+.app:has(> .m-ray) .tahmin-bas span{font-size:13px}
+.app:has(> .m-ray) .aday{font-size:15px}
+.app:has(> .m-ray) .tahmin-alt .secim b{font-size:15px}
+.app:has(> .m-ray) .tahmin-skor b{font-size:96px}
+.app:has(> .m-ray) .tahmin-skor span{font-size:13px}
+.app:has(> .m-ray) .tahmin-satir b{font-size:15px}
+.app:has(> .m-ray) .tahmin-satir .tx span{font-size:13px}
+.app:has(> .m-ray) .kilit-not{font-size:13px}
+.app:has(> .m-ray) .kart-bas{font-size:13px}
+.app:has(> .m-ray) .kart-not{font-size:13px}
+.app:has(> .m-ray) .bos-kart b{font-size:15px}
+.app:has(> .m-ray) .bos-kart span{font-size:13px}
+.app:has(> .m-ray) .kart.isimler,.app:has(> .m-ray) .mud-kart .isimler{font-size:15px}
+.app:has(> .m-ray) .mud-kart b{font-size:44px}
+.app:has(> .m-ray) .mud-kart > span{font-size:13px}
+.app:has(> .m-ray) .kart.stats b{font-size:44px}
+.app:has(> .m-ray) .kisisel p{font-size:13px}
+.app:has(> .m-ray) .sen-yeri b,.app:has(> .m-ray) .kart.senin b{font-size:44px}
+.app:has(> .m-ray) .sen-yeri span,.app:has(> .m-ray) .kart.senin span{font-size:13px}
+.app:has(> .m-ray) .sen-yeri p,.app:has(> .m-ray) .kart.senin p{font-size:13px}
+.app:has(> .m-ray) .satir-kartlari .row.lider .av{font-size:30px}
+.app:has(> .m-ray) .durum{font-size:13px}
+.app:has(> .m-ray) .durum b{font-size:22px}
+.app:has(> .m-ray) .kart.ozet .degistir{font-size:13px}
+.app:has(> .m-ray) .kur-ozet > span:first-child{font-size:13px}
+.app:has(> .m-ray) .kur-ozet b{font-size:22px}
+.app:has(> .m-ray) .kur-ozet > span:last-child{font-size:13px}
+.app:has(> .m-ray) .kart.tahmin-teklif .kilit-ic .bas{font-size:15px}
+.app:has(> .m-ray) .kart.tahmin-teklif .kilit-ic p{font-size:13px}
+.app:has(> .m-ray) .ev .git{font-size:13px}
+.app:has(> .m-ray) .vt figcaption b{font-size:13px}
+.app:has(> .m-ray) .vt figcaption span{font-size:15px}
+.app:has(> .m-ray) .vt figcaption i{font-size:22px}
+.app:has(> .m-ray) .vt-sayi b{font-size:44px}
+.app:has(> .m-ray) .vt-sayi span{font-size:13px}
+.app:has(> .m-ray) .vt-sayi p{font-size:13px}
+.app:has(> .m-ray) .bildirim-karti b,.app:has(> .m-ray) .oneri-karti b{font-size:15px}
+.app:has(> .m-ray) .bildirim-karti span,.app:has(> .m-ray) .oneri-karti span{font-size:13px}
+.app:has(> .m-ray) .satir .tx .gerekce,.app:has(> .m-ray) .izin .gerekce{font-size:13px}
+.app:has(> .m-ray) .basari b{font-size:13px}
+.app:has(> .m-ray) .basari span{font-size:12.5px}
+.app:has(> .m-ray) .bildirim-onizleme span{font-size:12px}
+.app:has(> .m-ray) .bildirim-onizleme b{font-size:16px}
+.app:has(> .m-ray) .bildirim-onizleme p{font-size:14px}
+.app:has(> .m-ray) .alan textarea{font-size:17px}
+}

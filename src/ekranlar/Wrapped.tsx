@@ -7,6 +7,8 @@ import { kareAdresleri } from '../lib/imza'
 import { acilisKareleri, acilisSeritleri, temaSeridiKareleri, type Ozet, type SK, type Tema, type WrappedVeri } from './wrapped/plan'
 import { iki } from './wrapped/bicim'
 import { setSec } from './wrapped/kutuphane'
+import { Ikon } from '../bilesenler/Ikon'
+import { MASAUSTU } from '../lib/masaustu'
 
 /**
  * Wrapped: sonuç açılışı (karar 39). Spec: ideations/creatorgraphers/2026-09-20_wrapped-spec.md
@@ -110,6 +112,20 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
 
   // Supabase sorgusu .then çağrılmadan gönderilmiyor: `void sb.rpc(...)` hiç çalışmıyordu
   useEffect(() => { if (v) kok.current?.focus() }, [v])
+  // Baştaki/sondaki kartta ok düğmesi devre dışı kalınca odağı götürür; Esc ve oklar için .wr'a geri ver
+  useEffect(() => { if (document.activeElement instanceof HTMLButtonElement && document.activeElement.disabled) kok.current?.focus() }, [i])
+  // Masaüstü (karar 129): kart telefondaki tasarım ölçüsünde (390x844) çizilip pencere yüksekliğine ölçekleniyor
+  useEffect(() => {
+    const ol = () => {
+      const k = kok.current; if (!k) return
+      if (!matchMedia(MASAUSTU).matches) { k.style.removeProperty('--w-olcek'); k.style.removeProperty('--w-pay'); return }
+      const pay = Math.min(48, Math.max(24, innerHeight * 0.04))
+      k.style.setProperty('--w-pay', `${pay}px`)
+      k.style.setProperty('--w-olcek', String(Math.min(1.4, (innerHeight - 2 * pay - 32) / 844)))
+    }
+    ol(); addEventListener('resize', ol)
+    return () => removeEventListener('resize', ol)
+  }, [v])
   const izle = () => { if (!bitti.current) { bitti.current = true; sb.rpc('wrapped_izle', { p_etkinlik: etkinlikId }).then(() => {}) } }
   const sonuca = () => { izle(); git(`sonuc/${etkinlikId}`) }
 
@@ -139,11 +155,15 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
       onClick={ev => {
         if (kaydirdi.current) return
         if ((ev.target as HTMLElement).closest('button')) return
-        const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
+        const masa = matchMedia(MASAUSTU).matches
+        const sahne = (ev.currentTarget as HTMLElement).querySelector('.w-sahne') as HTMLElement
+        const r = (masa ? sahne : ev.currentTarget as HTMLElement).getBoundingClientRect()
+        if (masa && (ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom)) return
         git_(ev.clientX - r.left < r.width / 2 ? i - 1 : i + 1)
       }}
-      onKeyDown={ev => { if (ev.key === 'ArrowRight') git_(i + 1); if (ev.key === 'ArrowLeft') git_(i - 1) }}
+      onKeyDown={ev => { if (ev.key === 'ArrowRight') git_(i + 1); if (ev.key === 'ArrowLeft') git_(i - 1); if (ev.key === 'Escape') sonuca() }}
       tabIndex={0}>
+      <button className="m-w-ok sol" aria-label="Önceki kart" disabled={i === 0} onClick={() => git_(i - 1)}><Ikon ad="geri" /></button>
       <div className="w-sahne">
         <div className={kart.kisi ? 'kisi' : undefined} key={`${i}-${ziyaret[i] ?? 0}`}>
           <div className={`tel ${set.sinif} ${kart.sinif}`} data-kart={kart.ad} data-set={set.ad}>
@@ -156,6 +176,8 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
           </div>
         </div>
       </div>
+      <button className="m-w-ok sag" aria-label="Sonraki kart" disabled={i === n - 1} onClick={() => git_(i + 1)}><Ikon ad="ileri" /></button>
+      <p className="m-w-ipucu">← → kartlar arası · Esc sonuçlara geç</p>
     </div>
   )
 }

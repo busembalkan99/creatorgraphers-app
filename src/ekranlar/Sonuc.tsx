@@ -140,6 +140,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
   return (
     <div className="sc">
       <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Sonuçlar" />
+      <div className="m-baslik-sira">
       <div className="bas">
         <h1>{v.etkinlik.serbest ? <>Ekstra<br />etkinlik</> : <>{ayAdi(v.etkinlik.bulusma_gunu)}<br />etkinliği</>}</h1>
         <div className="meta">
@@ -156,6 +157,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
       {paylasilacakKare(v.kareler) && (
         <button className="btn" onClick={() => git(`paylas/${etkinlikId}`)}>Kartını paylaş</button>
       )}
+      </div>
       <TahminBaglantisi etkinlikId={v.etkinlik.id} />
 
       {temalar.length === 0 ? (
@@ -192,18 +194,22 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
             </div>
           )}
 
+          <div className="m-podyum">
           {birinciler.length > 0 && (
             <div className="odul">
-              <h2 className="kart-bas">Birinci</h2>
-              {birinciler.length > 1 && (
-                <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
-              )}
+              <div className="m-odul-bas">
+                <h2 className="kart-bas">Birinci</h2>
+                {birinciler.length > 1 && (
+                  <p className="veri esit">{sayiYaz(birinciler.length)} kare eşit puan aldı.</p>
+                )}
+              </div>
+              <div className="m-kazananlar">
               {birinciler.map(k => (
                 <div className="kazanan" key={k.id}>
                   <span className="buyut"><Ikon ad="buyut" /></span>
                   {k.url && (
-                    <img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik}
-                      alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} />
+                    <span className="m-pk"><img src={k.tam ?? k.url} width={k.genislik} height={k.yukseklik}
+                      alt={`${secili.ad} temasının kazanan karesi`} onClick={() => ac(k)} /></span>
                   )}
                   <div className="serit">
                     <b>{secili.ad}</b>
@@ -212,6 +218,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           )}
 
@@ -220,7 +227,7 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               {kursu.map(k => (
                 <figure key={k.id} onClick={() => ac(k)}>
                     <span className="buyut"><Ikon ad="buyut" /></span>
-                  {k.url && <img src={k.url} alt="" />}
+                  {k.url && <span className="m-pk"><img src={k.url} alt="" /></span>}
                   <figcaption>
                     {/* Numara sunucudaki sıradan gelir, dizideki yerden değil */}
                     <span className="sat"><span className="no">{String(k.sira).padStart(2, '0')}</span>
@@ -231,13 +238,14 @@ export function Sonuc({ uye, etkinlikId, kareId = null }: { uye: Uye; etkinlikId
               ))}
             </div>
           )}
+          </div>
 
           {liste.length > 0 && (
-            <div className="satir-kartlari">
+            <div className="satir-kartlari m-siralar">
               {liste.map(k => (
                 <button className={`satir-kare ${k.benim ? 'benim' : ''}`} key={k.id} onClick={() => ac(k)}>
                   <span className="no">{String(k.sira ?? '').padStart(2, '0')}</span>
-                  {k.url && <img src={k.url} alt="" />}
+                  {k.url && <span className="m-pk"><img src={k.url} alt="" /></span>}
                   <span className="ad">{k.sahip_ad}</span>
                   <span className="ort">{puanYaz(k.ortalama)}</span>
                   <span className="ileri"><Ikon ad="sag" /></span>
@@ -316,43 +324,52 @@ function KareDetay({ kare, temaOylanmadi, yonetici, kapat, degisti }:
         <div className="rb" />
       </header>
       {/* Kare detayı ve büyüteç tam boy (karar 123) */}
-      {kare.url && <img src={kare.tam ?? kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`}
-        onClick={() => setBuyuk(true)} />}
-      {buyuk && kare.url && <Buyutec acik={{ url: (kare.tam ?? kare.url)!, baslik: kare.tema_ad, sag: kare.sahip_ad }} kapat={() => setBuyuk(false)} />}
-      <div className="kim">
-        <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>
-        {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}
+      <div className="m-detay">
+        <div className="m-foto">
+          <span className="m-pk">
+            {kare.url && <img src={kare.tam ?? kare.url} width={kare.genislik} height={kare.yukseklik} alt={`${kare.sahip_ad} · ${kare.tema_ad}`}
+              onClick={() => setBuyuk(true)} />}
+          </span>
+          {kare.url && <button className="m-buyut btn" onClick={() => setBuyuk(true)}>Kareyi büyüt</button>}
+        </div>
+        <div className="m-bilgi">
+          <div className="kim">
+            <span className="ad">{kare.sahip_ad}{kare.benim ? ' · sen' : ''}</span>
+            {kare.ortalama != null && <span className="ort">{puanYaz(kare.ortalama)}</span>}
+          </div>
+          {kare.cikarildi ? (
+            <div className="cikarildi-not">
+              <b>Yarışmadan çıkarıldı</b>
+              {kare.cikarma_nedeni && <span>{kare.cikarma_nedeni}</span>}
+            </div>
+          ) : temaOylanmadi ? (
+            // Temada hiç oy yok: "sıralamaya girmedi" demek gizli bir puan varmış gibi okunurdu
+            <p className="veri">Bu temayı kimse oylamamış.</p>
+          ) : !kare.sirali && !kare.benim ? (
+            <p className="veri">Sıralamaya girmedi, puanı gizli.</p>
+          ) : kare.ortalama == null ? (
+            <p className="veri">Bu kareye kimse puan vermemiş.</p>
+          ) : (
+            <p className="veri">{kare.oy_sayisi} kişi puan verdi{!kare.sirali && kare.benim ? '. Bu puanı yalnız sen görüyorsun' : ''}.</p>
+          )}
+          {dolu.length > 0 && (
+            <div className="kunye">
+              {dolu.map(([k, d]) => (
+                <div key={k}><b>{k}</b><span>{d}</span></div>
+              ))}
+            </div>
+          )}
+          {/* Karar 76, 106: sonuçtan sonra herkese, alt sınırı geçtiyse */}
+          {!kare.cikarildi && <TaninmaSatiri kare={kare.id} benim={!!kare.benim} />}
+          <Hata metin={hata} />
+          {yonetici && (kare.cikarildi
+            ? <button className="btn ik" onClick={geriAl}>Yarışmaya geri al</button>
+            : <button className="btn ik" onClick={() => setCikar(true)}>Yarışmadan çıkar</button>)}
+          {cikar && <CikarPenceresi kare={kare.id} kapat={() => setCikar(false)} bitti={degisti} />}
+          <button className="btn ik" onClick={kapat}>Sonuçlara dön</button>
+        </div>
       </div>
-      {kare.cikarildi ? (
-        <div className="cikarildi-not">
-          <b>Yarışmadan çıkarıldı</b>
-          {kare.cikarma_nedeni && <span>{kare.cikarma_nedeni}</span>}
-        </div>
-      ) : temaOylanmadi ? (
-        // Temada hiç oy yok: "sıralamaya girmedi" demek gizli bir puan varmış gibi okunurdu
-        <p className="veri">Bu temayı kimse oylamamış.</p>
-      ) : !kare.sirali && !kare.benim ? (
-        <p className="veri">Sıralamaya girmedi, puanı gizli.</p>
-      ) : kare.ortalama == null ? (
-        <p className="veri">Bu kareye kimse puan vermemiş.</p>
-      ) : (
-        <p className="veri">{kare.oy_sayisi} kişi puan verdi{!kare.sirali && kare.benim ? '. Bu puanı yalnız sen görüyorsun' : ''}.</p>
-      )}
-      {dolu.length > 0 && (
-        <div className="kunye">
-          {dolu.map(([k, d]) => (
-            <div key={k}><b>{k}</b><span>{d}</span></div>
-          ))}
-        </div>
-      )}
-      {/* Karar 76, 106: sonuçtan sonra herkese, alt sınırı geçtiyse */}
-      {!kare.cikarildi && <TaninmaSatiri kare={kare.id} benim={!!kare.benim} />}
-      <Hata metin={hata} />
-      {yonetici && (kare.cikarildi
-        ? <button className="btn ik" onClick={geriAl}>Yarışmaya geri al</button>
-        : <button className="btn ik" onClick={() => setCikar(true)}>Yarışmadan çıkar</button>)}
-      {cikar && <CikarPenceresi kare={kare.id} kapat={() => setCikar(false)} bitti={degisti} />}
-      <button className="btn ik" onClick={kapat}>Sonuçlara dön</button>
+      {buyuk && kare.url && <Buyutec acik={{ url: (kare.tam ?? kare.url)!, baslik: kare.tema_ad, sag: kare.sahip_ad }} kapat={() => setBuyuk(false)} />}
     </div>
   )
 }

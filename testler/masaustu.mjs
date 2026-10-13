@@ -629,6 +629,49 @@ bolum('yonetim', async b => {
   await temizle(); kurulan.length = 0;
 });
 
+// ---------------------------------------------------------------- wrapped
+bolum('wrapped', async b => {
+  const W = await bitmisEtkinlik();
+  try {
+    for (const [w, h] of [[1440, 900], [1024, 768], [1920, 1080], [1366, 600]]) {
+      const p = await sayfa(b, [w, h]); await ac(p, `wrapped/${W.id}`); await p.waitForTimeout(1500);
+      const r = await p.evaluate(() => {
+        const k = document.querySelector('.w-sahne').getBoundingClientRect(), ip = document.querySelector('.m-w-ipucu')?.getBoundingClientRect();
+        return { g: Math.round(k.width), y: Math.round(k.height), oran: k.width / k.height, ust: Math.round(k.top), alt: Math.round(innerHeight - k.bottom),
+          ipucuCakisiyor: ip ? ip.top < k.bottom && ip.bottom > k.top : null, ok: document.querySelectorAll('.m-w-ok').length };
+      });
+      bekle(`${w}x${h}: kart 390:844 oranında`, Math.abs(r.oran - 390 / 844) < 0.005, JSON.stringify(r));
+      bekle(`${w}x${h}: kart pencereye sığıyor, ipucu çakışmıyor, iki ok`, r.ust >= 0 && r.alt >= 0 && r.ipucuCakisiyor === false && r.ok === 2, JSON.stringify(r));
+      if (b.browserType().name() === 'chromium') await p.screenshot({ path: `/tmp/cgapp/ss/wrapped-${w}x${h}.png` });
+      if (w === 1440) {
+        const sayac = () => p.textContent('.sayac span');
+        const s0 = await sayac();
+        await p.mouse.click(60, 450); await p.waitForTimeout(400);
+        bekle('kartın dışına tıklamak kart değiştirmiyor', (await sayac()) === s0);
+        const k = await p.locator('.w-sahne').boundingBox();
+        await p.mouse.click(k.x + k.width * 0.8, k.y + k.height / 2); await p.waitForTimeout(400);
+        bekle('kartın sağ yarısı ilerletiyor', (await sayac()) !== s0);
+        await p.locator('.m-w-ok').first().click(); await p.waitForTimeout(400);
+        bekle('sol ok geri götürüyor', (await sayac()) === s0);
+        await p.keyboard.press('Escape'); await p.waitForTimeout(800);
+        bekle('Esc sonuçlara geçiyor (Atla)', p.url().includes(`#/sonuc/${W.id}`), p.url());
+      }
+      await p.context().close();
+    }
+    const t = await sayfa(b, [390, 844]); await ac(t, `wrapped/${W.id}`); await t.waitForTimeout(1500);
+    bekle('390: oklar ve ipucu yok, kart tam ekran', (await t.locator('.m-w-ok:visible').count()) === 0 && (await t.locator('.m-w-ipucu:visible').count()) === 0 && Math.round((await t.locator('.w-sahne').boundingBox()).width) === 390);
+    await t.context().close();
+    // Oylama: 768-1439'da ileri/geri oku aynı çizgi dilinde (Ikon ileri = geri'nin aynası)
+    const O = await acikEtkinlik('oylama');
+    for (const a of ['baris', 'can']) await kareKoy(O.id, O.temalar[0].id, `${a}@test.local`);
+    const q = await sayfa(b, [1024, 768]); await ac(q, `oyla/${O.temalar[0].id}`); await q.waitForTimeout(800);
+    const ok = await q.evaluate(() => ({ geri: document.querySelector('.m-gez [aria-label="Önceki kare"] svg')?.innerHTML ?? '', ileri: document.querySelector('.m-gez [aria-label="Sonraki kare"] svg')?.innerHTML ?? '' }));
+    bekle('oylama: Sonraki kare oku geri okunun aynası (üç çizgi)', (ok.ileri.match(/<path/g) ?? []).length === 3 && (ok.geri.match(/<path/g) ?? []).length === 3, JSON.stringify(ok));
+    if (b.browserType().name() === 'chromium') await q.screenshot({ path: '/tmp/cgapp/ss/oylama-oklar-1024x768.png' });
+    await q.context().close();
+  } finally { await temizle(); kurulan.length = 0 }
+});
+
 // ---------------------------------------------------------------- çalıştır
 try {
 for (const [, t] of [['chromium', chromium], ['webkit', webkit]]) {

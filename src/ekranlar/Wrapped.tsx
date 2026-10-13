@@ -106,6 +106,8 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
 
   // Supabase sorgusu .then çağrılmadan gönderilmiyor: `void sb.rpc(...)` hiç çalışmıyordu
   useEffect(() => { if (v) kok.current?.focus() }, [v])
+  // Baştaki/sondaki kartta ok düğmesi devre dışı kalınca odağı götürür; Esc ve oklar için .wr'a geri ver
+  useEffect(() => { if (document.activeElement instanceof HTMLButtonElement && document.activeElement.disabled) kok.current?.focus() }, [i])
   // Masaüstü (karar 129): kart telefondaki tasarım ölçüsünde (390x844) çizilip pencere yüksekliğine ölçekleniyor
   useEffect(() => {
     const ol = () => {
@@ -130,7 +132,6 @@ export function Wrapped({ etkinlikId }: { etkinlikId: string }) {
   const git_ = (j: number) => {
     if (j < 0 || j >= n) return
     setI(j)
-    kok.current?.focus()                                 // devre dışı kalan ok odağı alıp götürmesin: Esc ve oklar çalışmaya devam etsin
     setZiyaret(z => ({ ...z, [j]: (z[j] ?? 0) + 1 }))   // geri dönülürse kart yeniden oynasın
     if (j === n - 1) izle()                              // sona gelen izlemiş sayılır
   }

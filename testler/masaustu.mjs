@@ -633,6 +633,33 @@ bolum('yonetim', async b => {
 bolum('wrapped', async b => {
   const W = await bitmisEtkinlik();
   try {
+    await kareKoy(W.id, W.temalar[1].id, 'kurucu@test.local', 'dikey');
+    await admin.from('etkinlikler').update({ wrapped_set: 'klasik' }).eq('id', W.id);   // yeni etkinlik Kontakt setiyle açılıyor; max-height'lı .cerceve klasik sette
+    // Kart 390x844'te kurulup ölçekleniyor: kart içinde pencereye bağlı birim (vh, vw...) kartı telefondan ayırır.
+    // Kontakt v2 dalı kart CSS'ini yeniden yazıyor; birleşince yeni bir birim sızarsa burada yakalanır.
+    {
+      const BIRIM = /[0-9.]\s*(vh|dvh|svh|lvh|vw|dvw|svw|lvw|vmin|vmax)\b/;
+      // İzinli: wrapped-pano.css --hw'deki min() üst sınırı; 390 genişlikte de, 768+ masaüstünde de 26px / 31px'te kalıyor
+      const IZIN = [['wrapped-pano.css', '--hw:min(26px'], ['wrapped-pano.css', '.p-kapanis{--hw:min(31px']];
+      const sorunlar = [];
+      const masa = fs.readFileSync('src/wrapped.css', 'utf8');
+      const bas = masa.indexOf('@media (min-width:768px) and (min-height:520px){');
+      let d = 0, son = bas; for (let i = masa.indexOf('{', bas); i < masa.length; i++) { if (masa[i] === '{') d++; if (masa[i] === '}' && --d === 0) { son = i; break } }
+      const blok = bas < 0 ? '' : masa.slice(bas, son + 1);
+      for (const f of ['wrapped.css', 'wrapped-kontakt.css', 'wrapped-pano.css']) {
+        const css = fs.readFileSync('src/' + f, 'utf8').replace(f === 'wrapped.css' && bas >= 0 ? blok : '\0', '');
+        for (const [, sel, govde] of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+          for (const dekl of govde.split(';').filter(x => BIRIM.test(x))) {
+            const metin = sel.trim() + '{' + dekl.trim();
+            if (IZIN.some(([a, b]) => a === f && metin.includes(b))) continue;
+            if (f === 'wrapped.css' && blok.includes(sel.trim()) && blok.slice(blok.indexOf(sel.trim())).split('}')[0].includes(dekl.split(':')[0].trim() + ':')) continue;
+            sorunlar.push(`${f}: ${sel.trim().slice(0, 50)} { ${dekl.trim()} }`);
+          }
+        }
+      }
+      bekle('kart CSS: pencere birimi ya masaüstü blokta geçersiz kılınmış ya izinli', sorunlar.length === 0, sorunlar.join(' | '));
+    }
+    const resimBoy = [];
     for (const [w, h] of [[1440, 900], [1024, 768], [1920, 1080], [1366, 600]]) {
       const p = await sayfa(b, [w, h]); await ac(p, `wrapped/${W.id}`); await p.waitForTimeout(1500);
       const r = await p.evaluate(() => {
@@ -643,6 +670,16 @@ bolum('wrapped', async b => {
       bekle(`${w}x${h}: kart 390:844 oranında`, Math.abs(r.oran - 390 / 844) < 0.005, JSON.stringify(r));
       bekle(`${w}x${h}: kart pencereye sığıyor, ipucu çakışmıyor, iki ok`, r.ust >= 0 && r.alt >= 0 && r.ipucuCakisiyor === false && r.ok === 2, JSON.stringify(r));
       if (b.browserType().name() === 'chromium') await p.screenshot({ path: `/tmp/cgapp/ss/wrapped-${w}x${h}.png` });
+      if (w === 1440 || (w === 1366)) {
+        // Fotoğraflı bir karta (kişinin karesi) ArrowRight ile ulaş; yüksekliği kartın 390x844 kutusuna göre ölç
+        let boy = null;
+        for (let j = 0; j < 8 && boy == null; j++) {
+          boy = await p.evaluate(() => { const im = document.querySelector('.wr .tel .cerceve img'), sh = document.querySelector('.w-sahne'); return im ? im.getBoundingClientRect().height / (sh.getBoundingClientRect().height / 844) : null });
+          if (boy == null) { await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900) }
+        }
+        resimBoy.push([w, boy]);
+        if (resimBoy.length === 2) bekle('fotoğraf yüksekliği kart oranında aynı (1440x900 ve 1366x600)', resimBoy.every(x => x[1] != null) && Math.abs(resimBoy[0][1] - resimBoy[1][1]) <= 2, JSON.stringify(resimBoy));
+      }
       if (w === 1440) {
         const sayac = () => p.textContent('.sayac span');
         const s0 = await sayac();

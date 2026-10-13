@@ -821,7 +821,7 @@ bekle('detayda makine künyesi açık', icerir(await metin(A), 'Makine') && icer
 bekle('detayda diyafram ve ISO', icerir(await metin(A), 'f/2.8') && icerir(await metin(A), 'ISO'));
 bekle('detayda kaç kişi puan verdi', icerir(await metin(A), 'kişi puan verdi'));
 await olc(A, '38-kare-detay');
-await A.click('.detay > img'); await A.waitForTimeout(300);
+await A.click('.detay .m-pk img'); await A.waitForTimeout(300);
 bekle('kare detayında fotoğrafa dokununca büyüteç açılıyor', (await A.locator('.buyutec').count()) === 1);
 await olc(A, '38b-kare-buyutec');
 await A.locator('.buyutec').click(); await A.waitForTimeout(200);

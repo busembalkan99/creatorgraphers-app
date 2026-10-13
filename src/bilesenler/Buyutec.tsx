@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, type PointerEvent as PE } from 'react'
 import { createPortal } from 'react-dom'
+import { Ikon } from './Ikon'
 
 /* Uygulamada sayfa yakınlaştırması kapalı (index.html + index.css); yakından bakmak
    yalnız burada var. Fotoğraf tam ekrana açılır, iki parmakla büyütülür, büyükken tek
@@ -29,6 +30,26 @@ export function Buyutec({ acik, kapat }: { acik: Acik; kapat: () => void }) {
     addEventListener('keydown', tus)
     return () => removeEventListener('keydown', tus)
   }, [kapat])
+
+  // Fare (karar 129): tekerlek imlecin olduğu yere doğru büyütür; Kapat düğmesi; masaüstü ipucu
+  const masaustu = typeof matchMedia === 'function' && matchMedia('(pointer:fine)').matches
+  useEffect(() => {
+    const el = kat.current
+    if (!el) return
+    const teker = (e: WheelEvent) => {
+      e.preventDefault()
+      const s = d.current, r = el.getBoundingClientRect()
+      const yeni = Math.max(1, Math.min(EN_BUYUK, s.sc * Math.exp(-e.deltaY * 0.002)))
+      const ox = e.clientX - (r.left + r.width / 2), oy = e.clientY - (r.top + r.height / 2)
+      s.tx = ox - (ox - s.tx) * (yeni / s.sc)
+      s.ty = oy - (oy - s.ty) * (yeni / s.sc)
+      s.sc = yeni
+      sinirla()
+      uygula()
+    }
+    el.addEventListener('wheel', teker, { passive: false })
+    return () => el.removeEventListener('wheel', teker)
+  }, [])
 
   // Büyütülen görüntü çerçeveden tamamen çıkmasın
   function sinirla() {
@@ -99,8 +120,9 @@ export function Buyutec({ acik, kapat }: { acik: Acik; kapat: () => void }) {
         <span>{acik.baslik}</span>
         {acik.sag && <span className="r">{acik.sag}</span>}
       </div>
+      {masaustu && <button className="m-kapat" aria-label="Kapat" onPointerDown={e => e.stopPropagation()} onClick={kapat}><Ikon ad="kapat" /></button>}
       <img ref={res} src={acik.url} alt="" draggable={false} />
-      <div className="alt">İki parmakla büyüt, dokunarak kapat.</div>
+      <div className="alt">{masaustu ? 'Tekerlekle büyüt, Esc ile kapat.' : 'İki parmakla büyüt, dokunarak kapat.'}</div>
     </div>,
     document.body,
   )

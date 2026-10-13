@@ -697,7 +697,7 @@ h2.t.orta{font-size:30px;letter-spacing:-.04em}
 .buyutec .bar .r{margin-left:auto;font-variant-numeric:tabular-nums}
 .buyutec .alt{bottom:0;justify-content:center;padding:14px var(--pad) calc(16px + env(safe-area-inset-bottom));
   background:linear-gradient(to top,rgba(5,5,6,.9),transparent)}
-.tutucu img,.detay>img{cursor:zoom-in}
+.tutucu img,.detay .m-pk img{cursor:zoom-in}
 
 /* ==========================================================
    Yoklama ve yarışmadan çıkarma (karar 103)
@@ -1028,6 +1028,8 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
 .m-puan-bas,.m-puanlar,.m-gez,.m-ipucu{display:none}
 .m-govde-tel{display:contents}
 .m-temalar{display:none}
+.m-detay,.m-foto,.m-bilgi{display:contents}
+.m-buyut,.m-kapat{display:none}
 @media (min-width:768px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:8px;--s-ic:16px;--s-blok:36px;--s-bolum:54px}
   .app:has(> .m-ray){--m-ray:88px;--pad:clamp(32px,4.5vw,72px);max-width:none;border:0;
@@ -1217,4 +1219,23 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .izgara{columns:5}
   .app:has(> .m-ray) .m-siralar{grid-template-columns:repeat(5,minmax(0,1fr))}
   .app:has(> .m-ray) .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
+
+/* Kare detayı ve büyüteç (karar 129) */
+@media (min-width:768px) and (min-height:520px){
+  .app:has(> .m-ray) .m-detay{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-blok)}
+  .app:has(> .m-ray) .m-detay .m-foto{display:block;position:relative}
+  .app:has(> .m-ray) .m-detay .m-pk{height:clamp(420px,62dvh,760px);margin-top:12px}
+  .app:has(> .m-ray) .m-detay .m-pk img{margin-top:0;cursor:zoom-in}
+  .app:has(> .m-ray) .m-detay .m-bilgi{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s-blok);align-content:start}
+  .m-buyut{display:inline-flex;position:absolute;right:16px;top:28px;width:auto;background:rgba(10,10,11,.72);color:var(--ink)}
+}
+@media (min-width:1440px) and (min-height:520px){
+  .app:has(> .m-ray) .m-detay{grid-template-columns:minmax(0,1fr) clamp(340px,27vw,400px);gap:clamp(40px,3.9vw,56px);align-items:start}
+  .app:has(> .m-ray) .m-detay .m-pk{height:calc(var(--ekran,100dvh) - 180px)}
+  .app:has(> .m-ray) .m-detay .m-bilgi{grid-template-columns:1fr}
+}
+@media (pointer:fine){
+  .m-kapat{display:flex;align-items:center;justify-content:center;position:absolute;z-index:3;top:calc(8px + env(safe-area-inset-top));right:var(--pad);width:44px;height:44px;border:1px solid var(--rule);border-radius:2px;background:rgba(10,10,11,.6);color:var(--ink);cursor:pointer}
+  .buyutec .bar .r{margin-right:60px}
 }

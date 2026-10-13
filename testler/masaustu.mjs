@@ -269,6 +269,35 @@ bolum('sonuc', async b => {
   await temizle(); kurulan.length = 0;
 });
 
+// ---------------------------------------------------------------- kare detayı ve büyüteç
+bolum('detay', async b => {
+  const S = await bitmisEtkinlik(true);
+  const kare = (await admin.from('kareler').select('id').in('tema', S.temalar.map(t => t.id)).limit(1)).data[0];
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut); await p.evaluate(id => window.__sb.rpc('wrapped_izle', { p_etkinlik: id }), S.id);
+    await ac(p, `sonuc/${S.id}/kare/${kare.id}`);
+    const yan = await p.evaluate(() => { const f = document.querySelector('.m-detay .m-pk'), k = document.querySelector('.m-detay .kunye'); return f && k ? k.getBoundingClientRect().left > f.getBoundingClientRect().right : null });
+    bekle(`${boyut[0]}: künye ${boyut[0] >= 1440 ? 'fotoğrafın yanında' : 'fotoğrafın altında'}`, boyut[0] >= 1440 ? yan === true : yan === false, String(yan));
+    const d = await denetle(p); bekle(`${boyut[0]} detay: denetim temiz`, d.length === 0, d.join(' | '));
+    if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) await p.screenshot({ path: `/tmp/cgapp/ss/detay-${boyut[0]}.png` });
+    if (boyut[0] === 1440) {
+      await p.locator('.m-buyut').click(); await p.waitForTimeout(400);
+      bekle('Büyüt düğmesi büyüteci açtı', await p.locator('.buyutec').isVisible());
+      bekle('masaüstü ipucu', (await p.textContent('.buyutec .alt')).includes('Tekerlekle büyüt'));
+      const olcek = () => p.evaluate(() => { const m = getComputedStyle(document.querySelector('.buyutec img')).transform; return m === 'none' ? 1 : new DOMMatrix(m).a });
+      await p.mouse.move(720, 450); await p.mouse.wheel(0, -400); await p.waitForTimeout(300);
+      bekle('tekerlek büyüttü', (await olcek()) > 1.2, await olcek());
+      if (process.env.CG_EKRAN) await p.screenshot({ path: '/tmp/cgapp/ss/buyutec-1440.png' });
+      await p.locator('.m-kapat').click(); await p.waitForTimeout(300);
+      bekle('kapat düğmesi kapattı', (await p.locator('.buyutec').count()) === 0);
+      await p.locator('.m-buyut').click(); await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+      bekle('Esc kapattı', (await p.locator('.buyutec').count()) === 0);
+    }
+    await p.context().close();
+  }
+  await temizle(); kurulan.length = 0;
+});
+
 // ---------------------------------------------------------------- profil ve sıralama
 bolum('profil', async b => {
   // Kurucunun üç karesi (Profil ızgarası) ve küçük görselli sezon sıralaması için biten etkinlik

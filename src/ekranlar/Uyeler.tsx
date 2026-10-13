@@ -98,6 +98,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
       <Hata metin={hata} />
       <h2 className="kart-bas">Katılma istekleri<span className={bekleyen > 0 ? 'bekliyor' : undefined}>{bekleyen} bekliyor</span></h2>
       {istekler.length === 0 && <div className="kart bos-kart"><b>Bekleyen istek yok</b></div>}
+      <div className="m-istekler">
       {istekler.map(r => (
         <div className="kart istek" key={r.id}>
           <div className="ust"><b>{r.ad}</b>{!r.sonuc && <span className="rozet bekliyor">Bekliyor</span>}</div>
@@ -128,6 +129,7 @@ export function Uyeler({ ben }: { ben: Uye }) {
           )}
         </div>
       ))}
+      </div>
 
       <h2 className="kart-bas">Üyeler<span>{icerideki} üye</span></h2>
       <div className="satir-kartlari">{uyeler.map(u => {

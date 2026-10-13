@@ -94,6 +94,8 @@ export function BildirimGonder() {
       <p className="lede">{hakMetni(d.kalan, d.gece)}. Gece 23.00 ile 08.00 arası gönderilen sabah 08.00'de gider.</p>
       <Hata metin={hata} />
 
+      <div className="m-yonetim-iki">
+      <div>
       <h2 className="kart-bas">Hatırlatmalar<span>Yalnız işi kalana</span></h2>
       <div className="satir-kartlari">
         {d.hatirlatmalar.filter(h => h.gorunur).map(h => {
@@ -115,6 +117,8 @@ export function BildirimGonder() {
         })}
       </div>
 
+      </div>
+      <div>
       <h2 className="kart-bas">Kendin yaz<span>Bildirimi açık {d.abone} kişiye</span></h2>
       <div className="alan">
         <label className="lab" htmlFor="eb-baslik">Başlık</label>
@@ -152,6 +156,8 @@ export function BildirimGonder() {
           </div>
         </>
       )}
+      </div>
+      </div>
     </div>
   )
 }

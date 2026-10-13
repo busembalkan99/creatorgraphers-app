@@ -146,6 +146,8 @@ export function Asama() {
         <span>{durum.etiket}</span><b>{durum.deger}</b><span>· {toplam} kare</span>
       </div>
 
+      <div className="m-yonetim-iki">
+      <div>
       <div className="kart ozet">
         {temalar.map(t => (
           <div key={t.id}>
@@ -209,6 +211,8 @@ export function Asama() {
         </div>
       )}
 
+      </div>
+      <div>
       {/* Buluşma günü yöneticinin ilk işi yoklama: grup mesajının altında kalıyordu */}
       <Yoklama e={e} surum={surum} degisti={() => { setSurum(n => n + 1); yukle().catch(x => setHata(hataMetni(x))) }} />
       <Cikarilanlar e={e} surum={surum} degisti={() => setSurum(n => n + 1)} />
@@ -237,6 +241,8 @@ export function Asama() {
       <p className="veri">Mesajı gruba sen yapıştıracaksın.</p>
       {/* Karar 120: WhatsApp yedek; kaç kişiye bildirim gidiyor (yalnız sayı) */}
       {bildirimSayisi && <p className="veri">Bildirim açık: <b>{bildirimSayisi.acik} / {bildirimSayisi.toplam}</b> üye</p>}
+      </div>
+      </div>
 
       {!duzen && <Hata metin={hata} />}
 

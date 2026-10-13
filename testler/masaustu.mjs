@@ -23,7 +23,7 @@ async function ac(p, yol) { await p.goto(APP + '#/' + yol); await p.reload(); aw
 
 // Maketlerde kullanılan denetim; her kontrol kusur geri konarak sınandı (2026-10-12).
 // Tek satır kalması gereken etiketler: yeni görevler kendi sınıflarını buraya ekler.
-const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.m-yuk-tema .m-durum', '.habit .l', '.row .nm'];
+const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.m-yuk-tema .m-durum', '.habit .l', '.row .nm', '.ozet .k', '.rolakt button'];
 async function denetle(p) {
   return p.evaluate(tekSatir => {
     const R = e => e.getBoundingClientRect(), out = [];
@@ -581,6 +581,37 @@ async function yuklemeKenar(b, p, birak, karem, E, surukle) {
   const r = await p.evaluate(() => [...document.querySelectorAll('.m-alan')].map(a => Math.round(a.getBoundingClientRect().top)));
   bekle('1440: uzun ad iki satır olsa da alanların üstü hizalı', new Set(r).size === 1, JSON.stringify(r));
 }
+
+// ---------------------------------------------------------------- yönetim
+bolum('yonetim', async b => {
+  const E = await acikEtkinlik('oylama');
+  await kareKoy(E.id, E.temalar[0].id, 'baris@test.local');
+  for (const boyut of BOYUTLAR) {
+    const p = await sayfa(b, boyut);
+    for (const yol of ['asama', 'kur', 'uyeler', 'bildirim', 'havuz']) {
+      await ac(p, yol);
+      const d = await denetle(p); bekle(`${boyut[0]} ${yol}: denetim temiz`, d.length === 0, d.join(' | '));
+      bekle(`${boyut[0]} ${yol}: rayda Yönetim'de seçili`, (await p.getAttribute('.m-ray-grup a.on', 'aria-label').catch(() => null)) === { asama: 'Aşama', uyeler: 'Üyeler', bildirim: 'Bildirim', havuz: 'Tema havuzu', kur: null }[yol] || yol === 'kur');
+      if (boyut[0] >= 1200 && ['asama', 'kur', 'bildirim'].includes(yol)) {
+        const yan = await p.evaluate(() => { const c = document.querySelectorAll('.m-yonetim-iki > *'); return c.length === 2 && c[1].getBoundingClientRect().left > c[0].getBoundingClientRect().right });
+        bekle(`${boyut[0]} ${yol}: iki sütun`, yan);
+      }
+      if (boyut[0] === 1440 || (boyut[0] === 1024 && yol === 'asama')) {
+        // .sc kendi içinde kayıyor: tam sayfa için pencereyi içeriğin boyuna açıp geri alıyoruz
+        const boy = await p.evaluate(() => document.querySelector('.sc').scrollHeight + 40);
+        await p.setViewportSize({ width: boyut[0], height: Math.max(boyut[1], boy) }); await p.waitForTimeout(300);
+        await p.screenshot({ path: `/tmp/cgapp/ss/yonetim-${yol}-${boyut[0]}-${b.browserType().name()}.png` });
+        await p.setViewportSize({ width: boyut[0], height: boyut[1] }); await p.waitForTimeout(200);
+      }
+    }
+    // Karar 128: fotoğrafa bağlı hatırlatmalarda sayı yok
+    await ac(p, 'bildirim');
+    const sayili = await p.evaluate(() => [...document.querySelectorAll('.satir')].filter(s => /Oy vermedin|Fotoğraf yüklemedin|Tahmin oyunu/.test(s.textContent) && /\d+ kişi/.test(s.textContent)).length);
+    bekle(`${boyut[0]}: fotoğrafa bağlı hatırlatmada sayı yok (karar 128)`, sayili === 0, sayili);
+    await p.context().close();
+  }
+  await temizle(); kurulan.length = 0;
+});
 
 // ---------------------------------------------------------------- çalıştır
 try {

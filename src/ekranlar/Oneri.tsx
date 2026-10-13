@@ -131,6 +131,7 @@ export function Havuz({ secim }: { secim?: { secili: string[]; sec(o: { id: stri
   return (
     <div className="sc">
       <Kunye sol="Profil" geri="profil" sag="Yönetim" />
+      <div className="m-dar">
       <h2 className="t orta">Tema<br />havuzu</h2>
       <p className="lede">Etkinlik kurarken buradan seçersin. Önerenlerin adını yalnız yöneticiler görüyor.</p>
       <Hata metin={hata} />
@@ -146,6 +147,7 @@ export function Havuz({ secim }: { secim?: { secili: string[]; sec(o: { id: stri
           ))}
         </div>
       )}
+      </div>
     </div>
   )
 }

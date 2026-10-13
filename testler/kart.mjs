@@ -35,7 +35,7 @@ async function denetle(p, yol, genislik, ad = `${yol} (${genislik}px)`) {
     bekle(`${ad}: durum satırında toplam kare`, / \d+ kare/.test(await yazi('.durum')), await yazi('.durum'));
     bekle(`${ad}: tema kare sayıları ana renkte`, await p.locator('.kart.ozet .sayi').first().evaluate(e => getComputedStyle(e).color === getComputedStyle(document.body).color, null, { timeout: 1000 }).catch(() => false));
   }
-  if (yol === 'kur') bekle(`${ad}: büyük başlıkla ilk alan arasında nefes`, await p.evaluate(() => { const h = document.querySelector('.sc > h2.t'); const n = h?.nextElementSibling; return !!n && n.getBoundingClientRect().top - h.getBoundingClientRect().bottom >= 20; }));
+  if (yol === 'kur') bekle(`${ad}: büyük başlıkla ilk alan arasında nefes`, await p.evaluate(() => { const h = document.querySelector('.sc > h2.t'); let n = h?.nextElementSibling; while (n && getComputedStyle(n).display === 'contents' && n.firstElementChild) n = n.firstElementChild; return !!n && n.getBoundingClientRect().top - h.getBoundingClientRect().bottom >= 20; }));
   if (yol === 'kur') bekle(`${ad}: son yükleme vurgulu özet`, /\d/.test(await yazi('.kur-ozet b')) && (await boy('.kur-ozet b')) >= 17, await yazi('.kur-ozet'));
   if (yol === 'kur' || yol === 'asama') bekle(`${ad}: sayfa başlığı büyük`, (await p.locator('.sc > h2.t').count()) === 1);
   if (yol === 'uyeler' && !(await p.locator('.istek').count())) bekle(`${ad}: istek yokken boş durum kartı`, (await p.locator('.bos-kart', { hasText: 'Bekleyen istek yok' }).count()) === 1);

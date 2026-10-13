@@ -9,7 +9,8 @@
   background:var(--zemin);background-image:none;color:var(--m)}
 .wr .tel.set-kontakt .bant-ust,.wr .tel.set-kontakt .bant-alt{display:none}
 .wr .tel.set-kontakt .doku{opacity:.16}
-.wr .set-kontakt .w-kunye,.wr .set-kontakt .atla,.wr .set-kontakt .sayac{font-family:Archivo,sans-serif;font-stretch:75%;font-weight:700;color:var(--soluk)}
+/* Künye ve sayaç 13px (spec, Yazı ve boyut) */
+.wr .set-kontakt .w-kunye,.wr .set-kontakt .atla,.wr .set-kontakt .sayac{font-family:Archivo,sans-serif;font-stretch:75%;font-weight:700;font-size:13px;color:var(--soluk)}
 .wr .set-kontakt .ilerleme i{background:rgba(20,18,16,.16)}
 .wr .set-kontakt .ilerleme i.w-d{background:var(--m)}
 
@@ -34,11 +35,11 @@
 .wr .set-kontakt .k-kare img,.wr .set-kontakt .k-kare .bos-foto{display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;
   filter:grayscale(1) contrast(1.06)}
 .wr .set-kontakt .k-kare .bos-kare{display:block;width:100%;height:100%;background:#24201c}
-/* Film kenarı baskısı: ince, turuncu, dar */
-.wr .set-kontakt .kenar{font:700 9px/1 Archivo,sans-serif;font-stretch:75%;letter-spacing:.1em;text-transform:uppercase;color:var(--kenar-rengi);white-space:nowrap}
+/* Film kenarı ve baskı altı yazısı: ince, dar, 11px (spec) */
+.wr .set-kontakt .kenar{font:700 11px/1 Archivo,sans-serif;font-stretch:75%;letter-spacing:.1em;text-transform:uppercase;color:var(--kenar-rengi);white-space:nowrap}
 .wr .set-kontakt .serit .kenar{position:absolute;left:calc(50% - var(--kw) / 2)}
-.wr .set-kontakt .serit .kenar.ust{top:15px}
-.wr .set-kontakt .k-kare-no{position:absolute;left:2px;bottom:-11px;font:700 9px/1 Archivo,sans-serif;font-stretch:75%;color:var(--kenar-rengi)}
+.wr .set-kontakt .serit .kenar.ust{top:14px}
+.wr .set-kontakt .kare-no{position:absolute;left:2px;bottom:-13px;font:700 11px/1 Archivo,sans-serif;font-stretch:75%;color:var(--kenar-rengi)}
 
 /* Yağlı kalem: daire, köşedeki numara, not */
 .wr .set-kontakt .kalem-daire{position:absolute;inset:-14px;width:calc(100% + 28px);height:calc(100% + 28px);overflow:visible;pointer-events:none}
@@ -55,11 +56,6 @@
 
 /* Temalar: her tema bir şerit, boyu kare sayısı kadar */
 .wr .set-kontakt .tema-seritler{display:flex;flex-direction:column;gap:26px;margin-top:32px}
-.wr .set-kontakt .tema-serit .kenar{display:block;color:var(--m);margin-bottom:8px;font-size:11px}
-.wr .set-kontakt .serit-boy{height:44px;background:#161412;position:relative;transform-origin:left center;animation:boy-uza .8s cubic-bezier(.2,.7,.2,1) backwards;
-  background-image:repeating-linear-gradient(90deg,transparent 0 6px,var(--zemin) 6px 11px,transparent 11px 18px),
-    repeating-linear-gradient(90deg,transparent 0 6px,var(--zemin) 6px 11px,transparent 11px 18px);
-  background-size:100% 6px,100% 6px;background-position:0 4px,0 34px;background-repeat:repeat-x}
 
 .wr .set-kontakt .k-alt{margin-top:auto;padding-top:18px;font:700 16px/1.45 Archivo,sans-serif;font-stretch:80%;letter-spacing:.03em;color:#4f4840}
 .wr .set-kontakt .k-dugmeler{margin-top:auto;display:flex;flex-direction:column;gap:10px}
@@ -85,6 +81,8 @@
 /* Tema: dev şerit yaklaşıyor (açılış kayıyor) */
 .wr .set-kontakt .dev-serit{--kw:320px}
 .wr .set-kontakt .dev-serit .serit{padding:28px 12px;animation-name:yaklas}
+/* Kısa ekranda şerit inceliyor: delikler kenara yaklaşıyor, kenar yazısı ve sıra numarası deliklerle kare arasında kalıyor */
+.wr .set-kontakt .dev-serit .serit::before{top:3px}.wr .set-kontakt .dev-serit .serit::after{bottom:3px}
 .wr .tel.kt-serit .notlar{margin-top:34px}
 .wr .tel.kt-baski .kalem-puan{margin:8px 0 10px}
 .wr .set-kontakt .dev-serit .k-kare:not(.secili) img,.wr .set-kontakt .dev-serit .k-kare:not(.secili) .bos-foto{filter:grayscale(1) contrast(1.06) opacity(.55)}
@@ -105,13 +103,13 @@
 .wr .set-kontakt .lup-sap{position:absolute;left:78%;top:86%;width:90px;height:24px;background:#232020;border-radius:12px;rotate:42deg}
 .wr .set-kontakt .lup-blok .serit-pencere{margin-inline:0}
 .wr .set-kontakt .kalem-buyuk{position:absolute;font:400 104px/1 Mansalva,cursive;color:var(--kalem);rotate:-6deg;animation:kalem-bel .4s 1.4s backwards}
-/* Kalem yazısı dairesi: içe kıvrılmıyor, rakamı kesmiyor */
-.wr .set-kontakt .kalem-daire.yazi{inset:0;width:100%;height:100%}
 
 .wr .set-kontakt .kalem-puan{font:400 76px/1 Mansalva,cursive;color:var(--kalem);rotate:-3deg;margin-top:30px;animation:kalem-bel .4s 1.8s backwards}
 .wr .set-kontakt .masa.esit{display:flex;justify-content:space-between;margin-inline:-6px;container-type:inline-size}
 .wr .set-kontakt .esit-baski{width:min(168px,calc(50% - 4px))}
 .wr .set-kontakt .esit-baski .baski{--bmax:calc(50cqw - 30px)}.wr .set-kontakt .esit-baski .kalem-not{font-size:26px;margin-top:16px}
+/* Kalan birincilerin notu: üstteki eğik notlara değmesin (her boyda) */
+.wr .set-kontakt .notlar.esit-kalan{margin-top:22px}.wr .set-kontakt .esit-kalan .kalem-not{font-size:26px}
 .wr .set-kontakt .masa.kt-podyum{display:flex;justify-content:space-between;align-items:flex-start;margin-inline:-4px;container-type:inline-size}
 .wr .set-kontakt .kt-podyum .baski{--bmax:calc((100cqw - 60px) / 2)}
 .wr .set-kontakt .kursu-2,.wr .set-kontakt .kursu-3{max-width:calc(50cqw - 2px)}
@@ -148,7 +146,7 @@
 
 /* Orta boy ekran (360x760): uzun başlıklı ve kalabalık kartlar sığsın */
 @media (max-height:800px){
-  .wr .tel.set-kontakt{--bant-alt:48px}
+  .wr .tel.set-kontakt{--bant-alt:calc(48px + env(safe-area-inset-bottom))}
   .wr .set-kontakt .k-ic{padding-block:12px}
   .wr .set-kontakt .serit-pencere,.wr .set-kontakt .masa{margin-top:22px}
   .wr .set-kontakt .dev-serit{--kw:260px}
@@ -173,7 +171,7 @@
 }
 /* Kısa ekran (320x640 gibi): başlık ve boşluklar küçülüyor, kartın içeriği çerçevede kalıyor */
 @media (max-height:700px){
-  .wr .tel.set-kontakt{--bant-alt:48px}
+  .wr .tel.set-kontakt{--bant-alt:calc(48px + env(safe-area-inset-bottom))}
   .wr .set-kontakt .k-ic{padding-block:12px}
   .wr .set-kontakt .k-baslik{margin-top:8px}
   .wr .set-kontakt .k-alt{padding-top:10px;line-height:1.3}
@@ -182,8 +180,8 @@
   .wr .set-kontakt .ac-serit .k-kare{width:calc(var(--acw,118px) * .8)}
   .wr .set-kontakt .ac-sayilar{margin-top:18px}
   .wr .set-kontakt .ac-sayilar b,.wr .set-kontakt .ac-sayilar.buyuk b{font-size:46px}
-  .wr .set-kontakt .dev-serit{--kw:230px}
-  .wr .set-kontakt .dev-serit .serit{padding-block:22px}
+  .wr .set-kontakt .dev-serit{--kw:218px}
+  .wr .set-kontakt .dev-serit .serit{padding-block:26px}
   .wr .set-kontakt .kalem-puan{font-size:56px;margin-top:6px}
   .wr .set-kontakt .notlar{margin-top:14px}
   .wr .tel.kt-serit .notlar{margin-top:30px}
@@ -195,9 +193,47 @@
   .wr .set-kontakt .tema-kareleri{padding-block:14px}
   .wr .set-kontakt .yigin .baski{--hmax:85px}
   .wr .tel.kt-baski:not(.kt-cok) .baski{--hmax:120px}
-  .wr .set-kontakt .lup-blok:not(.cift):not(.numarali){height:290px}
+  .wr .set-kontakt .lup-blok:not(.cift):not(.numarali){height:280px}
+  .wr .set-kontakt .lup-blok.numarali:not(.cift){height:330px}
+  .wr .set-kontakt .lup-blok.numarali:not(.cift) .kalem-buyuk{font-size:84px}
   .wr .set-kontakt .lup-blok.cift.numarali{height:276px}
   .wr .set-kontakt .lup-blok.cift .kalem-buyuk{top:calc(100px + var(--kb) * 2 / 3);font-size:84px}
   .wr .set-kontakt .k-dg{min-height:48px}
   .wr .set-kontakt .k-dugmeler{gap:8px}
+}
+/* iPhone SE, Safari araç çubukları açıkken (375x553): medya ve aralıklar küçülüyor. Başlık en az 34px (uzun 30px), bilgi yazısı 16px kalıyor */
+@media (max-height:600px){
+  .wr .tel.set-kontakt{--bant:calc(56px + env(safe-area-inset-top))}
+  .wr .set-kontakt .k-ic{padding-block:8px 0}
+  .wr .set-kontakt .k-baslik{font-size:36px;margin-top:6px}
+  .wr .set-kontakt .k-baslik.uzun{font-size:30px}
+  .wr .set-kontakt .serit-pencere,.wr .set-kontakt .ac-seritler,.wr .set-kontakt .masa{margin-top:12px}
+  .wr .set-kontakt .k-alt{padding-top:8px}
+  .wr .set-kontakt .notlar{margin-top:10px}
+  .wr .set-kontakt .ac-serit{padding-block:12px}
+  .wr .set-kontakt .ac-serit::before{top:2px}
+  .wr .set-kontakt .ac-serit::after{bottom:2px}
+  .wr .set-kontakt .ac-seritler > .ac-serit .k-kare{width:calc(var(--acw,118px) * .66)}
+  .wr .set-kontakt .ac-seritler{gap:6px}
+  .wr .set-kontakt .ac-sayilar{margin-top:10px}
+  .wr .set-kontakt .ac-sayilar b,.wr .set-kontakt .ac-sayilar.buyuk b{font-size:40px}
+  .wr .set-kontakt .dev-serit{--kw:176px}
+  .wr .tel.kt-serit .notlar{margin-top:22px}
+  .wr .tel.kt-baski:not(.kt-cok) .baski{--hmax:100px}
+  .wr .tel.kt-cok .baski{--hmax:80px}
+  .wr .set-kontakt .esit-baski .baski{--hmax:96px}
+  .wr .set-kontakt .esit-baski .kalem-not{margin-top:10px}
+  .wr .set-kontakt .kt-podyum .baski{--hmax:120px}
+  .wr .set-kontakt .kursu-3{margin-top:56px}
+  .wr .set-kontakt .tema-seritler{gap:4px;margin-top:8px}
+  .wr .set-kontakt .tema-serit .kalem-not{margin-top:16px}
+  .wr .set-kontakt .tema-ad b{font-size:24px}
+  .wr .set-kontakt .lup-blok{--kb:150px;--lb:min(200px,54cqw)}
+  .wr .set-kontakt .lup-blok:not(.cift):not(.numarali){height:236px}
+  .wr .set-kontakt .lup-blok.numarali:not(.cift){height:284px}
+  .wr .set-kontakt .lup-blok.cift{--kb:min(124px,calc((50cqw - 76px) * 1.1));height:196px}
+  .wr .set-kontakt .lup-blok.cift.numarali{height:262px}
+  .wr .set-kontakt .lup-blok .kalem-buyuk,.wr .set-kontakt .lup-blok.cift .kalem-buyuk,.wr .set-kontakt .lup-blok.numarali:not(.cift) .kalem-buyuk{top:calc(92px + var(--kb) * 2 / 3);font-size:72px}
+  .wr .set-kontakt .yigin .baski{--hmax:64px}
+  .wr .set-kontakt .masa.yigin{margin:6px 0 26px}
 }

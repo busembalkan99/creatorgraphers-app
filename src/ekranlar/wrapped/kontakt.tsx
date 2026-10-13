@@ -1,6 +1,6 @@
 import '../../wrapped-kontakt.css'
 import type { ReactNode } from 'react'
-import { acilisSeritleri, kapanisYigini, kartPlani, temaDuzeni, temaSeridiKareleri, type KisiselDurum, type Ozet, type SK } from './plan'
+import { acilisSeritleri, esitKalanNotu, kapanisYigini, kartPlani, temaDuzeni, temaSeridiKareleri, type KisiselDurum, type Ozet, type SK } from './plan'
 import { Dugmeler, Foto, type Kart, type SetTanimi } from './ortak'
 import { puan } from './bicim'
 import { Baski, Daire, Lup, Not, Serit } from './kontakt-parca'
@@ -50,7 +50,7 @@ export const KONTAKT: SetTanimi = {
               {seritler.map((s, j) => (
                 // Kare genişliği şeridi kenardan kenara doldursun: az karede kareler büyüyor
                 <div key={j} className="ac-serit" style={{ ['--acw' as string]: `${Math.max(seritler.length > 2 ? 110 : 118, Math.ceil((seritler.length > 2 ? 440 : 460) / s.length) - 9)}px`, animationDelay: `${j * 0.15}s` }}>
-                  {s.map(k => <div key={k.id} className="k-kare"><Foto k={k} /></div>)}
+                  {s.map(k => <div key={k.id} className="k-kare"><Foto k={k} kucuk /></div>)}
                 </div>
               ))}
             </div>
@@ -80,11 +80,15 @@ export const KONTAKT: SetTanimi = {
             <div className="notlar"><Not gecikme={1.5}>{w[0].sahip_ad}</Not><div className="kalem-puan">{puan(w[0].ortalama)}</div></div>
           </>
         } else {
-          icerik = <div className="masa esit">{w.slice(0, 2).map((k, j) => (
-            <div key={k.id} className="esit-baski">
-              <Baski k={k} maxW={152} maxH={190} aci={j ? 3 : -3} gecikme={j * 0.35}><span className="kalem-no">1</span></Baski>
-              <Not gecikme={1.3 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>
-            </div>))}</div>
+          const kalan = esitKalanNotu(w)
+          icerik = <>
+            <div className="masa esit">{w.slice(0, 2).map((k, j) => (
+              <div key={k.id} className="esit-baski">
+                <Baski k={k} maxW={152} maxH={190} aci={j ? 3 : -3} gecikme={j * 0.35}><span className="kalem-no">1</span></Baski>
+                <Not gecikme={1.3 + j * 0.3}>{k.sahip_ad} {puan(k.ortalama)}</Not>
+              </div>))}</div>
+            {kalan && <div className="notlar esit-kalan"><Not gecikme={1.9}>{kalan}</Not></div>}
+          </>
         }
         K.push({ ad: 'tema', sinif: `kt-tema kt-${d}${d === 'baski' && baslik.length > 42 ? ' kt-cok' : ''}`, sag: tek ? 'Temada tek kare' : `${w[0].oy_sayisi ?? 0} kişi puanladı`, govde: govde(etkinlikAdi, baslik, icerik, alt) })
       } else if (p.tur === 'kursu') {
@@ -107,7 +111,7 @@ export const KONTAKT: SetTanimi = {
                 <div key={tema.id} className="tema-serit">
                   <span className="tema-ad">{tema.ad} · <b>{adet} kare</b></span>
                   <div className="ac-serit tema-kareleri" style={{ ['--acw' as string]: '52px', animationName: 'boy-uza', animationDelay: `${0.1 + j * 0.3}s` }}>
-                    {temaSeridiKareleri(v.kareler, tema.id).map(k => <div key={k.id} className="k-kare"><Foto k={k} /></div>)}
+                    {temaSeridiKareleri(v.kareler, tema.id).map(k => <div key={k.id} className="k-kare"><Foto k={k} kucuk /></div>)}
                   </div>
                   {enYuksek && <Not gecikme={1 + j * 0.3}>en yüksek {puan(enYuksek.ortalama)}</Not>}
                 </div>
@@ -152,7 +156,7 @@ function kisisel(d: KisiselDurum, c: { ay: string; etkinlikAdi: string; kenarAy:
     return (
       <div className={`lup-blok${cift ? ' cift' : ''}${numara != null ? ' numarali' : ''}`}>
         <div className={opt.soluk ? 'gri' : undefined}>
-          <Serit kareler={dizi} secili={cift && numara != null ? [1] : []} kucuk={cift} numarasiz kenar={`${kareler.map(k => k.tema_ad).join(' · ')} · ${c.kenarAy}`} />
+          <Serit kareler={dizi} secili={cift && numara != null ? [1] : []} kucuk={cift} numarasiz kenar={[...new Set(kareler.map(k => k.tema_ad).filter(Boolean)), c.kenarAy].join(' · ')} />
         </div>
         {!opt.soluk && <Lup k={dizi[hedef]} boy="var(--lb)" sol={`calc(50% + ${kayma} - var(--lb) / 2)`} ust="calc(56px + var(--kb) / 3 - var(--lb) / 2)" gez={opt.gez} />}
         {numara != null && <span className="kalem-buyuk">{numara}</span>}

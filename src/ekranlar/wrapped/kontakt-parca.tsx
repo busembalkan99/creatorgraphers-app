@@ -6,16 +6,12 @@ import { iki, baskiOlcu } from './bicim'
 /** Kontakt baskının parçaları (karar 126). Set kontakt.tsx'te. Film karesinin sınıfı k-kare: uygulamanın genel
  *  .kare kuralı (index.css) çentik payı ekliyor, ana ekrandaki iPhone'da fotoğrafı yok ediyordu. */
 
-const YOL = {
-  // Fotoğraf etrafında: ucu içe kıvrılıyor, elle çizilmiş gibi
-  foto: 'M26 104 C 18 30, 274 14, 286 92 C 296 166, 72 198, 30 132 C 16 108, 58 60, 124 52',
-  // Yazı ve puan etrafında: ucu kenar boyunca bitiyor, rakamı kesmiyor (karar 130)
-  yazi: 'M60 40 C 130 6, 252 10, 286 80 C 302 150, 204 194, 120 188 C 40 182, 2 132, 14 92 C 22 58, 62 30, 116 20',
-}
+// Fotoğraf etrafında: ucu içe kıvrılıyor, elle çizilmiş gibi
+const YOL = 'M26 104 C 18 30, 274 14, 286 92 C 296 166, 72 198, 30 132 C 16 108, 58 60, 124 52'
 /** Yağlı kalemle elle çizilmiş daire. Dinlenme hâli çizili; hareket çizgiyi baştan çiziyor (stroke-dashoffset). */
-export const Daire = ({ gecikme = 0, tur = 'foto' }: { gecikme?: number; tur?: 'foto' | 'yazi' }) => (
-  <svg className={`kalem-daire ${tur}`} viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true">
-    <path pathLength={1} style={{ animationDelay: `${gecikme}s` }} d={YOL[tur]} />
+export const Daire = ({ gecikme = 0 }: { gecikme?: number }) => (
+  <svg className="kalem-daire" viewBox="0 0 300 200" preserveAspectRatio="none" aria-hidden="true">
+    <path pathLength={1} style={{ animationDelay: `${gecikme}s` }} d={YOL} />
   </svg>
 )
 

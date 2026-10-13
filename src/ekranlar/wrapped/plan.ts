@@ -1,6 +1,8 @@
 import type { Etkinlik } from '../../lib/tipler'
 // Uzantıyla: dosya düğümde de test ediliyor (testler/wrapped-plan.mjs)
 import { ayAdi } from '../../lib/zaman.ts'
+import { adlarYaz } from '../../lib/metin.ts'
+import { puan } from './bicim.ts'
 
 /**
  * Wrapped kart planı (karar 126): hangi kartlar var, kişisel kart hangi durumda. Bütün setler aynı planı
@@ -12,6 +14,8 @@ export type SK = {
   id: string; tema: string; tema_ad: string; tema_sira: number; dosya: string; genislik: number; yukseklik: number
   sahip: string; sahip_ad: string; benim: boolean; ortalama: number | null; oy_sayisi: number | null
   sira: number | null; sirali: boolean; cikarildi: boolean; cikarma_nedeni: string | null; url?: string | null
+  // Önizleme kopyası (karar 123), yoksa tam boy: yalnız küçük şerit kareleri kullanıyor
+  onizleme?: string | null
 }
 export type Ozet = { kisi: number; kare: number; puan: number; benim_oyum: number; izlendi: boolean }
 export type Tema = { id: string; ad: string; sira: number }
@@ -153,7 +157,8 @@ export function temaDuzeni(plan: Plan[]): ('serit' | 'baski' | 'esit')[] {
     .map((p, j) => (p.kazananlar.length > 1 ? 'esit' : j % 2 ? 'baski' : 'serit'))
 }
 
-/** Kapanış yığını, alttan üste: kazananlar (tek temada kürsü, yoksa tema birincileri), en üstte kişinin karesi. */
+/** Kapanış yığını, alttan üste: kazananlar (tek temada kürsü, yoksa tema birincileri), en üstte kişinin karesi.
+ *  En çok dört baskı (son üç kazanan ve kişinin karesi): fazlası telefonun sağından taşıyordu. */
 export function kapanisYigini(kareler: SK[]): SK[] {
   const yarisan = kareler.filter(k => !k.cikarildi && k.sirali && k.sira != null)
   const temalar = new Set(kareler.map(k => k.tema))
@@ -161,8 +166,14 @@ export function kapanisYigini(kareler: SK[]): SK[] {
     .sort((a, b) => (b.sira! - a.sira!) || (b.tema_sira - a.tema_sira))
   const ben = kareler.filter(k => k.benim && !k.cikarildi)
     .sort((a, b) => ((a.sira ?? 99) - (b.sira ?? 99)) || ((b.ortalama ?? -1) - (a.ortalama ?? -1)))[0]
-  if (!ben) return kazanan
-  return [...kazanan.filter(k => k.id !== ben.id), ben]
+  if (!ben) return kazanan.slice(-3)
+  return [...kazanan.filter(k => k.id !== ben.id).slice(-3), ben]
+}
+
+/** Eşit birincilikte kartta iki baskı var; üçüncü ve sonrakilerin adı ve puanı kalemle notta (klasik.tsx: ad kimseyi dışarıda bırakmıyor) */
+export const esitKalanNotu = (kazananlar: SK[]): string | null => {
+  const kalan = kazananlar.slice(2)
+  return kalan.length ? `${adlarYaz(kalan.map(k => k.sahip_ad))} ${puan(kalan[0].ortalama)}` : null
 }
 
 /** Temalar kartında temanın şeridi: en çok 6 kare (sayı etikette doğru kalıyor). */

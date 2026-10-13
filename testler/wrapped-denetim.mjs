@@ -1,6 +1,8 @@
 // Ekran denetimi (Kontakt v2, karar 130): uç verilerle her kartta taşma, üst üste binme, kalem payı, boşluk, 16px ve 44px.
-// Veri: davranis-wrapped-setler.mjs'in kurulumu + 3 kareli etkinlik (E3), uzun adlı ve dikey karelı etkinlik (E4), 40 kişilik etkinlik (E5).
-// Genişlikler: 390x844 ve 360x760 tam denetim; 320x640 yalnız taşma ve yazı çakışması. Kişisel kart ayrıca WebKit'te (cqw lüp ölçüsü).
+// Veri: davranis-wrapped-setler.mjs'in kurulumu + 3 kareli etkinlik (E3), uzun adlı ve dikey karelı etkinlik (E4), 40 kişilik etkinlik (E5),
+// üç eşit birincili etkinlik (E7).
+// Genişlikler: 390x844 ve 360x760 tam denetim; 320x640 ve 375x553 (iPhone SE, Safari araç çubuklarıyla) yalnız taşma, yazı çakışması
+// ve kromdan uzaklık. Kişisel kart ayrıca WebKit'te (cqw lüp ölçüsü).
 import fs from 'node:fs';
 import { chromium, webkit } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
 import { admin, kullanici, sifirla, bekle, rapor, depo } from './ortak.mjs';
@@ -61,6 +63,9 @@ for (const [j, u] of foto.slice(0, 5).entries()) { k4a.push(await yukle(u, E4, T
 const { E: E6, T: [T6a, T6b] } = await etkinlik(['Sokak', 'Işık']);
 const k6a = [], k6b = [];
 for (const u of foto.slice(0, 5)) { k6a.push(await yukle(u, E6, T6a)); k6b.push(await yukle(u, E6, T6b)); }
+// E7: tek tema, ilk üç kare eşit puanla birinci: kartta iki baskı, üçüncünün adı notta
+const { E: E7, T: [T7] } = await etkinlik(['Sokak']);
+const k7 = []; for (const u of foto) k7.push(await yukle(u, E7, T7));
 // E5: kişi başına tema başına tek kare (unique tema+sahip, 0001_temel.sql): 40 kişi, 40 karelik tema ve 3 karelik ikinci tema
 const U40 = [];
 for (let i = 0; i < 40; i++) { const e = `k40-${String(i).padStart(2, '0')}@test.local`; U40.push({ ...(await kullanici(e, `Kişi ${i}`)), eposta: e }); }
@@ -69,15 +74,15 @@ const { E: E5, T: [T5a, T5b] } = await etkinlik(['Kalabalık', 'Küçük tema'])
 const k5a = []; for (const u of U40) k5a.push(await yukle(u, E5, T5a));
 const k5b = []; for (const u of U40.slice(0, 3)) k5b.push(await yukle(u, E5, T5b));
 
-const tum = [E1, E2, E3, E4, E5, E6];
+const tum = [E1, E2, E3, E4, E5, E6, E7];
 await admin.from('etkinlikler').update({ yukleme_biter: saat(-1) }).in('id', tum);
-const sirali = [k1, k2a, k2b, k3, k4a, k4b, k6a, k6b];
+const sirali = [k1, k2a, k2b, k3, k4a, k4b, k6a, k6b, k7];
 for (const u of U.filter(u => u !== Y)) {
-  for (const E of [E1, E2, E3, E4, E6]) {
+  for (const E of [E1, E2, E3, E4, E6, E7]) {
     const l = (await u.c.rpc('oylama_kareleri', { p_etkinlik: E })).data ?? [];
     for (const k of l) {
       const j = sirali.map(x => x.indexOf(k.id)).find(x => x >= 0);
-      const esit = k2b.includes(k.id) && j <= 1;
+      const esit = (k2b.includes(k.id) && j <= 1) || (k7.includes(k.id) && j <= 2);
       await u.c.from('oylar').insert({ kare: k.id, veren: u.id, puan: esit ? 9 : Math.max(1, 10 - j) });
     }
   }
@@ -195,12 +200,29 @@ const KISILER = [
   ['E3', E3, [['birinci', ILK], ['girmedi', foto[2].eposta], ['oyverdi', A.eposta], ['yoktun', Y.eposta]]],
   ['E4', E4, [['birinci-dikey', ILK], ['girmedi', foto[4].eposta], ['oyverdi', A.eposta], ['yoktun', Y.eposta]]],
   ['E6', E6, [['birinci-kisa-baslik', ILK], ['girmedi', foto[4].eposta]]],
+  ['E7', E7, [['uc-esit-birinci', ILK]]],
 ];
 
 try {
   for (const [w, h, tam] of [[390, 844, true], [360, 760, true], [320, 640, false]]) {
     for (const [ad, E, kisiler] of KISILER)
       await Promise.all(kisiler.map(([kad, ep]) => gez(ep, E, `${ad}-${kad}`, w, h, tam)));
+  }
+  // iPhone SE, Safari'de araç çubukları açıkken (375x553): boşluk kuralı yok, içerik sığmalı. E5 (40 kare, üç şerit) de burada
+  for (const [ad, E, kisiler] of [...KISILER, ['E5', E5, [['kalabalik', U40[0].eposta]]]])
+    await Promise.all(kisiler.map(([kad, ep]) => gez(ep, E, `${ad}-${kad}`, 375, 553, false)));
+
+  // Üç eşit birinci: iki baskı, üçüncünün adı ve puanı kalem notunda; üç ad da kartta (klasik.tsx: ad kimseyi dışarıda bırakmıyor)
+  const ucAd = foto.slice(0, 3).map(u => u.ad);
+  for (const [w, h] of [[390, 844], [360, 760], [375, 553]]) {
+    const Q = await kisi(ILK, 'no-preference', w, h); await ac(Q, `wrapped/${E7}`);
+    bekle(`E7/${w}x${h}: eşit tema kartı`, await kartaGit(Q, 'tema') && (await Q.locator('.wr .tel').getAttribute('class')).includes('kt-esit'));
+    await Q.waitForTimeout(2500);
+    const t = (await metin(Q)).toLocaleLowerCase('tr-TR');
+    bekle(`E7/${w}x${h}: başlık "Sokak temasında 3 birinci", üç ad da kartta, iki baskı`, t.includes('sokak temasında 3 birinci') && ucAd.every(a => t.includes(a.toLocaleLowerCase('tr-TR'))) && (await Q.locator('.set-kontakt .baski').count()) === 2, t);
+    bekle(`E7/${w}x${h}: kalan notu ad ve puan`, /^\S.* \d+,\d$/.test((await Q.locator('.set-kontakt .esit-kalan .kalem-not').innerText()).trim()), await Q.locator('.set-kontakt .esit-kalan').innerText());
+    await Q.screenshot({ path: `${SS}/E7-uc-esit-${w}x${h}.png` });
+    await Q.context().close();
   }
 
   // Kısa başlıklı tek baskı: baskı yüksekliği uzun başlıktaki sınırdan (100px) büyük
@@ -276,6 +298,7 @@ try {
   await lupOlc(foto[6].eposta, E2, 0, 'iki-tema-girmedi', { ad: 'büyük numara ve daire yok', f: t => t.buyuk === 0 && t.daire === 0 });
   await wk.close();
 
+  // Oy sorgusu düşerse Wrapped şeritsiz devam ediyor (Wrapped.tsx, "oylar okunamadı"): o yolun kaydı sayfa hatası sayılmıyor
   bekle('sayfa hatası yok', hatalar.filter(h => !/oylar/.test(h)).length === 0, hatalar.slice(0, 3).join(' | '));
 } finally {
   await b.close();

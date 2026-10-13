@@ -29,9 +29,11 @@ await admin.from('uyeler').insert(U.slice(1).map(u => ({ id: u.id, ad: u.ad, epo
 
 const bugun = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
 const saat = h => new Date(Date.now() + h * 3600000).toISOString();
-const yukle = async (K, E, tema) => {
+// onizleme: yanına önizleme kopyası da (karar 123, <ad>.k.jpg); kopyası olmayan kare eski yükleme gibi
+const yukle = async (K, E, tema, onizleme = false) => {
   const yol = `${E}/${tema}/${crypto.randomUUID()}.jpg`;
   await depo.koy(yol, fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
+  if (onizleme) await depo.koy(yol.replace(/\.jpg$/, '.k.jpg'), fs.readFileSync('/tmp/cgapp/dogru.jpg'), K.id);
   return (await K.c.from('kareler').insert({ tema, dosya: yol, genislik: 3000, yukseklik: 2000, cekim_gunu: bugun }).select('id').single()).data?.id;
 };
 const etkinlik = async (temalar) => {
@@ -45,7 +47,8 @@ const foto = U.slice(1, -2);
 
 // E1: tek tema, sekiz kare, puan sırası 10 - j (birinci uzun isimli). Kürsü kartı çıkıyor.
 const { E: E1, T: [T1] } = await etkinlik(['Sokak']);
-const k1 = []; for (const u of foto) k1.push(await yukle(u, E1, T1));
+// İkinci fotoğrafçının karesi dışında hepsinin önizleme kopyası var: Kontakt şeritleri önizlemeyi, kopyası yoksa tam boyu alıyor
+const k1 = []; for (const [j, u] of foto.entries()) k1.push(await yukle(u, E1, T1, j !== 1));
 // E2: iki tema; Portre'de ilk iki kare eşit puanla birinci
 // Uzun tema adları: panoda iki satıra bölünüyor; eşitlik de uzun adlı temada (en kalabalık kart taşmasın)
 const { E: E2, T: [T2a, T2b] } = await etkinlik(['Işık ve gölge oyunu', 'Portre fotoğrafçılığı']);
@@ -131,6 +134,9 @@ try {
     } else {
       bekle('kontakt/açılış: 7 kareli etkinlikte 7 kare, iki şerit', (await P.locator('.set-kontakt .ac-serit img').count()) === 7 && (await P.locator('.set-kontakt .ac-serit').count()) === 2, String(await P.locator('.set-kontakt .ac-serit img').count()));
       bekle('kontakt/açılış: kazanan söylenmiyor (sıra numarası, daire yok)', (await P.locator('.set-kontakt .kare-no').count()) === 0 && (await P.locator('.set-kontakt .kalem-daire').count()) === 0);
+      const onizlemesiz = (await admin.from('kareler').select('dosya').eq('id', k1[1]).single()).data.dosya.split('/').pop();
+      const acSrc = await P.locator('.set-kontakt .ac-serit img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
+      bekle('kontakt/açılış: şerit kareleri önizleme kopyasından (.k.jpg), kopyası olmayan tam boydan', acSrc.filter(u => u.includes(onizlemesiz)).every(u => !u.includes('.k.jpg')) && acSrc.filter(u => !u.includes(onizlemesiz)).every(u => u.includes('.k.jpg')) && acSrc.some(u => u.includes(onizlemesiz)), JSON.stringify(acSrc.map(u => u.split('?')[0].split('/').pop())));
       bekle('kontakt/açılış: "Oylar sayıldı" ve film kenarında sayılar', await var_(P, 'Oylar sayıldı') && /^\d+ KİŞİ \d+ KARE \d+ PUAN$/.test((await P.locator('.set-kontakt .ac-sayilar').innerText()).replace(/\s+/g, ' ').trim()), await metin(P));
     }
 
@@ -146,6 +152,8 @@ try {
     } else {
       bekle('kontakt/tema: başlık', await var_(P, 'Sokak temasının birincisi'));
       bekle('kontakt/tema: dev şerit', (await P.locator('.set-kontakt .dev-serit').count()) === 1);
+      const devSrc = await P.locator('.set-kontakt .dev-serit img').evaluateAll(l => l.map(i => decodeURIComponent(i.src)));
+      bekle('kontakt/tema: dev şerit tam boy (önizleme değil)', devSrc.length > 0 && devSrc.every(u => !u.includes('.k.jpg')), JSON.stringify(devSrc.map(u => u.split('?')[0].split('/').pop())));
       const not = (await P.locator('.set-kontakt .kalem-not').first().innerText()).replace(/\s+/g, ' ');
       bekle('kontakt/tema: kalem notu isim ve puan, ünlemsiz', /^Muhammed Mustafa Karaosmanoğlu \d+,\d$/.test(not) && !(await metin(P)).includes('!'), not);
       const pay = await P.locator('.set-kontakt .serit > div').first().evaluate(e => getComputedStyle(e).paddingTop + ' ' + getComputedStyle(e).paddingBottom);
@@ -167,10 +175,12 @@ try {
     bekle(`${SET}/kürsü: başlık`, await var_(P, 'Kürsünün kalanı') || await var_(P, 'Az farkla'));
     if (SET === 'pano') bekle('pano/kürsü: durum 2. ve 3., fark eksi', /\|2\.\|−\d,\d\|/.test(await panoMetni(P)) && /\|3\.\|−\d,\d/.test(await panoMetni(P)), await panoMetni(P));
     else bekle('kontakt/kürsü: iki baskı, "2" ve "3"', (await P.locator('.set-kontakt .baski').count()) === 2 && (await P.locator('.set-kontakt .baski .kalem-no').allInnerTexts()).join() === '2,3');
+    if (SET === 'kontakt') bekle('kontakt/kürsü: baskılar tam boy', (await P.locator('.set-kontakt .baski img').evaluateAll(l => l.length === 2 && l.every(i => !decodeURIComponent(i.src).includes('.k.jpg')))));
 
     // Kişisel: birinci
     bekle(`${SET}/kişisel: kart var`, await kartaGit(P, 'kisisel'));
     await olc(P, `${no + 3}-${SET}-kisisel-birinci`);
+    if (SET === 'kontakt') bekle('kontakt/kişisel birinci: lüp tam boy', (await P.locator('.set-kontakt .lup img').evaluateAll(l => l.length === 1 && l.every(i => !decodeURIComponent(i.src).includes('.k.jpg')))));
     if (SET === 'kontakt') bekle('kontakt/kişisel birinci: lüp karende, kalemle "1" şeridin altında', (await P.locator('.set-kontakt .lup').count()) === 1 && (await P.locator('.set-kontakt .kalem-buyuk').innerText()) === '1');
     bekle(`${SET}/kişisel: "Senin karen birinci"`, await var_(P, 'Senin karen birinci'), await metin(P));
     if (SET === 'pano') bekle('pano/kişisel: senin satırın vurgulu', (await P.locator('.set-pano .vurgu-kayit .h').first().evaluate(e => getComputedStyle(e).boxShadow)) !== 'none');

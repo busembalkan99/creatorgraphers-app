@@ -1,5 +1,5 @@
 // Wrapped kart planı (karar 126): hangi kart var, kişisel kart hangi durumda. Eski setin kuralları aynen.
-import { kartPlani, adlarYaz, acilisKareleri, acilisSeritleri, temaDuzeni, kapanisYigini, temaSeridiKareleri, izgaraKareleri } from '../src/ekranlar/wrapped/plan.ts';
+import { kartPlani, adlarYaz, acilisKareleri, acilisSeritleri, temaDuzeni, kapanisYigini, temaSeridiKareleri, izgaraKareleri, esitKalanNotu } from '../src/ekranlar/wrapped/plan.ts';
 import { baskiOlcu } from '../src/ekranlar/wrapped/bicim.ts';
 import { panoKisalt, panoHarfleri, panoBol } from '../src/ekranlar/wrapped/pano-metin.ts';
 import { bekle, rapor } from './ortak.mjs';
@@ -108,6 +108,17 @@ bekle('pano: 24 harfi aşan ad iki satırda, kesildiği belli (…)', (l => l.le
   const p1 = k({ id: 'p1', tema: 't2', tema_sira: 2, sira: 1, sirali: true });
   bekle('yığın: iki temada tema birincileri', kapanisYigini([b1, b2, p1]).map(x => x.id).join() === 'p1,b1');
   bekle('yığın: çıkarılan kendi karesi üste konmuyor', kapanisYigini([b1, { ...ben, cikarildi: true }]).map(x => x.id).join() === 'b1');
+  // Altı temalı etkinlik: en çok dört baskı (son üç kazanan ve kendi karesi)
+  const alti = Array.from({ length: 6 }, (_, i) => k({ id: `t${i + 1}`, tema: `t${i + 1}`, tema_sira: i + 1, sira: 1, sirali: true }));
+  bekle('yığın: altı temada en çok dört baskı, en üstte kendi karesi', kapanisYigini([...alti, ben]).map(x => x.id).join() === 't3,t2,t1,ben', kapanisYigini([...alti, ben]).map(x => x.id).join());
+  bekle('yığın: karesi yoksa en çok üç kazanan', kapanisYigini(alti).map(x => x.id).join() === 't3,t2,t1', kapanisYigini(alti).map(x => x.id).join());
+  bekle('yığın: kendi karesi kazananlardaysa yine en çok dört', kapanisYigini(alti.map((x, i) => i === 4 ? { ...x, benim: true } : x)).map(x => x.id).join() === 't3,t2,t1,t5', kapanisYigini(alti.map((x, i) => i === 4 ? { ...x, benim: true } : x)).map(x => x.id).join());
+
+  // Eşit birincilik: iki baskıdan sonrakilerin adı ve puanı notta
+  const es = ['Ayşe Kaya', 'Barış Ak', 'Can Öz', 'Deniz Akın'].map(ad => k({ sahip_ad: ad, sira: 1, sirali: true, ortalama: 9 }));
+  bekle('eşit: iki birincide not yok', esitKalanNotu(es.slice(0, 2)) === null);
+  bekle('eşit: üç birincide üçüncünün adı ve puanı', esitKalanNotu(es.slice(0, 3)) === 'Can Öz 9,0', esitKalanNotu(es.slice(0, 3)));
+  bekle('eşit: dört birincide kalan iki ad "ve" ile', esitKalanNotu(es) === 'Can Öz ve Deniz Akın 9,0', esitKalanNotu(es));
 
   // Temalar şeridi en çok 6
   bekle('temalar şeridi: en çok 6 kare', temaSeridiKareleri(kar(9).map(x => ({ ...x, tema: 't1' })), 't1').length === 6);

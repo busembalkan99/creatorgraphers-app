@@ -1060,9 +1060,12 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .m-tema-d{font-size:13px;font-weight:700;opacity:.6;white-space:nowrap}
   .m-tema-d.tamam{opacity:1}
   .app:has(> .m-ray) .live{padding:clamp(24px,2.6vw,40px);display:grid;grid-template-columns:minmax(0,1fr);column-gap:48px;align-content:start}
+  /* Başlamadıda tema adları listede de var: tek satırlık özet ikinci kez söylemesin */
+  .app:has(> .m-ray) .live:has(> .m-tema-durum) > .temalar{display:none}
   /* Bildirim daveti ve Tema öner: yatay şerit */
   .app:has(> .m-ray) .bildirim-karti,.app:has(> .m-ray) .oneri-karti{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px}
-  .app:has(> .m-ray) .m-pk{display:flex;align-items:center;justify-content:center;background:#111113;overflow:hidden}
+  /* Sütun yönü: WebKit satır yönlü flex'te aspect-ratio'dan gelen yüksekliğe göre img max-height:100%'ü çözmüyor, dikey kare taşıyordu */
+  .app:has(> .m-ray) .m-pk{display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111113;overflow:hidden}
   .app:has(> .m-ray) .vitrin{overflow:visible;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;margin:0;padding:0}
   .app:has(> .m-ray) .vt{flex:none}
   .app:has(> .m-ray) .vt .m-pk{aspect-ratio:4/5}
@@ -1099,7 +1102,6 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .row .m-pk{width:72px;height:72px;flex:0 0 auto}
   .app:has(> .m-ray) .row .m-pk img{width:auto;height:auto}
   .app:has(> .m-ray) .habit .k{width:104px}
-  .app:has(> .m-ray) .m-profil-alt > div:empty{display:none}
   /* Oylama: kaydırıcı yerine puan düğmeleri; bilgi fotoğrafın üstünde, puan altında. Ekran kaymıyor. */
   .app:has(> .m-ray) .kare .puan{display:none}
   .app:has(> .m-ray) .kare .kaydir-ipucu{display:none}
@@ -1155,6 +1157,28 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-alan.uzerinde .m-birak{border:2px solid var(--yukle);background:linear-gradient(rgba(181,45,18,.18),rgba(181,45,18,.18)),rgba(10,10,11,.92)}
   .app:has(> .m-ray) .m-ipucu-yukle{grid-column:1 / -1;font-size:13px;color:var(--soft)}
 }
+
+/* Kare detayı ve büyüteç (karar 129) */
+@media (min-width:768px) and (min-height:520px){
+  .app:has(> .m-ray) .m-detay{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-blok)}
+  .app:has(> .m-ray) .m-detay .m-foto{display:block;position:relative}
+  .app:has(> .m-ray) .m-detay .m-pk{height:clamp(420px,62dvh,760px);margin-top:12px}
+  .app:has(> .m-ray) .m-detay .m-pk img{margin-top:0;cursor:zoom-in}
+  .app:has(> .m-ray) .m-detay .m-bilgi{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s-blok);align-content:start}
+  .m-buyut{display:inline-flex;position:absolute;right:16px;top:28px;width:auto;background:rgba(10,10,11,.72);color:var(--ink)}
+}
+
+/* Yönetim ekranları: sarmalayıcılar telefonda display:contents, kardeş kuralları değişmiyor */
+@media (min-width:768px) and (min-height:520px){
+  .app:has(> .m-ray) .kart.ozet .k{width:136px;flex:0 0 auto;white-space:nowrap}
+  .app:has(> .m-ray) .m-dar{display:block;max-width:960px}
+  /* Telefon akışıyla gelen tek sütunlu ekranlar (tahmin oyunu, paylaşım kartı, tema öner): künye tam, içerik 720px */
+  .app:has(> .m-ray) .sc.m-tek > :not(.tepe){max-width:720px}
+  .app:has(> .m-ray) .sc.m-tek > .pk-sahne{margin-inline:0}
+  .app:has(> .m-ray) .sc.m-tek > .tahmin-alt{margin-inline:0;padding-inline:0}
+  .app:has(> .m-ray) .cikan img{width:64px;height:64px;object-fit:contain;background:#111113}
+}
+
 @media (min-width:1200px) and (min-height:520px){
   .app:has(> .m-ray){--s-siki:10px;--s-ic:20px;--s-blok:48px;--s-bolum:72px}
   .app:has(> .m-ray){--m-ray:280px}
@@ -1175,12 +1199,16 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-podyum .odul{display:contents}
   .app:has(> .m-ray) .m-podyum .m-odul-bas{display:block;grid-column:1;grid-row:1}
   .app:has(> .m-ray) .m-podyum .m-kazananlar{display:block;grid-column:1;grid-row:2}
+  /* Ortak birincilik: kürsü yalnız ilk kazananın yanında, sonrakiler altta sol sütunda (yoksa kürsü bütün kazananların boyuna esniyordu) */
+  .app:has(> .m-ray) .m-podyum .m-kazananlar:has(> .kazanan + .kazanan){display:contents}
+  .app:has(> .m-ray) .m-podyum .kazanan{grid-column:1}
+  .app:has(> .m-ray) .m-podyum .kazanan:first-child{grid-row:2}
   .app:has(> .m-ray) .m-podyum .kursu{grid-column:2;grid-row:2}
   /* Sağ sütun satırın boyuna katkı vermiyor: satırı Birinci belirliyor, kürsü ona sığıyor */
   .app:has(> .m-ray) .m-podyum .kursu{display:flex;flex-direction:column;gap:24px;margin-top:0;contain:size}
   .app:has(> .m-ray) .m-podyum .kursu figure{flex:1;min-height:0;display:flex;flex-direction:column}
   .app:has(> .m-ray) .m-podyum .kursu .m-pk{aspect-ratio:auto;flex:1;min-height:0}
-  .app:has(> .m-ray) .m-siralar,.app:has(> .m-ray) .izgara{columns:4}
+  .app:has(> .m-ray) .izgara{columns:4}
   .app:has(> .m-ray) .m-siralar{grid-template-columns:repeat(4,minmax(0,1fr))}
   .app:has(> .m-ray) .m-profil-ust,.app:has(> .m-ray) .m-profil-alt{display:grid;grid-template-columns:1fr 1fr;gap:0 clamp(40px,4vw,64px);align-items:start}
   .app:has(> .m-ray) .m-profil-ust > div,.app:has(> .m-ray) .m-profil-alt > div{display:block;min-width:0}
@@ -1194,6 +1222,17 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-alan{--kutu:clamp(320px,26vw,370px);margin-top:20px}
   .app:has(> .m-ray) .m-ipucu-yukle{grid-row:5;margin-top:var(--s-blok)}
 }
+
+/* Yönetim ekranları: sarmalayıcılar telefonda display:contents, kardeş kuralları değişmiyor */
+@media (min-width:1200px) and (min-height:520px){
+  .app:has(> .m-ray) .m-yonetim-iki{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 clamp(40px,4vw,64px);align-items:start}
+  .app:has(> .m-ray) .m-yonetim-iki > div{display:block;min-width:0}
+  .app:has(> .m-ray) .m-yonetim-iki > div > .yoklama:first-child > .kart-bas:first-child{margin-top:0}
+  .app:has(> .m-ray) .m-yonetim-iki > div > .yoklama:first-child{margin-top:var(--s-ic)}
+  .app:has(> .m-ray) .m-istekler{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  .app:has(> .m-ray) .m-istekler > .kart.istek{margin-top:0}
+}
+
 @media (min-width:1440px) and (min-height:520px){
   /* Yan sütun en az 420px: daha darda başlıklar kırılıyordu */
   .app:has(> .m-ray) .m-iki:has(> .m-sag){display:grid;grid-template-columns:clamp(420px,31vw,480px) minmax(0,1fr);gap:0 clamp(40px,4vw,64px);align-items:start}
@@ -1215,6 +1254,14 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .m-gez-ad{display:inline}
   .app:has(> .m-ray) .kare .m-ipucu{margin-top:14px;padding-bottom:24px}
 }
+
+/* Kare detayı ve büyüteç (karar 129) */
+@media (min-width:1440px) and (min-height:520px){
+  .app:has(> .m-ray) .m-detay{grid-template-columns:minmax(0,1fr) clamp(340px,27vw,400px);gap:clamp(40px,3.9vw,56px);align-items:start}
+  .app:has(> .m-ray) .m-detay .m-pk{height:calc(var(--ekran,100dvh) - 180px)}
+  .app:has(> .m-ray) .m-detay .m-bilgi{grid-template-columns:1fr}
+}
+
 @media (min-width:1600px) and (min-height:520px){
   /* İçerik en çok 1360px, kalan alanda ortada: kenar payı büyüyor (ekranlar payı --pad'den alıyor) */
   .app:has(> .m-ray){--pad:max(72px, calc((100vw - var(--m-ray) - 1360px) / 2))}
@@ -1223,36 +1270,7 @@ button.bos{border:0;background:var(--kart);border-radius:var(--kart-r)}
   .app:has(> .m-ray) .grid{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
 
-/* Kare detayı ve büyüteç (karar 129) */
-@media (min-width:768px) and (min-height:520px){
-  .app:has(> .m-ray) .m-detay{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-blok)}
-  .app:has(> .m-ray) .m-detay .m-foto{display:block;position:relative}
-  .app:has(> .m-ray) .m-detay .m-pk{height:clamp(420px,62dvh,760px);margin-top:12px}
-  .app:has(> .m-ray) .m-detay .m-pk img{margin-top:0;cursor:zoom-in}
-  .app:has(> .m-ray) .m-detay .m-bilgi{display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s-blok);align-content:start}
-  .m-buyut{display:inline-flex;position:absolute;right:16px;top:28px;width:auto;background:rgba(10,10,11,.72);color:var(--ink)}
-}
-@media (min-width:1440px) and (min-height:520px){
-  .app:has(> .m-ray) .m-detay{grid-template-columns:minmax(0,1fr) clamp(340px,27vw,400px);gap:clamp(40px,3.9vw,56px);align-items:start}
-  .app:has(> .m-ray) .m-detay .m-pk{height:calc(var(--ekran,100dvh) - 180px)}
-  .app:has(> .m-ray) .m-detay .m-bilgi{grid-template-columns:1fr}
-}
 @media (pointer:fine){
   .m-kapat{display:flex;align-items:center;justify-content:center;position:absolute;z-index:3;top:calc(8px + env(safe-area-inset-top));right:var(--pad);width:44px;height:44px;border:1px solid var(--rule);border-radius:2px;background:rgba(10,10,11,.6);color:var(--ink);cursor:pointer}
   .buyutec .bar .r{margin-right:60px}
-}
-
-/* Yönetim ekranları: sarmalayıcılar telefonda display:contents, kardeş kuralları değişmiyor */
-@media (min-width:1200px) and (min-height:520px){
-  .app:has(> .m-ray) .m-yonetim-iki{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 clamp(40px,4vw,64px);align-items:start}
-  .app:has(> .m-ray) .m-yonetim-iki > div{display:block;min-width:0}
-  .app:has(> .m-ray) .m-yonetim-iki > div > .yoklama:first-child > .kart-bas:first-child{margin-top:0}
-  .app:has(> .m-ray) .m-yonetim-iki > div > .yoklama:first-child{margin-top:var(--s-ic)}
-  .app:has(> .m-ray) .m-istekler{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .app:has(> .m-ray) .m-istekler > .kart.istek{margin-top:0}
-}
-@media (min-width:768px) and (min-height:520px){
-  .app:has(> .m-ray) .kart.ozet .k{width:136px;flex:0 0 auto;white-space:nowrap}
-  .app:has(> .m-ray) .m-dar{display:block;max-width:960px}
-  .app:has(> .m-ray) .cikan img{width:64px;height:64px;object-fit:contain;background:#111113}
 }

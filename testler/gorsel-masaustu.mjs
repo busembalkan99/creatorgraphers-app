@@ -108,5 +108,39 @@ try {
     yazilan.push(await cek(p, boyut, 'oyla'));
     await p.context().close();
   }
+  await temizle(); kurulan.length = 0;
+  // Tema listesi, tahmin oyunu (altı fotoğrafçı), paylaşım kartı, tema öner, başkasının profili
+  const T = await acikEtkinlik('oylama');
+  const ben = await kimlik('kurucu@test.local');
+  for (const [j, a] of ['kurucu', 'baris', 'can', 'deniz', 'ece', 'zeynep'].entries()) {
+    const k = await kareKoy(T.id, T.temalar[0].id, `${a}@test.local`, j % 2 ? 'dikey' : 'dogru');
+    if (a !== 'kurucu') await admin.from('oylar').insert({ kare: k, veren: ben, puan: 7 });
+  }
+  const tur = async (yollar, hazirla) => {
+    for (const boyut of BOYUTLAR) {
+      const p = await sayfa(b, boyut);
+      if (hazirla) await hazirla(p);
+      for (const [yol, ad] of yollar) { await ac(p, yol); yazilan.push(await cek(p, boyut, ad)) }
+      await p.context().close();
+    }
+  };
+  await tur([['oyla', 'oyla-temalar'], [`tahmin/${T.id}`, 'tahmin-teklif'], ['oner', 'oner']]);
+  {
+    const p = await sayfa(b, [1440, 900]); await ac(p, `tahmin/${T.id}`);
+    await p.locator('button', { hasText: 'Oyunu başlat' }).click(); await p.waitForTimeout(1500);
+    await p.context().close();
+  }
+  await tur([[`tahmin/${T.id}`, 'tahmin-soru']]);
+  {
+    const p = await sayfa(b, [1440, 900]); await ac(p, 'etkinlikler');
+    await p.evaluate(async id => {
+      const { data } = await window.__sb.rpc('tahmin_sorularim', { p_etkinlik: id });
+      for (const s of data ?? []) await window.__sb.rpc('tahmin_cevapla', { p_etkinlik: id, p_sira: s.sira, p_cevap: s.adaylar[0].uye, p_gec: false });
+    }, T.id);
+    await p.context().close();
+  }
+  await admin.from('etkinlikler').update({ yukleme_biter: saat(-30), oylama_biter: saat(-1) }).eq('id', T.id);
+  await tur([[`tahmin/${T.id}`, 'tahmin-sonuc'], [`paylas/${T.id}`, 'paylas'], [`profil/${await kimlik('baris@test.local')}`, 'kisi']],
+    p => p.evaluate(id => window.__sb.rpc('wrapped_izle', { p_etkinlik: id }), T.id));
 } finally { await b.close(); await temizle() }
 console.log(yazilan.join('\n'));

@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import { execSync } from 'node:child_process';
 import { chromium, webkit } from '/Users/buse.balkan/.local/playwright-mcp/node_modules/playwright/index.mjs';
-import { admin, depo, bekle, rapor } from './ortak.mjs';
+import { admin, depo, bekle, rapor, kullanici } from './ortak.mjs';
 import { temaDurumu } from '../src/lib/temaDurumu.ts';
 
 const APP = process.env.CG_APP ?? 'http://localhost:5180/';
@@ -23,7 +23,7 @@ async function ac(p, yol) { await p.goto(APP + '#/' + yol); await p.reload(); aw
 
 // Maketlerde kullanılan denetim; her kontrol kusur geri konarak sınandı (2026-10-12).
 // Tek satır kalması gereken etiketler: yeni görevler kendi sınıflarını buraya ekler.
-const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.m-yuk-tema .m-durum', '.habit .l', '.row .nm', '.ozet .k', '.rolakt button'];
+const TEK_SATIR = ['.kart-bas', '.mast', '.m-ray a .m-uzun', '.m-tema-d', '.m-durum', '.habit .l', '.row .nm', '.ozet .k', '.rolakt button'];
 async function denetle(p) {
   return p.evaluate(tekSatir => {
     const R = e => e.getBoundingClientRect(), out = [];
@@ -38,7 +38,7 @@ async function denetle(p) {
         if (!a.getAttribute('aria-label')) out.push('adsız sekme');
       }
     }
-    for (const i of document.querySelectorAll('.m-pk img')) { const a = R(i), k = R(i.parentElement); if (a.width > k.width + 1 || a.height > k.height + 1) out.push('kırpılan kare') }
+    for (const i of document.querySelectorAll('.m-pk img')) { const a = R(i), k = R(i.parentElement); if (a.width > k.width + 1 || a.height > k.height + 1) out.push(`kırpılan kare (${i.parentElement.parentElement?.className} ${Math.round(a.width)}x${Math.round(a.height)} > ${Math.round(k.width)}x${Math.round(k.height)})`) }
     for (const x of document.querySelectorAll('.btn')) if (x.offsetParent && x.scrollWidth > x.clientWidth + 1) out.push('sığmayan düğme: ' + x.textContent.trim().slice(0, 24));
     for (const e of document.querySelectorAll(tekSatir.join(','))) {
       if (!e.getClientRects().length) continue;
@@ -61,7 +61,9 @@ const kimlik = async e => (await admin.from('uyeler').select('id').eq('eposta', 
 async function acikEtkinlik(asama, temaAdlari = ['Yansıma', 'Kalabalık', 'Gölge']) {
   const z = asama === 'yukleme'
     ? { yukleme_baslar: saat(-2), yukleme_biter: saat(20), oylama_biter: saat(44) }
-    : { yukleme_baslar: saat(-50), yukleme_biter: saat(-2), oylama_biter: saat(20) };
+    : asama === 'baslamadi'
+      ? { yukleme_baslar: saat(5), yukleme_biter: saat(25), oylama_biter: saat(49) }
+      : { yukleme_baslar: saat(-50), yukleme_biter: saat(-2), oylama_biter: saat(20) };
   const e = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun(), kuran: await kimlik('kurucu@test.local'), ...z }).select('id').single()).data;
   kurulan.push(e.id);
   const temalar = (await admin.from('temalar').insert(temaAdlari.map((ad, i) => ({ etkinlik: e.id, ad, sira: i + 1, bulusmada: i < 2 })))
@@ -222,6 +224,17 @@ bolum('etkinlikler', async b => {
     await p.context().close();
   }
 
+  // Başlamadı: tema adları masaüstünde yalnız listede (tek satırlık özet telefonda)
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', kurulan[kurulan.length - 1]);
+  await acikEtkinlik('baslamadi');
+  for (const boyut of [[390, 844], [1024, 768], [1440, 900]]) {
+    const p = await sayfa(b, boyut); await ac(p, 'etkinlikler');
+    const r = { ozet: await p.locator('.live .temalar').isVisible(), liste: await p.locator('.live .m-tema-durum').isVisible() };
+    const tel = boyut[0] < 768;
+    bekle(`${boyut[0]} başlamadı: tema adları ${tel ? 'özet satırında' : 'yalnız listede'}`, tel ? r.ozet && !r.liste : !r.ozet && r.liste, JSON.stringify(r));
+    await p.context().close();
+  }
+
   // Sonuçlanmış etkinlik: vitrin (üç sütun), katıldığın kart, geçmiş satırları
   await admin.from('etkinlikler').update({ iptal: true }).eq('id', kurulan[kurulan.length - 1]);
   const B = await bitmisEtkinlik();
@@ -272,6 +285,47 @@ bolum('sonuc', async b => {
     if (process.env.CG_EKRAN && [1440, 1024].includes(boyut[0])) { const h = await p.evaluate(() => Math.max(...[...document.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 50).map(e => e.scrollHeight)) || 0); await p.setViewportSize({ width: boyut[0], height: Math.min(h + 40, 6000) }); await p.waitForTimeout(500); await p.screenshot({ path: `/tmp/cgapp/ss/sonuc-${boyut[0]}.png`, fullPage: true }) }
     const d = await denetle(p); bekle(`${boyut[0]} sonuç: denetim temiz`, d.length === 0, d.join(' | '));
     await p.context().close();
+  }
+  // Ortak birincilik (karar 98): ilk temada iki kare eşit puanla birinci. Kürsü (sıra 3) çıksın diye temada
+  // 8 kare gerekiyor (sıralı kare sayısı = kare / 2.5): altı test üyesine iki geçici üye ekleniyor.
+  const gecici = [];
+  try {
+    const t0 = S.temalar[0].id;
+    for (const [e, ad] of [['esit-a@test.local', 'Gül Er'], ['esit-b@test.local', 'Ilgaz Su']]) {
+      const k = await kullanici(e, ad); gecici.push(k.id);
+      await admin.from('uyeler').upsert({ id: k.id, ad, eposta: e, hosgeldin_goruldu: true });
+      const kare = await kareKoy(S.id, t0, e);
+      for (const v of ['kurucu', 'baris', 'can']) await admin.from('oylar').insert({ kare, veren: await kimlik(`${v}@test.local`), puan: 1 });
+    }
+    const kk = (await admin.from('kareler').select('id').eq('tema', t0).eq('sahip', await kimlik('kurucu@test.local'))).data[0].id;
+    const tepe = (await admin.from('kareler').select('id').eq('tema', t0).eq('sahip', await kimlik('baris@test.local'))).data[0].id;
+    const tp = ((await admin.from('oylar').select('puan').eq('kare', tepe)).data ?? [])[0]?.puan;
+    await admin.from('oylar').update({ puan: tp }).eq('kare', kk);
+    const p = await sayfa(b, [1440, 900]); await p.evaluate(id => window.__sb.rpc('wrapped_izle', { p_etkinlik: id }), S.id);
+    await ac(p, `sonuc/${S.id}`);
+    const r = await p.evaluate(() => {
+      const R = e => e.getBoundingClientRect();
+      const kaz = [...document.querySelectorAll('.odul .kazanan')], k = document.querySelector('.kursu');
+      const fig = k ? [...k.querySelectorAll('figure')] : [];
+      return { n: kaz.length, kursuUst: k && Math.round(R(k).top), kazUst: kaz[0] && Math.round(R(kaz[0]).top),
+        kursuAlt: fig.length && Math.round(R(fig.at(-1).querySelector('figcaption')).bottom), kazAlt: kaz[0] && Math.round(R(kaz[0].querySelector('.serit')).bottom),
+        kazBoy: kaz[0] && Math.round(R(kaz[0]).height),
+        kutular: fig.map(f => [R(f).height, R(f.querySelector('img')).height, R(f.querySelector('figcaption')).height].map(Math.round)) };
+    });
+    bekle('1440 ortak birincilik: iki kazanan ve kürsü', r.n === 2 && r.kutular.length > 0, JSON.stringify(r));
+    bekle('1440 ortak birincilik: kürsü üstü ilk kazananla hizalı, altlar 1px içinde', Math.abs(r.kursuUst - r.kazUst) <= 1 && Math.abs(r.kursuAlt - r.kazAlt) <= 1, JSON.stringify(r));
+    // Tek kürsü karesi tasarım gereği Birinci'nin boyuna esniyor (eşitlik yokken de); eşitlik onu iki kazananın boyuna çekmesin
+    bekle('1440 ortak birincilik: kürsü ilk kazanandan uzun değil', r.kutular.reduce((a, [f]) => a + f, 0) <= r.kazBoy + 1, JSON.stringify({ kazBoy: r.kazBoy, kutular: r.kutular }));
+    const d = await denetle(p); bekle('1440 ortak birincilik: denetim temiz', d.length === 0, d.join(' | '));
+    if (b.browserType().name() === 'chromium') {
+      const h = await p.evaluate(() => document.querySelector('.sc').scrollHeight);
+      await p.setViewportSize({ width: 1440, height: Math.min(h + 40, 6000) }); await p.waitForTimeout(500);
+      await p.screenshot({ path: '/tmp/cgapp/ss/sonuc-esit-1440.png' });
+    }
+    await p.context().close();
+  } finally {
+    await temizle(); kurulan.length = 0;
+    for (const id of gecici) { await admin.from('uyeler').delete().eq('id', id); await admin.auth.admin.deleteUser(id) }
   }
   // Kurucunun karesi olan sonuçlanmış etkinlik kalırsa sonraki bölümlerde Wrapped açılışı araya giriyor
   await temizle(); kurulan.length = 0;
@@ -751,6 +805,63 @@ bolum('wrapped', async b => {
     bekle('oylama: Sonraki kare oku geri okunun aynası (üç çizgi)', (ok.ileri.match(/<path/g) ?? []).length === 3 && (ok.geri.match(/<path/g) ?? []).length === 3, JSON.stringify(ok));
     if (b.browserType().name() === 'chromium') await q.screenshot({ path: '/tmp/cgapp/ss/oylama-oklar-1024x768.png' });
     await q.context().close();
+  } finally { await temizle(); kurulan.length = 0 }
+});
+
+// ---------------------------------------------------------------- diğer ekranlar
+// Tema listesi, tahmin oyununun her hâli, paylaşım kartı, tema öner, başkasının profili
+bolum('diger', async b => {
+  const O = await acikEtkinlik('oylama');
+  const T = O.temalar[0];
+  // Tahmin oyunu altı fotoğrafçıyla açılıyor (karar 109); kurucu da havuzda olsun diye karesi var
+  const kisiler = ['kurucu', 'baris', 'can', 'deniz', 'ece', 'zeynep'];
+  const kareler = [];
+  for (const [j, a] of kisiler.entries()) kareler.push([a, await kareKoy(O.id, T.id, `${a}@test.local`, j % 2 ? 'dikey' : 'dogru')]);
+  const ben = await kimlik('kurucu@test.local');
+  const gez = async (ad, yol, hazirla) => {
+    for (const boyut of BOYUTLAR) {
+      const p = await sayfa(b, boyut);
+      if (hazirla) await hazirla(p);
+      await ac(p, yol);
+      const d = await denetle(p); bekle(`${boyut[0]} ${ad}: denetim temiz`, d.length === 0, d.join(' | '));
+      if (process.env.CG_EKRAN && [1024, 1440].includes(boyut[0]) && b.browserType().name() === 'chromium') {
+        const h = await p.evaluate(() => { const sc = document.querySelector('.sc'); return sc ? sc.scrollHeight : 0 });
+        if (h > boyut[1]) { await p.setViewportSize({ width: boyut[0], height: Math.min(h + 40, 6000) }); await p.waitForTimeout(400) }
+        await p.screenshot({ path: `/tmp/cgapp/ss/diger-${ad.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ı/g, 'i').replace(/[^a-z0-9]+/gi, '-').replace(/-$/, '')}-${boyut[0]}.png` });
+      }
+      await p.context().close();
+    }
+  };
+  try {
+    await gez('oyla (oylanacak)', 'oyla');
+    await gez('tahmin (oylar eksik)', `tahmin/${O.id}`);
+    for (const [a, k] of kareler) if (a !== 'kurucu') await admin.from('oylar').insert({ kare: k, veren: ben, puan: 7 });
+    await gez('oyla (tamam, tahmin kartı)', 'oyla');
+    await gez('tahmin (teklif)', `tahmin/${O.id}`);
+    {
+      const p = await sayfa(b, [1440, 900]); await ac(p, `tahmin/${O.id}`);
+      await p.locator('button', { hasText: 'Oyunu başlat' }).click(); await p.waitForTimeout(1500);
+      bekle('tahmin oyunu başladı', (await p.locator('.tahmin-foto').count()) === 1);
+      await p.context().close();
+    }
+    await gez('tahmin (soru)', `tahmin/${O.id}`);
+    {
+      const p = await sayfa(b, [1440, 900]); await ac(p, 'etkinlikler');
+      const hata = await p.evaluate(async id => {
+        const { data } = await window.__sb.rpc('tahmin_sorularim', { p_etkinlik: id });
+        for (const s of data ?? []) { const r = await window.__sb.rpc('tahmin_cevapla', { p_etkinlik: id, p_sira: s.sira, p_cevap: s.adaylar[0].uye, p_gec: false }); if (r.error) return r.error.message }
+        return (data ?? []).length ? null : 'soru yok';
+      }, O.id);
+      bekle('tahminler gönderildi', hata === null, hata);
+      await p.context().close();
+    }
+    await gez('tahmin (gönderildi)', `tahmin/${O.id}`);
+    await admin.from('etkinlikler').update({ yukleme_biter: saat(-30), oylama_biter: saat(-1) }).eq('id', O.id);
+    const izle = p => p.evaluate(id => window.__sb.rpc('wrapped_izle', { p_etkinlik: id }), O.id);
+    await gez('tahmin (sonuç)', `tahmin/${O.id}`, izle);
+    await gez('paylas', `paylas/${O.id}`, izle);
+    await gez('oner', 'oner');
+    await gez('kisi', `profil/${await kimlik('baris@test.local')}`, izle);
   } finally { await temizle(); kurulan.length = 0 }
 });
 

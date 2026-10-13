@@ -50,7 +50,7 @@ export function OneriFormu() {
     git('profil')
   }
   return (
-    <div className="sc">
+    <div className="sc m-tek">
       <Kunye sol="Etkinlikler" geri="etkinlikler" sag="Tema öner" />
       <h2 className="t orta">Tema<br />öner</h2>
       <p className="lede">Yönetici etkinlik kurarken havuzdan seçiyor. Havuzu yalnız yönetici görüyor.</p>

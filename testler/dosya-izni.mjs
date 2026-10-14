@@ -40,9 +40,20 @@ bekle('sahibi toplu çıkarılan karesini görüyor', (await izin(A, [yA], 'oku'
 // Sonuçta toplu çıkarılan herkese açılıyor, önizlemesi de (0020; kod incelemesi F9)
 await admin.from('etkinlikler').update({ oylama_biter: saat(-0.5) }).eq('id', E);
 bekle('sonuçta toplu çıkarılan üyeye açık, önizlemesi de', (await izin(B, [yA, yAk], 'oku')).length === 2);
-// Silme: yalnız sahibi
+// Silme: yalnız sahibi, ve kare kaydı o dosyayı göstermiyorsa (audit 2026-10-14, Must fix 4): yoksa oylamada boş
+// kare kalırdı, sonuçta kötü sıralanan kare gizlenirdi
 bekle('başkası silemez', (await izin(B, [yA], 'sil')).length === 0);
-bekle('sahibi silebilir', (await izin(A, [yA, yAk], 'sil')).length === 2);
+bekle('sonuçta kare kaydı duran dosyayı sahibi silemiyor, önizlemesini de', (await izin(A, [yA, yAk], 'sil')).length === 0);
+await admin.from('etkinlikler').update({ oylama_biter: saat(20) }).eq('id', E);   // oylamaya geri
+bekle('oylamada kare kaydı duran dosyayı sahibi silemiyor', (await izin(A, [yA, yAk], 'sil')).length === 0);
+bekle('oylamada dosya_kaydi_sil kaydı silmiyor', JSON.stringify((await A.c.rpc('dosya_kaydi_sil', { p_yollar: [yA] })).data) === '[]'
+  && !!(await admin.from('dosyalar').select('yol').eq('yol', yA).maybeSingle()).data);
+// Yarım kalmış yükleme: dosya kaydı var, kare kaydı yok. Sahibi her aşamada silebiliyor (R2'de sahipsiz kalmasın)
+const yO = `${E}/${T}/${crypto.randomUUID()}.jpg`;
+await admin.rpc('dosya_kaydet', { p_yol: yO, p_boyut: 1, p_sahip: A.id });
+bekle('kare kaydı olmayan dosyayı sahibi oylamada da silebiliyor', (await izin(A, [yO], 'sil')).length === 1);
+await admin.from('kareler').delete().eq('id', k);
+bekle('kare kaydı gidince sahibi silebilir, önizlemesini de', (await izin(A, [yA, yAk], 'sil')).length === 2);
 bekle('silme kaydı yalnız izinli satırları siliyor', JSON.stringify((await B.c.rpc('dosya_kaydi_sil', { p_yollar: [yA] })).data) === '[]');
 bekle('oturumsuz çağrılamıyor', !!(await (await import('./ortak.mjs')).istemci().rpc('dosya_izni', { p_yollar: [yA], p_islem: 'oku' })).error);
 bekle('depo listesi üyeye kapalı (yalnız servis rolü)', !!(await B.c.rpc('depo_nesneleri')).error && !!(await A.c.rpc('depo_nesneleri')).error);

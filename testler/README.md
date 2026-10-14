@@ -28,6 +28,8 @@ node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon
 node testler/bayes.mjs                        # sıralama puanı: temadaki yer, Bayes çekimi 50'ye, iki tablo, ağırlık, eşik, en iyi kare (0021, 0023)
 node testler/sure.mjs                         # bitiş saatlerini değiştirme, oylamayı bitirme, bekleyen bildirimler (0022)
 node testler/sure-ekran.mjs                   # Aşama ekranı: Değiştir, saat kutusu, Oylamayı bitir (sunucu ve geliştirme sunucusu açık)
+node testler/asama-cift.mjs                  # Aşama düğmeleri istek sürerken kilitli: çift dokunuş 48 saat uzatmıyor (sunucu ve geliştirme sunucusu açık)
+node testler/tahmin-kapanis.mjs              # tahmin oyunu: oynarken oylama kapanıyor, cevabın yanıtı kayboluyor (sunucu ve geliştirme sunucusu açık, ~40 sn)
 node testler/metin.mjs                        # metin yardımcıları (ortak birincilerin adları)
 node testler/kazananlar.mjs                   # arşivdeki kazanan adları, Wrapped'den önce gizli; senin karen / senin yerin kartları
 node testler/webkit.mjs                       # iPhone motorunda taşma ve üst üste binme (siralama.mjs'den sonra)
@@ -44,7 +46,6 @@ node testler/onizleme.mjs                     # önizleme kopyası depo kurallar
 node testler/onizleme-yukle.mjs               # yüklemede 720 px önizleme, değiştirince/kaldırınca iki dosya da gidiyor
 node testler/yon.mjs                          # eski Safari: çevirme ölçümü ve elle çevirme; dikey kare dosyaya ezik kaydedilmiyor
 node testler/oran.mjs                         # her ekranda kareler beş boyutta oranı bozulmadan çiziliyor (Oylama basıklığı, 2026-09-30)
-node testler/onar.mjs                         # scripts/onar-sunmus.mjs onarım betiği, yerel veritabanında
 node testler/basari-seviye.mjs                # başarı seviyeleri, beş eşik (veritabanı istemez)
 node testler/basarilar.mjs                    # başarı sayıları: yalnız sonucu açık etkinlik, çıkarılan kare sayılmaz (karar 115)
 node testler/gorsel.mjs <etiket> [yol ...]    # önce/sonra ekran görüntüleri, /tmp/cgapp/ss altına

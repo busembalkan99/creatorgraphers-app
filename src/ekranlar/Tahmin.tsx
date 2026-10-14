@@ -40,7 +40,8 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
   const [hata, setHata] = useState<string | null>(null)
   const [gidiyor, setGidiyor] = useState(false)
 
-  async function oku() {
+  async function oku(): Promise<Soru[]> {
+    let yeni: Soru[] = []
     const [ev, du] = await sor(Promise.all([
       sb.from('etkinlikler').select('*').eq('id', etkinlikId).maybeSingle(),
       sb.rpc('tahmin_durumu', { p_etkinlik: etkinlikId }),
@@ -50,20 +51,32 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const et = (ev.data ?? null) as Etkinlik | null
     const dd = ((du.data ?? []) as TahminDurumu[])[0] ?? null
     if (et && asama(et) === 'sonuc' && dd?.basladi) {
-      const { data, error } = await sor(sb.rpc('tahmin_sonucum', { p_etkinlik: etkinlikId }))
-      if (error) throw error
-      setSonuc(await imzala((data ?? []) as SonucSatir[]))
+      // Başlamış oyunun en az bir sorusu var: boş liste, telefonun saati önde ve sunucu henüz kapanışa gelmedi demek
+      let satirlar: SonucSatir[] = []
+      for (let i = 0; i < 5 && !satirlar.length; i++) {
+        if (i) await new Promise(r => setTimeout(r, 3000))
+        const { data, error } = await sor(sb.rpc('tahmin_sonucum', { p_etkinlik: etkinlikId }))
+        if (error) throw error
+        satirlar = (data ?? []) as SonucSatir[]
+      }
+      if (!satirlar.length) throw new Error('tahmin_sonuc_hazir_degil')
+      setSonuc(await imzala(satirlar))
     } else if (dd?.basladi) {
       const { data, error } = await sor(sb.rpc('tahmin_sorularim', { p_etkinlik: etkinlikId }))
       if (error) throw error
       // Karar 107: her soruda aynı liste. Veritabanının sıralaması Türkçe harfleri sona atabilir.
       const l = ((data ?? []) as Soru[]).map(x => ({ ...x, adaylar: [...x.adaylar].sort((a, b) => a.ad.localeCompare(b.ad, 'tr')) }))
       setSorular(await imzala(l))
+      yeni = l
     }
     setD(dd)
     setE(et)
+    return yeni
   }
   useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [etkinlikId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Oylama kişi oynarken kapanırsa sonuçlar açılışta yüklenmemiş oluyor (audit 2026-10-14)
+  const sonucEksik = !!e && !!d?.basladi && !sonuc && asama(e) === 'sonuc'
+  useEffect(() => { if (sonucEksik) oku().catch(x => setHata(hataMetni(x))) }, [sonucEksik]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function baslat() {
     setGidiyor(true)
@@ -81,7 +94,13 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
       p_etkinlik: etkinlikId, p_sira: s.sira, p_cevap: gec ? null : secim, p_gec: gec,
     })
     setGidiyor(false)
-    if (error) return setHata(hataMetni(error))
+    if (error) {
+      // Yanıt yolda kaybolduysa cevap kaydedilmiş olabilir, oylama da kapanmış olabilir: sunucudaki duruma dön
+      const yeni = await oku().catch(() => [] as Soru[])
+      if (yeni.some(x => x.sira === s.sira && (x.cevap != null || x.gecti))) setSecim(null)
+      else setHata(hataMetni(error))
+      return
+    }
     setSorular(l => l.map(x => (x.sira === s.sira ? { ...x, cevap: gec ? null : secim, gecti: gec } : x)))
     setSecim(null)
   }
@@ -101,7 +120,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
 
   // ------------------------------------------------ sonuç: kareler kimindi
   if (a === 'sonuc') {
-    if (!sonuc || !d.basladi) {
+    if (!d.basladi) {
       return (
         <div className="sc m-tek">
           <Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" />
@@ -110,6 +129,11 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
           <button className="btn ik" onClick={() => git(`sonuc/${etkinlikId}`)}>Sonuçlara dön</button>
         </div>
       )
+    }
+    if (!sonuc) {
+      return hata
+        ? <div className="sc m-tek"><Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" /><Hata metin={hata} /></div>
+        : <Yukleniyor />
     }
     const sayilan = sonuc.filter(x => x.sayildi)
     const dogru = sayilan.filter(x => x.dogru).length

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik, Tema } from '../lib/tipler'
 import { asama, ayAdi, girdiDegeri, girdidenIso, gunYaz, kalanYaz, saatYaz } from '../lib/zaman'
@@ -21,6 +21,9 @@ export function Asama() {
   const [kopyalandi, setKopyalandi] = useState(false)
   // Yoklama bölümü kare çıkarınca çıkarılanlar listesi de tazelensin
   const [surum, setSurum] = useState(0)
+  // İstek sürerken ikinci dokunuş gitmesin (audit 2026-10-14): yukleme_uzat her çağrıda saat ekliyor
+  const [gidiyor, setGidiyor] = useState(false)
+  const gidiyorRef = useRef(false)
 
   async function yukle() {
     const { data, error } = await sor(sb.from('etkinlikler').select('*').order('yukleme_baslar', { ascending: false }))
@@ -52,11 +55,19 @@ export function Asama() {
   }, [])
 
   async function cagir(fn: string, args: Record<string, unknown>) {
+    if (gidiyorRef.current) return
+    gidiyorRef.current = true
+    setGidiyor(true)
     setHata(null)
-    const { error } = await sb.rpc(fn, args)
-    setSoru(null)
-    if (error) return setHata(hataMetni(error))
-    await yukle().catch(x => setHata(hataMetni(x)))
+    try {
+      const { error } = await sb.rpc(fn, args)
+      setSoru(null)
+      if (error) return setHata(hataMetni(error))
+      await yukle().catch(x => setHata(hataMetni(x)))
+    } finally {
+      gidiyorRef.current = false
+      setGidiyor(false)
+    }
   }
 
   function duzenle(ne: 'yukleme' | 'oy') {
@@ -181,7 +192,7 @@ export function Asama() {
 
       {a === 'yukleme' && bos && (
         <div className="akt" style={{ marginTop: 14 }}>
-          <button className="btn ik" onClick={() => cagir('yukleme_uzat', { p_etkinlik: e.id, p_saat: 24 })}>24 saat uzat</button>
+          <button className="btn ik" disabled={gidiyor} onClick={() => cagir('yukleme_uzat', { p_etkinlik: e.id, p_saat: 24 })}>24 saat uzat</button>
           <button className="btn ik" onClick={() => setSoru('oylama')}>Oylamayı aç</button>
         </div>
       )}
@@ -206,7 +217,7 @@ export function Asama() {
           <p>Yükleme kapanır, {toplam} kareyle oylama başlar. Geri alınamaz.</p>
           <div className="akt">
             <button className="btn ik" onClick={() => setSoru(null)}>Vazgeç</button>
-            <button className="btn" onClick={() => cagir('oylamayi_ac', { p_etkinlik: e.id })}>Oylamayı aç</button>
+            <button className="btn" disabled={gidiyor} onClick={() => cagir('oylamayi_ac', { p_etkinlik: e.id })}>Oylamayı aç</button>
           </div>
         </div>
       )}
@@ -255,7 +266,7 @@ export function Asama() {
               <p>{toplam > 0 ? `Yüklenen ${toplam} kare silinir. ` : ''}Geri alınamaz.</p>
               <div className="akt">
                 <button className="btn ik" onClick={() => setSoru(null)}>Vazgeç</button>
-                <button className="btn" onClick={() => cagir('etkinlik_iptal', { p_etkinlik: e.id })}>İptal et</button>
+                <button className="btn" disabled={gidiyor} onClick={() => cagir('etkinlik_iptal', { p_etkinlik: e.id })}>İptal et</button>
               </div>
             </div>
           ) : (

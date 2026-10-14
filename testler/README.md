@@ -28,6 +28,7 @@ node testler/serbest.mjs                      # serbest (ekstra) etkinlik: sezon
 node testler/bayes.mjs                        # sıralama puanı: temadaki yer, Bayes çekimi 50'ye, iki tablo, ağırlık, eşik, en iyi kare (0021, 0023)
 node testler/sure.mjs                         # bitiş saatlerini değiştirme, oylamayı bitirme, bekleyen bildirimler (0022)
 node testler/sure-ekran.mjs                   # Aşama ekranı: Değiştir, saat kutusu, Oylamayı bitir (sunucu ve geliştirme sunucusu açık)
+node testler/asama-cift.mjs                  # Aşama düğmeleri istek sürerken kilitli: çift dokunuş 48 saat uzatmıyor (sunucu ve geliştirme sunucusu açık)
 node testler/metin.mjs                        # metin yardımcıları (ortak birincilerin adları)
 node testler/kazananlar.mjs                   # arşivdeki kazanan adları, Wrapped'den önce gizli; senin karen / senin yerin kartları
 node testler/webkit.mjs                       # iPhone motorunda taşma ve üst üste binme (siralama.mjs'den sonra)

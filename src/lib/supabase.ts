@@ -20,6 +20,7 @@ const HATALAR: Record<string, string> = {
   tahmin_soru_yok: 'Bu soru artık yok.',
   tahmin_cevaplandi: 'Bu soruyu zaten cevapladın.',
   tahmin_aday_degil: 'Bu isim adaylar arasında yok.',
+  tahmin_sonuc_hazir_degil: 'Sonuçlar birazdan açılıyor.',
   tahmin_uye_degil: 'Bunu yapmaya yetkin yok.',
   yetki_yok: 'Bunu yapmaya yetkin yok.',
   istek_yok: 'Bu istek artık beklemiyor.',

@@ -40,7 +40,8 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
   const [hata, setHata] = useState<string | null>(null)
   const [gidiyor, setGidiyor] = useState(false)
 
-  async function oku() {
+  async function oku(): Promise<Soru[]> {
+    let yeni: Soru[] = []
     const [ev, du] = await sor(Promise.all([
       sb.from('etkinlikler').select('*').eq('id', etkinlikId).maybeSingle(),
       sb.rpc('tahmin_durumu', { p_etkinlik: etkinlikId }),
@@ -59,11 +60,16 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
       // Karar 107: her soruda aynı liste. Veritabanının sıralaması Türkçe harfleri sona atabilir.
       const l = ((data ?? []) as Soru[]).map(x => ({ ...x, adaylar: [...x.adaylar].sort((a, b) => a.ad.localeCompare(b.ad, 'tr')) }))
       setSorular(await imzala(l))
+      yeni = l
     }
     setD(dd)
     setE(et)
+    return yeni
   }
   useEffect(() => { oku().catch(x => setHata(hataMetni(x))) }, [etkinlikId]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Oylama kişi oynarken kapanırsa sonuçlar açılışta yüklenmemiş oluyor (audit 2026-10-14)
+  const sonucEksik = !!e && !!d?.basladi && !sonuc && asama(e) === 'sonuc'
+  useEffect(() => { if (sonucEksik) oku().catch(x => setHata(hataMetni(x))) }, [sonucEksik]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function baslat() {
     setGidiyor(true)
@@ -81,7 +87,13 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
       p_etkinlik: etkinlikId, p_sira: s.sira, p_cevap: gec ? null : secim, p_gec: gec,
     })
     setGidiyor(false)
-    if (error) return setHata(hataMetni(error))
+    if (error) {
+      // Yanıt yolda kaybolduysa cevap kaydedilmiş olabilir, oylama da kapanmış olabilir: sunucudaki duruma dön
+      const yeni = await oku().catch(() => [] as Soru[])
+      if (yeni.some(x => x.sira === s.sira && (x.cevap != null || x.gecti))) setSecim(null)
+      else setHata(hataMetni(error))
+      return
+    }
     setSorular(l => l.map(x => (x.sira === s.sira ? { ...x, cevap: gec ? null : secim, gecti: gec } : x)))
     setSecim(null)
   }
@@ -101,7 +113,7 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
 
   // ------------------------------------------------ sonuç: kareler kimindi
   if (a === 'sonuc') {
-    if (!sonuc || !d.basladi) {
+    if (!d.basladi) {
       return (
         <div className="sc m-tek">
           <Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" />
@@ -110,6 +122,11 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
           <button className="btn ik" onClick={() => git(`sonuc/${etkinlikId}`)}>Sonuçlara dön</button>
         </div>
       )
+    }
+    if (!sonuc) {
+      return hata
+        ? <div className="sc m-tek"><Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" /><Hata metin={hata} /></div>
+        : <Yukleniyor />
     }
     const sayilan = sonuc.filter(x => x.sayildi)
     const dogru = sayilan.filter(x => x.dogru).length

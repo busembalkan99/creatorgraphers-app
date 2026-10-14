@@ -74,6 +74,16 @@ try {
   await P.route('**/rest/v1/rpc/tahmin_sonucum*', r => r.abort());
   await P.goto(APP + `#/tahmin/${E}`); await P.reload(); await P.waitForTimeout(2200);
   bekle('sonuç yüklenemezse hata metni görünüyor, "oynamadın" değil', (await P.locator('.hata').count()) > 0 && !(await metin()).includes('oynamadın'), (await metin()).slice(0, 200));
+
+  // Sunucu sonucu hiç vermiyor (hep boş liste): denemeler bitince 0/0 skor değil, hata metni
+  await P.unroute('**/rest/v1/rpc/tahmin_sonucum*');
+  let bosCagri = 0;
+  await P.route('**/rest/v1/rpc/tahmin_sonucum*', async r => { bosCagri++; await r.fulfill({ response: await r.fetch(), body: '[]' }); });
+  await P.goto(APP + `#/tahmin/${E}`); await P.reload(); await P.waitForTimeout(16000);
+  bekle('boş sonuç beş kez deneniyor', bosCagri >= 5, String(bosCagri));
+  bekle('boş sonuçta denemeler bitince hata metni görünüyor', (await P.locator('.hata').count()) > 0, (await metin()).slice(0, 200));
+  bekle('boş sonuçta sayfa yükleniyorda kalmıyor', (await P.locator('.yukleniyor').count()) === 0, (await metin()).slice(0, 200));
+  bekle('boş sonuçta "oynamadın" denmiyor, 0/0 skor yok', !(await metin()).includes('oynamadın') && (await P.locator('.tahmin-skor').count()) === 0, (await metin()).slice(0, 200));
   bekle('sayfa hatası yok', hatalar.length === 0, hatalar.join(' | '));
 } finally { await b.close(); }
 rapor();

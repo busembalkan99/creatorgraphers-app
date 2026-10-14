@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { sb, hataMetni, sor } from '../lib/supabase'
 import type { Etkinlik } from '../lib/tipler'
 import { asama, kalanYaz } from '../lib/zaman'
@@ -39,8 +39,13 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
   const [secim, setSecim] = useState<string | null>(null)
   const [hata, setHata] = useState<string | null>(null)
   const [gidiyor, setGidiyor] = useState(false)
+  // Aynı anda tek okuma: açılış, sonucEksik effect'i ve cevapla'nın kurtarması aynı isteği paylaşıyor
+  const okuma = useRef<Promise<Soru[]> | null>(null)
+  function oku(): Promise<Soru[]> {
+    return (okuma.current ??= okuAsil().finally(() => { okuma.current = null }))
+  }
 
-  async function oku(): Promise<Soru[]> {
+  async function okuAsil(): Promise<Soru[]> {
     let yeni: Soru[] = []
     const [ev, du] = await sor(Promise.all([
       sb.from('etkinlikler').select('*').eq('id', etkinlikId).maybeSingle(),
@@ -51,6 +56,9 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const et = (ev.data ?? null) as Etkinlik | null
     const dd = ((du.data ?? []) as TahminDurumu[])[0] ?? null
     if (et && asama(et) === 'sonuc' && dd?.basladi) {
+      // Aşama önce: sonuç yüklenemezse genel hata değil, Sonuçlar'ın hata ekranı (Tekrar dene) çıksın
+      setD(dd)
+      setE(et)
       // Başlamış oyunun en az bir sorusu var: boş liste, telefonun saati önde ve sunucu henüz kapanışa gelmedi demek
       let satirlar: SonucSatir[] = []
       for (let i = 0; i < 5 && !satirlar.length; i++) {
@@ -93,19 +101,30 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const { error } = await sb.rpc('tahmin_cevapla', {
       p_etkinlik: etkinlikId, p_sira: s.sira, p_cevap: gec ? null : secim, p_gec: gec,
     })
-    setGidiyor(false)
     if (error) {
-      // Yanıt yolda kaybolduysa cevap kaydedilmiş olabilir, oylama da kapanmış olabilir: sunucudaki duruma dön
-      const yeni = await oku().catch(() => [] as Soru[])
+      // Yanıt yolda kaybolduysa cevap kaydedilmiş olabilir, oylama da kapanmış olabilir: sunucudaki duruma dön.
+      // Cevaptan önce başlamış ortak okuma cevabı görmez; bitmesini bekleyip yeni bir okuma yap.
+      await okuma.current?.catch(() => {})
+      const yeni = await okuAsil().catch(() => [] as Soru[])
       if (yeni.some(x => x.sira === s.sira && (x.cevap != null || x.gecti))) setSecim(null)
       else setHata(hataMetni(error))
+      setGidiyor(false)
       return
     }
+    setGidiyor(false)
     setSorular(l => l.map(x => (x.sira === s.sira ? { ...x, cevap: gec ? null : secim, gecti: gec } : x)))
     setSecim(null)
   }
 
-  if (hata && e === undefined) return <div className="sc m-tek"><Kunye sol="Oylama" geri="oyla" sag="Tahmin" /><Hata metin={hata} /></div>
+  if (hata && e === undefined) {
+    return (
+      <div className="sc m-tek">
+        <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
+        <Hata metin={hata} />
+        <button className="btn" onClick={() => { setHata(null); oku().catch(x => setHata(hataMetni(x))) }}>Tekrar dene</button>
+      </div>
+    )
+  }
   if (e === undefined) return <Yukleniyor />
   if (!e || !d) {
     return (
@@ -131,9 +150,15 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
       )
     }
     if (!sonuc) {
-      return hata
-        ? <div className="sc m-tek"><Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" /><Hata metin={hata} /></div>
-        : <Yukleniyor />
+      if (!hata) return <Yukleniyor />
+      return (
+        <div className="sc m-tek">
+          <Kunye sol="Sonuçlar" geri={`sonuc/${etkinlikId}`} sag="Tahmin" />
+          <Hata metin={hata} />
+          <button className="btn" onClick={() => { setHata(null); oku().catch(x => setHata(hataMetni(x))) }}>Tekrar dene</button>
+          <button className="link" onClick={() => git(`sonuc/${etkinlikId}`)}>Sonuçlara dön</button>
+        </div>
+      )
     }
     const sayilan = sonuc.filter(x => x.sayildi)
     const dogru = sayilan.filter(x => x.dogru).length

@@ -208,4 +208,23 @@ const kendi = async (U, fn = 'siralama') => sayi((await sira(U, fn)).find(x => x
   bekle('7: satırdaki kare temada en iyi yeri alan (ham ortalaması düşük olsa da)', satir(await sira(K.ge), 'Ge Ak')?.dosya === dosya, JSON.stringify(satir(await sira(K.ge), 'Ge Ak')));
 }
 
+// ---------------------------------------------- 8. yeni sezon ilk sonucu açılınca başlıyor (audit 2026-10-14, Buse)
+{
+  await kur([['ba', 'Ba Ak']]);
+  for (let i = 0; i < 6; i++) { const e = await etkinlik(70 - i * 10, [['Sokak', true]]); await kare(e, 0, K.ba, [7, 8]); }
+  // 7. buluşma kuruldu, yüklemesi 20 gün sonra
+  const yedi = (await admin.from('etkinlikler').insert({ bulusma_gunu: tarih(-20), yukleme_baslar: gun(-20), yukleme_biter: gun(-21),
+    oylama_biter: gun(-22), kuran: A.id }).select('id').single()).data.id;
+  let oz = ((await K.ba.c.rpc('sezon_ozeti')).data ?? [])[0];
+  bekle('8: 7. buluşma kurulunca sezon özeti hâlâ 1. sezon, 6/6', Number(oz?.sezon) === 1 && Number(oz?.tamamlanan) === 6, JSON.stringify(oz));
+  bekle('8: sezon tablosunda kendi ortalaması var', (await kendi(K.ba)) != null);
+  const pB = ((await K.ba.c.rpc('profil')).data ?? [])[0];
+  bekle('8: profil ortalaması boşalmıyor', pB?.ortalama != null, JSON.stringify(pB));
+  bekle('8: Serbest tablosu hatasız', !(await K.ba.c.rpc('serbest_siralama')).error);
+  // 7. etkinliğin sonucu açılınca 2. sezon
+  await admin.from('etkinlikler').update({ bulusma_gunu: tarih(3), yukleme_baslar: gun(3), yukleme_biter: gun(2), oylama_biter: gun(1) }).eq('id', yedi);
+  oz = ((await K.ba.c.rpc('sezon_ozeti')).data ?? [])[0];
+  bekle('8: 7. etkinliğin sonucu açılınca 2. sezon, 1/6', Number(oz?.sezon) === 2 && Number(oz?.tamamlanan) === 1, JSON.stringify(oz));
+}
+
 rapor();

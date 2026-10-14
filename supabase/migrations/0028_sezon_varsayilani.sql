@@ -1,0 +1,170 @@
+-- Yeni sezon, ilk etkinliğinin sonuçları açılınca başlıyor (audit 2026-10-14, Must fix 3; Buse 2026-10-14).
+-- Önceden varsayılan max(sezon) idi ve gizli.sezonlar() başlamamış etkinlikleri de sayıyor: 7. buluşma kurulduğu an
+-- Sıralama "Sezon 2, 0/6" ve boş tablo, profil ortalaması boş gösteriyordu. Gövdeler 0023 ve 0008'den, yalnız
+-- hedef satırı değişti.
+create or replace function gizli.varsayilan_sezon() returns bigint
+language sql stable security definer set search_path = public as $$
+  select coalesce((select max(sezon) from gizli.sezonlar() where tamam), 1)
+$$;
+revoke execute on function gizli.varsayilan_sezon() from anon, public, authenticated;
+
+create or replace function public.siralama(p_sezon bigint default null)
+returns table (
+  uye uuid, ad text, benim boolean,
+  ortalama numeric, sira bigint, sirali boolean, esikte boolean,
+  kare_sayisi bigint, etkinlik_sayisi bigint,
+  dosya text, genislik int, yukseklik int
+)
+language sql stable security definer set search_path = public as $$
+  with s as (select * from gizli.sezonlar()),
+  hedef as (select coalesce(p_sezon, gizli.varsayilan_sezon()) as no),
+  -- sezonun tamamlanmış buluşma etkinlikleri (eşik bunlardan)
+  bulusma as (select s.etkinlik from s, hedef h where s.sezon = h.no and s.tamam),
+  -- sezonun tamamlanmış bütün etkinlikleri, serbest dahil (ortalama bunlardan)
+  etk as (
+    select se.etkinlik from gizli.sezon_etkinlikleri() se, hedef h where se.sezon = h.no and se.tamam
+  ),
+  gereken as (select least(3, ceil((select count(*) from bulusma) / 2.0))::bigint as adet),
+  ham as (
+    select ks.*, case when t.bulusmada then 1.0 else 0.5 end as agirlik,
+           count(ks.ort) over (partition by ks.tema) as n
+    from gizli.kare_siralari() ks
+    join public.temalar t on t.id = ks.tema
+    where ks.etkinlik in (select etkinlik from etk)
+  ),
+  -- Karar 125: karenin puanı temasındaki yeri. Birinci 100, sonuncu 0; temada tek puanlı kare 50.
+  -- yer kare_siralari'ndan (rank, eşitler aynı yerde), n temadaki puanlı kare. Puansız karenin yeri yok.
+  kare as (
+    select ham.*,
+           case when ham.ort is null then null
+                when ham.n = 1 then 50.0
+                else 100.0 * (ham.n - ham.yer) / (ham.n - 1) end as yp
+    from ham
+  ),
+  kisi as (
+    select k.sahip as uye, u.ad,
+           -- Karar 116: serbest tema yarım ağırlıkta. Puansız kare ortalamaya girmiyor (eskisi gibi).
+           sum(k.yp * k.agirlik) filter (where k.yp is not null) as toplam,
+           sum(k.agirlik) filter (where k.yp is not null) as agirlik,
+           count(*) as kare_sayisi,
+           count(distinct k.etkinlik) filter (where k.etkinlik in (select etkinlik from bulusma)) as etkinlik_sayisi
+    from kare k
+    join public.uyeler u on u.id = k.sahip
+    group by k.sahip, u.ad
+  ),
+  -- Bayes (karar 124): m = 3 karelik ortayla (50) başlanıyor
+  puanli as (
+    select kisi.*,
+           case when kisi.agirlik > 0
+             then (3 * 50.0 + kisi.toplam) / (3 + kisi.agirlik) end as ort
+    from kisi
+  ),
+  -- Satırdaki kare: puanı yerden geldiği için temasında en iyi yeri alan karesi; eşitse ham ortalaması
+  -- yüksek olan, o da eşitse önce yüklenen (kod incelemesi, 2026-10-03). Puan taşımıyor. Görsel herkese
+  -- açık: kişinin hangi karesinin daha iyi yer aldığını, yani görünmeyen bir karenin yerini görünen bir
+  -- kareye göre kabaca söylüyor. Ham ortalamayla seçerken de aynısı vardı; karar 52 kapsamında kabul.
+  eniyi as (
+    select distinct on (k.sahip) k.sahip, kr.dosya, kr.genislik, kr.yukseklik
+    from kare k
+    join public.kareler kr on kr.id = k.id
+    order by k.sahip, k.yp desc nulls last, k.ort desc nulls last, kr.yukleme_at, kr.id
+  ),
+  sirali as (
+    select puanli.*,
+           puanli.etkinlik_sayisi >= (select adet from gereken) as esikte,
+           case when puanli.etkinlik_sayisi >= (select adet from gereken) and puanli.ort is not null
+             then rank() over (
+               order by case when puanli.etkinlik_sayisi >= (select adet from gereken)
+                          then puanli.ort end desc nulls last)
+           end as yer,
+           greatest(1, least(5, round(count(*) over () / 2.5))) as kac
+    from puanli
+  )
+  select s2.uye, s2.ad, s2.uye = auth.uid(),
+         case when s2.yer <= s2.kac or s2.uye = auth.uid() then round(s2.ort) end,
+         case when s2.yer <= s2.kac then s2.yer end,
+         coalesce(s2.yer <= s2.kac, false),
+         s2.esikte,
+         s2.kare_sayisi, s2.etkinlik_sayisi,
+         e.dosya, e.genislik, e.yukseklik
+  from sirali s2
+  left join eniyi e on e.sahip = s2.uye
+  where public.uye_mi()
+  order by case when s2.yer <= s2.kac then s2.yer end nulls last,
+           s2.ad collate "tr-TR-x-icu"
+$$;
+
+create or replace function public.serbest_siralama(p_sezon bigint default null)
+returns table (
+  uye uuid, ad text, benim boolean,
+  ortalama numeric, sira bigint, sirali boolean,
+  kare_sayisi bigint,
+  dosya text, genislik int, yukseklik int
+)
+language sql stable security definer set search_path = public as $$
+  with hedef as (select coalesce(p_sezon, gizli.varsayilan_sezon()) as no),
+  etk as (
+    select se.etkinlik from gizli.sezon_etkinlikleri() se, hedef h where se.sezon = h.no and se.tamam
+  ),
+  ham as (
+    select ks.*, count(ks.ort) over (partition by ks.tema) as n
+    from gizli.kare_siralari() ks
+    join public.temalar t on t.id = ks.tema
+    where ks.etkinlik in (select etkinlik from etk) and not t.bulusmada
+  ),
+  kare as (
+    select ham.*,
+           case when ham.ort is null then null
+                when ham.n = 1 then 50.0
+                else 100.0 * (ham.n - ham.yer) / (ham.n - 1) end as yp
+    from ham
+  ),
+  kisi as (
+    select k.sahip as uye, u.ad,
+           sum(k.yp) as toplam, count(k.yp) as adet, count(*) as kare_sayisi
+    from kare k join public.uyeler u on u.id = k.sahip
+    group by k.sahip, u.ad
+  ),
+  puanli as (
+    select kisi.*,
+           case when kisi.adet > 0
+             then (3 * 50.0 + kisi.toplam) / (3 + kisi.adet) end as ort
+    from kisi
+  ),
+  eniyi as (
+    select distinct on (k.sahip) k.sahip, kr.dosya, kr.genislik, kr.yukseklik
+    from kare k join public.kareler kr on kr.id = k.id
+    order by k.sahip, k.yp desc nulls last, k.ort desc nulls last, kr.yukleme_at, kr.id
+  ),
+  sirali as (
+    select puanli.*,
+           case when puanli.ort is not null then rank() over (order by puanli.ort desc nulls last) end as yer,
+           greatest(1, least(5, round(count(*) over () / 2.5))) as kac
+    from puanli
+  )
+  select s2.uye, s2.ad, s2.uye = auth.uid(),
+         case when s2.yer <= s2.kac or s2.uye = auth.uid() then round(s2.ort) end,
+         case when s2.yer <= s2.kac then s2.yer end,
+         coalesce(s2.yer <= s2.kac, false),
+         s2.kare_sayisi,
+         e.dosya, e.genislik, e.yukseklik
+  from sirali s2
+  left join eniyi e on e.sahip = s2.uye
+  where public.uye_mi()
+  order by case when s2.yer <= s2.kac then s2.yer end nulls last,
+           s2.ad collate "tr-TR-x-icu"
+$$;
+
+create or replace function public.sezon_ozeti(p_sezon bigint default null)
+returns table (sezon bigint, tamamlanan bigint, toplam bigint, uye_sayisi bigint, onceki boolean)
+language sql stable security definer set search_path = public as $$
+  with s as (select * from gizli.sezonlar()),
+  hedef as (select coalesce(p_sezon, gizli.varsayilan_sezon()) as no)
+  select h.no,
+         (select count(*) from s where s.sezon = h.no and s.tamam),
+         6::bigint,
+         (select count(*) from public.uyeler where cikarildi_at is null),
+         (select exists (select 1 from s where s.sezon = h.no - 1))
+  from hedef h
+  where public.uye_mi()
+$$;

@@ -35,6 +35,8 @@ const toplam = String(sorular.length).padStart(2, '0');
 
 const b = await chromium.launch(); const hatalar = [];
 const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+// Telefonun saati sunucudan 5 sn ileride (son inceleme, Important 1): kapanışta sunucu sonucu henüz vermiyor
+await ctx.addInitScript(() => { const asil = Date.now.bind(Date); Date.now = () => asil() + 5000; });
 const P = await ctx.newPage(); P.on('pageerror', e => hatalar.push(String(e)));
 const metin = () => P.locator('.app').innerText().then(t => t.replace(/\s+/g, ' ').toLocaleLowerCase('tr-TR'));
 const sayac = () => P.locator('.tahmin-bas span').textContent({ timeout: 1500 }).catch(() => null);
@@ -57,12 +59,16 @@ try {
   bekle('takılma yok: "zaten cevapladın" yazmıyor', !(await metin()).includes('zaten cevapladın'), (await metin()).slice(0, 200));
 
   // Oylama kişi ekrandayken kapanıyor
-  await P.waitForTimeout(Math.max(0, kapanis - Date.now()) + 1500);
+  // Telefonda bitiş geçti, sunucuda 3 sn var: bu aralıkta dokunuluyor
+  await P.waitForTimeout(Math.max(0, kapanis - Date.now() - 3000));
   // Kapanıştan sonraki ilk dokunuş ekranı yeniden çiziyor; sonuç o an yükleniyorsa Sıradaki hiç kalmayabilir
   await P.locator('.aday').first().click();
   await P.getByRole('button', { name: 'Sıradaki' }).click({ timeout: 1500 }).catch(() => {}); await P.waitForTimeout(2200);
   bekle('kapanışta oynayana "oynamadın" denmiyor', !(await metin()).includes('oynamadın'), (await metin()).slice(0, 200));
+  await P.waitForTimeout(5000);
   bekle('kapanışta sonuç ekranı açılıyor', (await metin()).includes('doğru bildin'), (await metin()).slice(0, 200));
+  const skor = await P.locator('.tahmin-skor b').textContent({ timeout: 1500 }).catch(() => null);
+  bekle('telefon saati önde olsa da skor bütün soruları sayıyor (0/0 değil)', skor?.endsWith(`/${sorular.length}`), skor ?? 'skor yok');
 
   // Sonuç yüklenemezse sonsuz yükleniyor yok (Review Focus 1)
   await P.route('**/rest/v1/rpc/tahmin_sonucum*', r => r.abort());

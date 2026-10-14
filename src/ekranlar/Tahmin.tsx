@@ -51,9 +51,16 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const et = (ev.data ?? null) as Etkinlik | null
     const dd = ((du.data ?? []) as TahminDurumu[])[0] ?? null
     if (et && asama(et) === 'sonuc' && dd?.basladi) {
-      const { data, error } = await sor(sb.rpc('tahmin_sonucum', { p_etkinlik: etkinlikId }))
-      if (error) throw error
-      setSonuc(await imzala((data ?? []) as SonucSatir[]))
+      // Başlamış oyunun en az bir sorusu var: boş liste, telefonun saati önde ve sunucu henüz kapanışa gelmedi demek
+      let satirlar: SonucSatir[] = []
+      for (let i = 0; i < 5 && !satirlar.length; i++) {
+        if (i) await new Promise(r => setTimeout(r, 3000))
+        const { data, error } = await sor(sb.rpc('tahmin_sonucum', { p_etkinlik: etkinlikId }))
+        if (error) throw error
+        satirlar = (data ?? []) as SonucSatir[]
+      }
+      if (!satirlar.length) throw new Error('tahmin_sonuc_hazir_degil')
+      setSonuc(await imzala(satirlar))
     } else if (dd?.basladi) {
       const { data, error } = await sor(sb.rpc('tahmin_sorularim', { p_etkinlik: etkinlikId }))
       if (error) throw error

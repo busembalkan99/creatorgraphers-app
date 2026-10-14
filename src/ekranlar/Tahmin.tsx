@@ -101,19 +101,30 @@ export function Tahmin({ etkinlikId }: { etkinlikId: string }) {
     const { error } = await sb.rpc('tahmin_cevapla', {
       p_etkinlik: etkinlikId, p_sira: s.sira, p_cevap: gec ? null : secim, p_gec: gec,
     })
-    setGidiyor(false)
     if (error) {
-      // Yanıt yolda kaybolduysa cevap kaydedilmiş olabilir, oylama da kapanmış olabilir: sunucudaki duruma dön
-      const yeni = await oku().catch(() => [] as Soru[])
+      // Yanıt yolda kaybolduysa cevap kaydedilmiş olabilir, oylama da kapanmış olabilir: sunucudaki duruma dön.
+      // Cevaptan önce başlamış ortak okuma cevabı görmez; bitmesini bekleyip yeni bir okuma yap.
+      await okuma.current?.catch(() => {})
+      const yeni = await okuAsil().catch(() => [] as Soru[])
       if (yeni.some(x => x.sira === s.sira && (x.cevap != null || x.gecti))) setSecim(null)
       else setHata(hataMetni(error))
+      setGidiyor(false)
       return
     }
+    setGidiyor(false)
     setSorular(l => l.map(x => (x.sira === s.sira ? { ...x, cevap: gec ? null : secim, gecti: gec } : x)))
     setSecim(null)
   }
 
-  if (hata && e === undefined) return <div className="sc m-tek"><Kunye sol="Oylama" geri="oyla" sag="Tahmin" /><Hata metin={hata} /></div>
+  if (hata && e === undefined) {
+    return (
+      <div className="sc m-tek">
+        <Kunye sol="Oylama" geri="oyla" sag="Tahmin" />
+        <Hata metin={hata} />
+        <button className="btn" onClick={() => { setHata(null); oku().catch(x => setHata(hataMetni(x))) }}>Tekrar dene</button>
+      </div>
+    )
+  }
   if (e === undefined) return <Yukleniyor />
   if (!e || !d) {
     return (

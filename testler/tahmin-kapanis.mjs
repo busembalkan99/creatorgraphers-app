@@ -46,13 +46,23 @@ await admin.from('etkinlikler').update({ oylama_biter: new Date(kapanis).toISOSt
 try {
   await P.goto(APP); await P.waitForFunction(() => window.__sb);
   await P.evaluate(async () => { const r = await window.__sb.auth.signInWithPassword({ email: 'kurucu@test.local', password: 'test-sifre-1' }); if (r.error) throw r.error; });
+  // İlk açılışta bağlantı kopuyor: genel hata ekranında da Tekrar dene (kod incelemesi F7)
+  await P.route('**/rest/v1/rpc/tahmin_durumu*', r => r.abort(), { times: 1 });
   await P.goto(APP + `#/tahmin/${E}`); await P.reload(); await P.waitForTimeout(1600);
+  bekle('ilk açılış hatasında Tekrar dene var', (await P.getByRole('button', { name: 'Tekrar dene' }).count()) === 1, (await metin()).slice(0, 200));
+  if (await P.getByRole('button', { name: 'Tekrar dene' }).count()) await P.getByRole('button', { name: 'Tekrar dene' }).click({ timeout: 1500 });
+  else await P.reload();
+  await P.waitForTimeout(1600);
   bekle('ekran ikinci soruda', (await sayac()) === `02 / ${toplam}`, await sayac());
 
   // Cevap sunucuya ulaşıyor ama yanıt yolda kayboluyor (Review Focus 5)
   await P.route('**/rest/v1/rpc/tahmin_cevapla*', async r => { await r.fetch(); await r.abort(); }, { times: 1 });
+  // Kurtarma okuması yavaş: sürerken Sıradaki yeniden basılamamalı (kod incelemesi F1)
+  await P.route('**/rest/v1/rpc/tahmin_sorularim*', async r => { await new Promise(s => setTimeout(s, 2000)); await r.continue(); }, { times: 1 });
   await P.locator('.aday').first().click();
-  await P.getByRole('button', { name: 'Sıradaki' }).click(); await P.waitForTimeout(1800);
+  await P.getByRole('button', { name: 'Sıradaki' }).click(); await P.waitForTimeout(700);
+  bekle('kurtarma okuması sürerken Sıradaki kilitli', await P.getByRole('button', { name: 'Sıradaki' }).isDisabled(), (await metin()).slice(0, 200));
+  await P.waitForTimeout(2500);
   bekle('yanıt kaybolunca sunucudaki duruma dönüp üçüncü soruya geçiyor', (await sayac()) === `03 / ${toplam}`, await sayac());
   bekle('yanıt kaybolunca yeni soruda hata yazısı yok, seçim boş', (await P.locator('.hata').count()) === 0
     && (await P.locator('.tahmin-alt .secim b').textContent()).trim() === '—', (await metin()).slice(0, 200));
@@ -80,8 +90,16 @@ try {
     && (await P.getByRole('button', { name: 'Sonuçlara dön' }).count()) === 1, (await metin()).slice(0, 200));
   await P.screenshot({ path: '/tmp/cgapp/ss/kapanis-sonuc-hata.png' });
   await P.unroute('**/rest/v1/rpc/tahmin_sonucum*');
-  await P.getByRole('button', { name: 'Tekrar dene' }).click({ timeout: 1500 }).catch(() => {}); await P.waitForTimeout(2500);
+  await P.getByRole('button', { name: 'Tekrar dene' }).click({ timeout: 1500 }); await P.waitForTimeout(2500);
   bekle('Tekrar dene sonucu yüklüyor', (await metin()).includes('doğru bildin') && (await P.locator('.hata').count()) === 0, (await metin()).slice(0, 200));
+
+  // A'nın sonucu yüklenirken B'ye geçiliyor: B'nin ekranında A'nın sonucu görünmemeli (kod incelemesi F3)
+  const B = (await admin.from('etkinlikler').insert({ bulusma_gunu: bugun, yukleme_baslar: saat(-3), yukleme_biter: saat(-2), oylama_biter: saat(20), kuran: A.id }).select('id').single()).data.id;
+  await P.route('**/rest/v1/rpc/tahmin_sonucum*', async r => { await new Promise(s => setTimeout(s, 3000)); await r.continue(); }, { times: 1 });
+  await P.goto(APP + `#/tahmin/${E}`); await P.reload(); await P.waitForTimeout(400);
+  await P.evaluate(id => { location.hash = `#/tahmin/${id}`; }, B); await P.waitForTimeout(5000);
+  bekle('etkinlik değişince önceki etkinliğin sonucu gösterilmiyor', !(await metin()).includes('doğru bildin'), (await metin()).slice(0, 200));
+  await admin.from('etkinlikler').update({ iptal: true }).eq('id', B);
 
   // Sunucu sonucu hiç vermiyor (hep boş liste): denemeler bitince 0/0 skor değil, hata metni
   await P.unroute('**/rest/v1/rpc/tahmin_sonucum*');
